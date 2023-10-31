@@ -1,11 +1,15 @@
 'use client'
 import { toPng } from 'html-to-image';
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 
 export default function Home() {
   const [userImage, setUserImage] = useState(null);
   const myComponentRef = useRef<HTMLDivElement | null>(null);
+  const [isSupported, setIsSupported] = useState(true)
+  useEffect(() => {
+    setIsSupported(!!navigator.canShare);
+  })
 
   const handleImageUpload = (e: any) => {
     const file = e.target.files[0];
@@ -36,7 +40,7 @@ export default function Home() {
   };
 
   const renderDownloadSection = () => {
-    if (!navigator.canShare) {
+    if (isSupported) {
       return (
         <div className='border p-4 rounded-lg bg-yellow-200 my-2'>
           <p>Downloading is not supported here. 😥</p>
