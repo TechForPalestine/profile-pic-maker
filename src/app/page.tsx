@@ -35,53 +35,21 @@ export default function Home() {
       });
   };
 
-  function supportsDownloadAttribute() {
-    try {
-      // Creating a new Blob object
-      var blob = new Blob(['Test content'], { type: 'text/plain' });
-
-      // Creating an object URL from the Blob
-      var url = window.URL.createObjectURL(blob);
-
-      // Creating a new anchor element
-      var a = document.createElement('a');
-      a.href = url;
-
-      // Setting download attribute with a filename
-      a.download = 'test.txt';
-
-      // Appending the anchor to the body
-      document.body.appendChild(a);
-
-      // Simulating a click to trigger the download
-      a.click();
-
-      // Removing the anchor from the body
-      document.body.removeChild(a);
-
-      // Revoking the object URL to free up resources
-      window.URL.revokeObjectURL(url);
-
-      // If no errors were thrown, download is supported
-      return true;
-    } catch (e) {
-      // If an error is caught, download is not supported
-      return false;
-    }
-  }
-
   const renderDownloadSection = () => {
-    if (supportsDownloadAttribute()) {
-      return (<button onClick={handleDownload} className="rounded-full my-2 py-4 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl">
-        Download Image
-      </button>)
+    if (!navigator.canShare) {
+      return (
+        <div className='border p-4 rounded-lg bg-yellow-200 my-2'>
+          <p>Downloading is not supported here. 😥</p>
+          <p className='mt-1'>Please open this page on your native browser. 🙏</p>
+        </div>
+      )
     }
     return (
-      <div className='border p-4 rounded-lg bg-yellow-200 my-2'>
-        <p>Downloading is not supported here. 😥</p>
-        <p className='mt-1'>Please open this page on your native browser. 🙏</p>
-      </div>
+      <button onClick={handleDownload} className="rounded-full my-2 py-4 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl">
+        Download Image
+      </button>
     )
+
   }
 
 
