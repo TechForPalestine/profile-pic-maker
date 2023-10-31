@@ -1,15 +1,12 @@
 'use client'
 import { toPng } from 'html-to-image';
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 
 export default function Home() {
   const [userImage, setUserImage] = useState(null);
   const myComponentRef = useRef<HTMLDivElement | null>(null);
-  const [isSupported, setIsSupported] = useState(true)
-  useEffect(() => {
-    setIsSupported(!!navigator.canShare);
-  })
+  const [hasFailedDownload, setHasFailedDownload] = useState(false)
 
   const handleImageUpload = (e: any) => {
     const file = e.target.files[0];
@@ -30,17 +27,18 @@ export default function Home() {
     toPng(myComponentRef.current as HTMLElement)
       .then((dataUrl) => {
         const link = document.createElement('a');
-        link.download = 'my-image.png';
+        link.download = 'my-palestine-pfp.png';
         link.href = dataUrl;
         link.click();
       })
       .catch((error) => {
         console.error('Error occurred while downloading the image', error);
+        setHasFailedDownload(true)
       });
   };
 
   const renderDownloadSection = () => {
-    if (isSupported) {
+    if (hasFailedDownload) {
       return (
         <div className='border p-4 rounded-lg bg-yellow-200 my-2'>
           <p>Downloading is not supported here. 😥</p>
@@ -48,12 +46,12 @@ export default function Home() {
         </div>
       )
     }
+
     return (
       <button onClick={handleDownload} className="rounded-full my-2 py-4 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl">
         Download Image
       </button>
     )
-
   }
 
 
