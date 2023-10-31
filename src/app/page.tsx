@@ -6,13 +6,13 @@ import Image from 'next/image'
 
 export default function Home() {
   const [userImage, setUserImage] = useState(null);
-  const myComponentRef = useRef();
+  const myComponentRef = useRef<HTMLDivElement | null>(null);
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = (e: any) => {
     const file = e.target.files[0];
     const reader = new FileReader();
 
-    reader.onload = (event) => {
+    reader.onload = (event: any) => {
       setUserImage(event.target.result);
     };
 
@@ -20,11 +20,11 @@ export default function Home() {
   };
 
   const handleUploadButtonClick = () => {
-    document.getElementById('fileInput').click();
+    document.getElementById('fileInput')?.click();
   };
 
   const handleDownload = () => {
-    toPng(myComponentRef.current)
+    toPng(myComponentRef.current as HTMLElement)
       .then((dataUrl) => {
         const link = document.createElement('a');
         link.download = 'my-image.png';
