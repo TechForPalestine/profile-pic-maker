@@ -9,6 +9,7 @@ export default function Home() {
   const [hasClickedDownload, setHasClickedDownload] = useState(false)
   const [isInAppBrowser, setIsInAppBrowser] = useState(false)
 
+
   useEffect(() => {
     setIsInAppBrowser(checkIsInAppBrowser())
   })
@@ -29,29 +30,14 @@ export default function Home() {
     document.getElementById('fileInput')?.click();
   };
 
-  const isIOS = () => {
-    return [
-      'iPad Simulator',
-      'iPhone Simulator',
-      'iPod Simulator',
-      'iPad',
-      'iPhone',
-      'iPod'
-    ].includes(navigator.platform)
-      || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
-  }
-
   const handleDownload = () => {
+    setHasClickedDownload(true)
     toPng(myComponentRef.current as HTMLElement)
       .then((dataUrl) => {
-        if (isIOS()) {
-          window.open(dataUrl, '_blank');
-        } else {
-          const link = document.createElement('a');
-          link.download = 'my-palestine-pfp.png';
-          link.href = dataUrl;
-          link.click();
-        }
+        const link = document.createElement('a');
+        link.download = 'my-palestine-pfp.png';
+        link.href = dataUrl;
+        link.click();
       })
       .catch((error) => {
         console.error('Error occurred while downloading the image', error);
