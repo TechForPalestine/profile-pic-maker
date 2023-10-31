@@ -35,6 +35,24 @@ export default function Home() {
       });
   };
 
+  function supportsDownloadAttribute() {
+    const a = document.createElement('a');
+    return typeof a.download !== 'undefined';
+  }
+
+  const renderDownloadSection = () => {
+    if (supportsDownloadAttribute()) {
+      return (<button onClick={handleDownload} className="rounded-full my-2 py-4 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl">
+        Download Image
+      </button>)
+    }
+    return (
+      <div className='border p-4 rounded-lg bg-yellow-200 my-2'>
+        <p>Downloading is not supported here. 😥</p>
+        <p className='mt-1'>Please open this page on your native browser. 🙏</p>
+      </div>
+    )
+  }
 
 
   return (
@@ -55,13 +73,7 @@ export default function Home() {
             Upload Image
           </button>
           <br />
-          {/* <button onClick={handleDownload} className="rounded-full my-2 py-4 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl">
-            Download Image
-          </button> */}
-          <div className='border p-4 rounded-lg bg-yellow-200 my-2'>
-            <p>Downloading is not supported here. 😥</p>
-            <p className='mt-1'>Please open this page on your native browser. 🙏</p>
-          </div>
+          {renderDownloadSection()}
         </div>
         <div className='pt-8'>
           <p className='text-gray-600'>Have any feedback? <a href='https://www.instagram.com/tengkuhafidz' target='_blank' className='underline cursor-pointer'>Let me know!</a></p>
