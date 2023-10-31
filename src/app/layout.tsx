@@ -8,17 +8,12 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Palestine Profile Pic Maker 🇵🇸',
   description: 'Create your Palestine profile picture to show your support',
+  metadataBase: new URL('https://palestineprofile.jariyah.app'),
   openGraph: {
     title: 'Palestine Profile Pic Maker 🇵🇸',
     description: 'Create your Palestine profile picture to show your support',
     siteName: 'Palestine Profile Pic Maker 🇵🇸',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-      }
-    ],
+    images: '/og-image.png',
   }
 }
 
