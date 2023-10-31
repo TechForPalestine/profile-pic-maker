@@ -1,7 +1,6 @@
 'use client'
 import { toPng } from 'html-to-image';
 import { useRef, useState } from "react";
-import Image from 'next/image'
 
 
 export default function Home() {
@@ -46,7 +45,7 @@ export default function Home() {
         <div className="my-12">
           <div style={{ width: '300px', height: '300px' }} className="mx-auto relative" ref={myComponentRef}>
             <img id="borderImage" src="/bg.png" style={{ position: 'absolute', width: '100%', height: '100%' }} className="rounded-full" />
-            <Image id="userImage" alt='profile-image' src={userImage ?? "/user.jpg"} style={{ position: 'absolute', width: '85%', height: '85%', borderRadius: '50%', left: '7.5%', top: '7.5%' }} className="border object-cover cursor-pointer" onClick={handleUploadButtonClick} />
+            <img id="userImage" alt='profile-image' src={userImage ?? "/user.jpg"} style={{ position: 'absolute', width: '85%', height: '85%', borderRadius: '50%', left: '7.5%', top: '7.5%' }} className="border object-cover cursor-pointer" onClick={handleUploadButtonClick} />
           </div>
 
         </div>
