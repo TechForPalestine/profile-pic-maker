@@ -7,6 +7,11 @@ export default function Home() {
   const [userImage, setUserImage] = useState(null);
   const myComponentRef = useRef<HTMLDivElement | null>(null);
   const [hasClickedDownload, setHasClickedDownload] = useState(false)
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false)
+
+  useEffect(() => {
+    setIsInAppBrowser(checkIsInAppBrowser())
+  })
 
   const handleImageUpload = (e: any) => {
     const file = e.target.files[0];
@@ -24,21 +29,36 @@ export default function Home() {
     document.getElementById('fileInput')?.click();
   };
 
+  const isIOS = () => {
+    return [
+      'iPad Simulator',
+      'iPhone Simulator',
+      'iPod Simulator',
+      'iPad',
+      'iPhone',
+      'iPod'
+    ].includes(navigator.platform)
+      || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
+  }
+
   const handleDownload = () => {
-    setHasClickedDownload(true)
     toPng(myComponentRef.current as HTMLElement)
       .then((dataUrl) => {
-        const link = document.createElement('a');
-        link.download = 'my-palestine-pfp.png';
-        link.href = dataUrl;
-        link.click();
+        if (isIOS()) {
+          window.open(dataUrl, '_blank');
+        } else {
+          const link = document.createElement('a');
+          link.download = 'my-palestine-pfp.png';
+          link.href = dataUrl;
+          link.click();
+        }
       })
       .catch((error) => {
         console.error('Error occurred while downloading the image', error);
       });
   };
 
-  function checkInAppBrowser() {
+  function checkIsInAppBrowser() {
     const userAgent = navigator.userAgent || navigator.vendor;
     const inAppBrowsersRegex = [
       /FBAN|FBAV/i, // Facebook
@@ -52,14 +72,10 @@ export default function Home() {
       /WhatsApp/i // WhatsApp
     ];
 
-    const isInAppBrowser = inAppBrowsersRegex.some(function (regex) {
+    return inAppBrowsersRegex.some(function (regex) {
       return regex.test(userAgent);
     });
-    // Detecting popular In-App Browser
-    if (/instagram/i.test(userAgent) || /fbav/i.test(userAgent) || /fban/i.test(userAgent) || /tiktok/i.test(userAgent)) {
-      return true
-    }
-    return false
+
   }
 
 
@@ -85,10 +101,10 @@ export default function Home() {
           <button onClick={handleDownload} className="rounded-full my-2 py-4 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl">
             Download Image
           </button>
-          {hasClickedDownload && (
+          {isInAppBrowser && hasClickedDownload && (
             <div className='border p-4 rounded-lg bg-yellow-200 my-2'>
               <p>Download is not supported on some in-app browsers. 🫤</p>
-              <p className='mt-1'>If download did not start, please open this page on your main browser and try again. 🙏</p>
+              <p className='mt-1'>If download failed, please open this page on your main browser and try again. 🙏</p>
             </div>
           )
           }
