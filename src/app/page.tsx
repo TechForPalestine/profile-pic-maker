@@ -36,8 +36,12 @@ export default function Home() {
   };
 
   function supportsDownloadAttribute() {
-    const a = document.createElement('a');
-    return typeof a.download !== 'undefined';
+    try {
+      const a = document?.createElement('a');
+      return typeof a.download !== 'undefined';
+    } catch (e) {
+      return false
+    }
   }
 
   const renderDownloadSection = () => {
