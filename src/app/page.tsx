@@ -37,10 +37,36 @@ export default function Home() {
 
   function supportsDownloadAttribute() {
     try {
-      const a = document?.createElement('a');
-      return typeof a.download !== 'undefined';
+      // Creating a new Blob object
+      var blob = new Blob(['Test content'], { type: 'text/plain' });
+
+      // Creating an object URL from the Blob
+      var url = window.URL.createObjectURL(blob);
+
+      // Creating a new anchor element
+      var a = document.createElement('a');
+      a.href = url;
+
+      // Setting download attribute with a filename
+      a.download = 'test.txt';
+
+      // Appending the anchor to the body
+      document.body.appendChild(a);
+
+      // Simulating a click to trigger the download
+      a.click();
+
+      // Removing the anchor from the body
+      document.body.removeChild(a);
+
+      // Revoking the object URL to free up resources
+      window.URL.revokeObjectURL(url);
+
+      // If no errors were thrown, download is supported
+      return true;
     } catch (e) {
-      return false
+      // If an error is caught, download is not supported
+      return false;
     }
   }
 
