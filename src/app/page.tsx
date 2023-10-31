@@ -1,12 +1,17 @@
 'use client'
 import { toPng } from 'html-to-image';
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 
 export default function Home() {
   const [userImage, setUserImage] = useState(null);
   const myComponentRef = useRef<HTMLDivElement | null>(null);
-  const [hasFailedDownload, setHasFailedDownload] = useState(false)
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false)
+
+
+  useEffect(() => {
+    setIsInAppBrowser(checkInAppBrowser())
+  })
 
   const handleImageUpload = (e: any) => {
     const file = e.target.files[0];
@@ -33,12 +38,22 @@ export default function Home() {
       })
       .catch((error) => {
         console.error('Error occurred while downloading the image', error);
-        setHasFailedDownload(true)
       });
   };
 
+  function checkInAppBrowser() {
+    var userAgent = navigator.userAgent || navigator.vendor;
+
+    // Detecting popular In-App Browser
+    if (/instagram/i.test(userAgent) || /fbav/i.test(userAgent) || /fban/i.test(userAgent) || /tiktok/i.test(userAgent)) {
+      return true
+    }
+    return false
+  }
+
+
   const renderDownloadSection = () => {
-    if (hasFailedDownload) {
+    if (isInAppBrowser) {
       return (
         <div className='border p-4 rounded-lg bg-yellow-200 my-2'>
           <p>Downloading is not supported here. 😥</p>
