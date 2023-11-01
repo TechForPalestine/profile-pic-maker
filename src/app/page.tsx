@@ -10,9 +10,9 @@ export default function Home() {
   const [showPrompt, setShowPrompt] = useState(false)
   const myComponentRef = useRef<HTMLDivElement | null>(null);
 
-  const handleImageUpload = (e: any) => {
+  const handleImageUpload = async (e: any) => {
     setShowPrompt(false)
-
+    setGeneratedImageUrl(undefined)
     const file = e.target.files[0];
     const reader = new FileReader();
 
@@ -29,8 +29,8 @@ export default function Home() {
 
 
   const handleDownload = async () => {
-    const elementToCapture = myComponentRef.current;
     setShowPrompt(true)
+    const elementToCapture = myComponentRef.current;
     if (elementToCapture) {
       const canvas = await html2canvas(elementToCapture, {
         backgroundColor: null, // Set background color to null for transparency
@@ -38,10 +38,11 @@ export default function Home() {
       const imageUrl = canvas.toDataURL('image/png');
       setGeneratedImageUrl(imageUrl)
       const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
+      a.href = generatedImageUrl as string;
       a.download = 'profile-picture.png';
       a.click();
     }
+
   };
 
   return (
@@ -56,7 +57,7 @@ export default function Home() {
           </div>
           {showPrompt && (
             <div className='border p-4 rounded-lg bg-yellow-200 my-2'>
-              <p className='mt-1'>If download fails, long-press image to save manually 🙏</p>
+              <p className='mt-1'>If download fails, long-press on the image to save it manually 🙏</p>
             </div>
           )}
         </div>
