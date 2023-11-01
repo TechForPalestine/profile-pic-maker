@@ -1,18 +1,12 @@
 'use client'
-import { toPng } from 'html-to-image';
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import html2canvas from 'html2canvas';
+
 
 
 export default function Home() {
   const [userImage, setUserImage] = useState(null);
   const myComponentRef = useRef<HTMLDivElement | null>(null);
-  const [hasClickedDownload, setHasClickedDownload] = useState(false)
-  const [isInAppBrowser, setIsInAppBrowser] = useState(false)
-
-
-  useEffect(() => {
-    setIsInAppBrowser(checkIsInAppBrowser())
-  })
 
   const handleImageUpload = (e: any) => {
     const file = e.target.files[0];
@@ -26,44 +20,24 @@ export default function Home() {
   };
 
   const handleUploadButtonClick = () => {
-    setHasClickedDownload(false)
     document.getElementById('fileInput')?.click();
   };
 
+
   const handleDownload = () => {
-    setHasClickedDownload(true)
-    toPng(myComponentRef.current as HTMLElement)
-      .then((dataUrl) => {
-        const link = document.createElement('a');
-        link.download = 'my-palestine-pfp.png';
-        link.href = dataUrl;
-        link.click();
-      })
-      .catch((error) => {
-        console.error('Error occurred while downloading the image', error);
+    const elementToCapture = myComponentRef.current;
+
+    if (elementToCapture) {
+      html2canvas(elementToCapture, {
+        backgroundColor: null, // Set background color to null for transparency
+      }).then((canvas) => {
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = 'profile-picture.png';
+        a.click();
       });
+    }
   };
-
-  function checkIsInAppBrowser() {
-    const userAgent = navigator.userAgent || navigator.vendor;
-    const inAppBrowsersRegex = [
-      /FBAN|FBAV/i, // Facebook
-      /Twitter/i, // Twitter
-      /Instagram/i, // Instagram
-      /Reddit/i, // Reddit
-      /Pinterest/i, // Pinterest
-      /Snapchat/i, // Snapchat
-      /Telegram/i, // Telegram
-      /LinkedIn/i, // LinkedIn
-      /WhatsApp/i // WhatsApp
-    ];
-
-    return inAppBrowsersRegex.some(function (regex) {
-      return regex.test(userAgent);
-    });
-
-  }
-
 
 
   return (
@@ -87,13 +61,8 @@ export default function Home() {
           <button onClick={handleDownload} className="rounded-full my-2 py-4 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl">
             Download Image
           </button>
-          {isInAppBrowser && hasClickedDownload && (
-            <div className='border p-4 rounded-lg bg-yellow-200 my-2'>
-              <p>Download is not supported on some in-app browsers. 🫤</p>
-              <p className='mt-1'>If download failed, please open this page on your main browser and try again. 🙏</p>
-            </div>
-          )
-          }
+
+
         </div>
         <div className='pt-8'>
           <p className='text-gray-600'>Have any feedback? <a href='https://www.instagram.com/tengkuhafidz' target='_blank' className='underline cursor-pointer'>Let me know!</a></p>
