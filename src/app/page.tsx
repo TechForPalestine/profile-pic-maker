@@ -41,6 +41,9 @@ export default function Home() {
   }
 
   const handleDownload = async () => {
+    await generateImage()
+    await generateImage()
+    await generateImage()
     const generatedImageUrl = await generateImage()
     if (generatedImageUrl) {
       download(generatedImageUrl, "profile-pic.png")
@@ -50,13 +53,13 @@ export default function Home() {
   return (
     <main className='text-center px-8 py-12 max-w-lg mx-auto flex justify-center align-center items-center min-h-screen'>
       <div>
-        {unsuportedBrowser && (
-          <div className='border p-4 rounded-lg bg-yellow-200 my-2'>
-            <p>Downloads might not be supported on some in-app browsers. 😅</p>
-            <p>Please try on regular browsers such as Chrome if download fails 🙏</p>
+        {!unsuportedBrowser && (
+          <div className='border p-2 rounded-lg bg-yellow-200 my-2  text-sm mb-8'>
+            <p className='font-semibold'>⚠️ Unsupported Browser Detected</p>
+            <p>Please open on regular browsers like Chrome or Safari.</p>
           </div>
         )}
-        <h1 className='font-semibold text-3xl'>Show Your Support 🇵🇸</h1>
+        <h1 className='font-semibold text-3xl'>Show Support 🇵🇸</h1>
         <p className="text-lg py-2">Create your Palestine Profile picture to spread the awareness.</p>
         <div className="my-12">
           <div className='flex justify-center'>
@@ -77,9 +80,8 @@ export default function Home() {
             Upload Image
           </button>
         </div>
-        <div className='pt-8'>
-          <p className="text-lg p-2 my-6 text-sm border rounded-lg">Note: This app runs purely on your browser end. No images nor data will be saved by the app.</p>
-
+        <div className='pt-4'>
+          <p className="p-2 my-6 text-sm border rounded-lg">Note: This app runs purely on your browser end. No images nor data will be saved by the app.</p>
           <p className='text-gray-600'>Have any feedback? <a href='https://www.instagram.com/tengkuhafidz' target='_blank' className='underline cursor-pointer'>Let me know!</a></p>
         </div>
       </div>
