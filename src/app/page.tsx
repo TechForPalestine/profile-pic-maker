@@ -4,7 +4,7 @@ import { toPng } from 'html-to-image';
 import { useRef, useState } from "react";
 
 export default function Home() {
-  const ref = useRef<HTMLDivElement>()
+  const ref = useRef<HTMLDivElement>(null)
   const [userImageUrl, setUserImageUrl] = useState<string>();
   const [hasClickedDownload, setHasClickedDownload] = useState(false)
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string>()
