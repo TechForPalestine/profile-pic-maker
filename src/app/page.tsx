@@ -59,8 +59,8 @@ export default function Home() {
             <p>Please open on regular browsers like Chrome or Safari.</p>
           </div>
         )}
-        <h1 className='font-semibold text-3xl'>Show Support 🇵🇸</h1>
-        <p className="text-lg py-2">Create your Palestine Profile picture to spread the awareness.</p>
+        <h1 className='font-semibold text-3xl'>Show Solidarity 🇵🇸</h1>
+        <p className="text-lg py-2">Frame your profile picture with the colors of resilience. #IStandWithPalestine ✊</p>
         <div className="my-12">
           <div className='flex justify-center'>
             <div style={{ width: '300px', height: '300px' }} className="relative" ref={ref}>
