@@ -62,7 +62,7 @@ export default function Home() {
           </div>
         )}
         <h1 className='font-semibold text-3xl'>Show Solidarity 🇵🇸</h1>
-        <p className="text-lg py-2">Frame your profile picture with the colors of resilience. #IStandWithPalestine ✊</p>
+        <p className="text-lg py-2">Frame your profile picture with the colors of resilience. #CeasefireNow ✊</p>
         <div className="my-12">
           <div className='flex justify-center'>
             <div style={{ width: '300px', height: '300px' }} className="relative" ref={ref}>
