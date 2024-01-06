@@ -36,7 +36,3 @@ This project is open source and available under the [MIT License](LICENSE).
 
 This app is created for the purpose of expressing support for the Palestinian cause. Please use it responsibly and respect the rights and privacy of others.
 
-## Contact
-
-For any inquiries or suggestions, please contact [your-email@example.com](mailto:your-email@example.com).
-
