@@ -8,6 +8,7 @@ export default function Home() {
   const [userImageUrl, setUserImageUrl] = useState<string>();
   const [unsuportedBrowser, setUnsupportedBrowser] = useState(false)
 
+
   useEffect(() => {
     const isInstagramBrowser = /Instagram/i.test(navigator.userAgent);
     const isFacebookBrowser = /FBAN|FBAV/i.test(navigator.userAgent);
@@ -35,12 +36,13 @@ export default function Home() {
   const generateImage = async () => {
     try {
       return await toPng(ref.current as HTMLElement)
-    } catch (e) {
-      // console.log("e", e)
+    } catch (error) {
+      console.log("Error generating image", error)
     }
   }
 
   const handleDownload = async () => {
+    // TODO: Fix if possible. This is a hack to ensure that image generated is as expected. Without repeating generateImage(), at times, the image wont be generated correctly. 
     await generateImage()
     await generateImage()
     await generateImage()
