@@ -1,4 +1,5 @@
 'use client'
+import axios from 'axios';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import { useEffect, useRef, useState } from "react";
@@ -6,8 +7,7 @@ import { useEffect, useRef, useState } from "react";
 export default function Home() {
   const ref = useRef<HTMLDivElement>(null)
   const [userImageUrl, setUserImageUrl] = useState<string>();
-  const [unsuportedBrowser, setUnsupportedBrowser] = useState(false)
-
+  const [unsuportedBrowser, setUnsupportedBrowser] = useState(false);
 
   useEffect(() => {
     const isInstagramBrowser = /Instagram/i.test(navigator.userAgent);
@@ -31,6 +31,20 @@ export default function Home() {
 
   const handleUploadButtonClick = () => {
     document.getElementById('fileInput')?.click();
+  };
+
+  const handleRetrieveTwitterProfilePicture = async () => {
+    const userProvidedUsername = prompt('Enter your twitter username:');
+
+    if (userProvidedUsername) {
+      try {
+        // Example: Fetch Twitter profile picture
+        const response = await axios.get(`/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=twitter`);
+        setUserImageUrl(response.request.responseURL);
+      } catch (error) {
+        console.error('Error fetching twitter profile picture:', error);
+      }
+    }
   };
 
   const generateImage = async () => {
@@ -80,6 +94,9 @@ export default function Home() {
           <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="fileInput" />
           <button onClick={async () => await handleUploadButtonClick()} className="rounded-full my-2 py-4 px-2 w-full border border-gray-900 text-xl">
             Upload Image
+          </button>
+          <button onClick={handleRetrieveTwitterProfilePicture} className="rounded-full my-2 py-4 px-2 w-full border border-gray-900 text-xl">
+            Retrieve Twitter Profile Pic
           </button>
         </div>
         <div className='pt-4'>
