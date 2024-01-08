@@ -3,6 +3,9 @@ import axios from 'axios';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import { useEffect, useRef, useState } from "react";
+import { FaGithub, FaXTwitter } from "react-icons/fa6";
+import { SocialPlatform } from './api/retrieve-profile-pic/route';
+
 
 export default function Home() {
   const ref = useRef<HTMLDivElement>(null)
@@ -33,14 +36,13 @@ export default function Home() {
     document.getElementById('fileInput')?.click();
   };
 
-  const handleRetrieveTwitterProfilePicture = async () => {
-    const userProvidedUsername = prompt('Enter your twitter username:');
+  const handleRetrieveProfilePicture = async (platform: SocialPlatform) => {
+    const userProvidedUsername = prompt(`Enter your ${platform} username:`);
 
     if (userProvidedUsername) {
       try {
-        // Example: Fetch Twitter profile picture
-        const response = await axios.get(`/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=twitter`);
-        setUserImageUrl(response.request.responseURL);
+        const response = await axios.get(`/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=${platform}`);
+        setUserImageUrl(response.data.profilePicUrl);
       } catch (error) {
         console.error('Error fetching twitter profile picture:', error);
       }
@@ -92,14 +94,17 @@ export default function Home() {
           </button>
         )}
           <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="fileInput" />
-          <button onClick={async () => await handleUploadButtonClick()} className="rounded-full my-2 py-4 px-2 w-full border border-gray-900 text-xl">
+          <button onClick={async () => await handleUploadButtonClick()} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
             Upload Image
           </button>
-          <button onClick={handleRetrieveTwitterProfilePicture} className="rounded-full my-2 py-4 px-2 w-full border border-gray-900 text-xl">
-            Retrieve Twitter Profile Pic
+          <button onClick={async () => await handleRetrieveProfilePicture(SocialPlatform.Twitter)} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
+            Use <FaXTwitter className="inline mb-1" /> Profile Pic
+          </button>
+          <button onClick={async () => await handleRetrieveProfilePicture(SocialPlatform.Github)} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
+            Use <FaGithub className="inline mb-1" /> Profile Pic
           </button>
         </div>
-        <div className='pt-4'>
+        <div className='pt-8'>
           <p className="p-2 my-6 text-sm border rounded-lg">Note: This app runs purely on your browser end. No images nor data will be saved by the app.</p>
           <p className='text-gray-600'>Have any feedback? <a href='https://www.x.com/sohafidz' target='_blank' className='underline cursor-pointer'>Let me know!</a></p>
         </div>
