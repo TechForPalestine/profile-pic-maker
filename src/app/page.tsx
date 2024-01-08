@@ -1,10 +1,10 @@
 'use client'
+import { SocialPlatform } from '@/types';
 import axios from 'axios';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import { useEffect, useRef, useState } from "react";
 import { FaGithub, FaXTwitter } from "react-icons/fa6";
-import { SocialPlatform } from './api/retrieve-profile-pic/route';
 
 
 export default function Home() {
