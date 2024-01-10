@@ -1,5 +1,5 @@
 import { SocialPlatform } from "@/types";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -23,21 +23,34 @@ export async function GET(request: NextRequest) {
             break;
     }
 
+    if (profilePicUrl === null) {
+        return NextResponse.json({}, { status: 404 });
+    }
     return NextResponse.json({ profilePicUrl }, { status: 200 });
 }
 
 
 const fetchTwitterProfilePic = async (username: string) => {
     const endpoint = `https://api.fxtwitter.com/${username}`
-    const response = await axios.get(endpoint);
-    const smallImageUrl = response.data.user.avatar_url;
+    try {
+        const response = await axios.get(endpoint);
 
-    return smallImageUrl.replace('_normal', '_400x400');
+        const smallImageUrl = response.data.user.avatar_url;
+
+        return smallImageUrl.replace('_normal', '_400x400');
+    } catch (error) {
+        return null;
+    }
 }
 
 const fetchGithubProfilePic = async (username: string) => {
     const endpoint = `https://api.github.com/users/${username}`
-    const response = await axios.get(endpoint);
+    try {
+        const response = await axios.get(endpoint);
 
-    return response.data.avatar_url;
+        return response.data.avatar_url;
+    } catch (error) {
+        return null;
+    }
+
 }
