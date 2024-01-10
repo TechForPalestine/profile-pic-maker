@@ -44,7 +44,9 @@ export default function Home() {
         const response = await axios.get(`/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=${platform}`);
         setUserImageUrl(response.data.profilePicUrl);
       } catch (error) {
-        console.error('Error fetching twitter profile picture:', error);
+        const capitalizedPlatform = platform.charAt(0).toUpperCase() + platform.slice(1);
+        alert(`Error fetching your ${capitalizedPlatform} profile picture. Please make sure you entered a correct username.`);
+        console.error(`Error fetching ${capitalizedPlatform} profile picture:`, error);
       }
     }
   };
