@@ -97,7 +97,7 @@ export default function Home() {
           </button>
         )}
           <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="fileInput" />
-          <button onClick={async () => await handleUploadButtonClick()} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
+          <button onClick={handleUploadButtonClick} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
             Upload Image
           </button>
           <button onClick={async () => await handleRetrieveProfilePicture(SocialPlatform.Twitter)} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
