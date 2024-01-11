@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     title: 'Palestine Profile Pic Maker 🇵🇸',
     description: 'Create your Palestine profile picture to show your support',
     siteName: 'Palestine Profile Pic Maker 🇵🇸',
-    images: '/og-image.png',
+    images: '/social-card.png',
   }
 }
 
