@@ -40,7 +40,11 @@ export default function Home() {
 
     if (userProvidedUsername) {
       try {
-        const response = await fetch(`/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=${platform}`).then(res => res.json())
+        const response = await fetch(`/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=${platform}`).then(res => res.ok ? res.json() : null);
+        if (response === null) {
+          alert('Error fetching your profile picture. Please make sure that you entered a correct username.');
+          return;
+        }
         setUserImageUrl(response.profilePicUrl);
       } catch (error) {
         console.error('Error fetching twitter profile picture:', error);
