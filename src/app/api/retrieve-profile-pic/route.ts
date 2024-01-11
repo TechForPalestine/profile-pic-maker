@@ -23,20 +23,32 @@ export async function GET(request: NextRequest) {
             break;
     }
 
+    if (profilePicUrl === null) {
+        return NextResponse.json({}, { status: 404 });
+    }
+
     return NextResponse.json({ profilePicUrl }, { status: 200 });
 }
 
 
 const fetchTwitterProfilePic = async (username: string) => {
-    const endpoint = `https://api.fxtwitter.com/${username}`
-    const response = await fetch(endpoint).then(res => res.json())
+    const endpoint = `https://api.fxtwitter.com/${username}`;
+    const response = await fetch(endpoint).then(res => res.ok ? res.json() : null);
+
+    if (response === null) {
+        return null
+    }
     const smallImageUrl = response.user.avatar_url;
 
     return smallImageUrl.replace('_normal', '_400x400');
 }
 
 const fetchGithubProfilePic = async (username: string) => {
-    const endpoint = `https://api.github.com/users/${username}`
-    const response = await fetch(endpoint).then(res => res.json())
+    const endpoint = `https://api.github.com/users/${username}`;
+    const response = await fetch(endpoint).then(res => res.ok ? res.json() : null);
+
+    if (response === null) {
+        return null;
+    }
     return response.avatar_url;
 }
