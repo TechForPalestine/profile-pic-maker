@@ -1,6 +1,5 @@
 'use client'
 import { SocialPlatform } from '@/types';
-import axios from 'axios';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import { useEffect, useRef, useState } from "react";
@@ -41,8 +40,8 @@ export default function Home() {
 
     if (userProvidedUsername) {
       try {
-        const response = await axios.get(`/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=${platform}`);
-        setUserImageUrl(response.data.profilePicUrl);
+        const response = await fetch(`/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=${platform}`).then(res => res.json())
+        setUserImageUrl(response.profilePicUrl);
       } catch (error) {
         console.error('Error fetching twitter profile picture:', error);
       }

@@ -1,5 +1,4 @@
 import { SocialPlatform } from "@/types";
-import axios from "axios";
 import { NextResponse, type NextRequest } from 'next/server';
 
 export const runtime = 'edge';
@@ -30,15 +29,14 @@ export async function GET(request: NextRequest) {
 
 const fetchTwitterProfilePic = async (username: string) => {
     const endpoint = `https://api.fxtwitter.com/${username}`
-    const response = await axios.get(endpoint);
-    const smallImageUrl = response.data.user.avatar_url;
+    const response = await fetch(endpoint).then(res => res.json())
+    const smallImageUrl = response.user.avatar_url;
 
     return smallImageUrl.replace('_normal', '_400x400');
 }
 
 const fetchGithubProfilePic = async (username: string) => {
     const endpoint = `https://api.github.com/users/${username}`
-    const response = await axios.get(endpoint);
-
-    return response.data.avatar_url;
+    const response = await fetch(endpoint).then(res => res.json())
+    return response.avatar_url;
 }
