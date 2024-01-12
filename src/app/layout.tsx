@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Palestine Profile Pic Maker 🇵🇸',
   description: 'Frame your profile with the colors of Palestine. Let your profile picture speak volumes for peace and justice. #IStandWithPalestine',
-  metadataBase: new URL('https://palestineprofile.jariyah.app'),
+  metadataBase: new URL('https://ppm.techforpalestine.org'),
   openGraph: {
     title: 'Palestine Profile Pic Maker 🇵🇸',
     description: 'Create your Palestine profile picture to show your support',
