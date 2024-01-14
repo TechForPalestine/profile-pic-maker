@@ -85,7 +85,7 @@ export default function Home() {
         )}
 
         <h1 className='font-semibold text-3xl'>Show Solidarity 🇵🇸</h1>
-        <p className="text-lg py-2">Use your profile picture to spotlight the cause. <a href="https://twitter.com/hashtag/CeasefireNOW" target='_blank' className="text-blue-600 cursor-pointer">#CeasefireNow</a> ✊</p>
+        <p className="text-lg py-2">Use your profile picture to spotlight the cause. <a href="https://x.com/hashtag/CeasefireNOW" target='_blank' className="text-blue-600 cursor-pointer">#CeasefireNow</a> ✊</p>
         <p className="text-lg py-2">Watch the <a href='https://www.instagram.com/p/C2B1DP0LqBl/' target='_blank' className='underline cursor-pointer'>step-by-step guide</a> 👀</p>
 
         <div className="my-12">
