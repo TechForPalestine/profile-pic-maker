@@ -4,7 +4,7 @@ import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import { useEffect, useRef, useState } from "react";
 import { FaGithub, FaXTwitter } from "react-icons/fa6";
-
+import Image from 'next/image'
 
 export default function Home() {
   const ref = useRef<HTMLDivElement>(null)
@@ -84,12 +84,35 @@ export default function Home() {
         <p className="text-lg py-2">Frame your profile picture with the colors of resilience. #CeasefireNow ✊</p>
         <div className="my-12">
           <div className='flex justify-center'>
-            <div style={{ width: '300px', height: '300px' }} className="relative" ref={ref}>
-              <img id="borderImage" src={"/bg.webp"} style={{ position: 'absolute', width: '100%', height: '100%' }} className="rounded-full" />
-              <img id="userImage" alt='profile-image' src={userImageUrl ?? "/user.jpg"} style={{ position: 'absolute', width: '85%', height: '85%', left: '7.5%', top: '7.5%' }} className="object-cover rounded-full cursor-pointer" />
+          <div
+              style={{ width: '300px', height: '300px' }}
+              className="relative"
+              ref={ref}
+            >
+              <img
+                alt="border"
+                id="borderImage"
+                src={'/bg.webp'}
+                style={{ position: 'absolute', width: '100%', height: '100%' }}
+                className="rounded-full"
+              />
+              <Image
+                id="userImage"
+                alt="profile-image"
+                src={userImageUrl ?? '/user.jpg'}
+                width={100}
+                height={100}
+                style={{
+                  position: 'absolute',
+                  width: '85%',
+                  height: '85%',
+                  left: '7.5%',
+                  top: '7.5%',
+                }}
+                className="object-cover rounded-full cursor-pointer"
+              />
             </div>
           </div>
-
         </div>
         <div>{userImageUrl && (
           <button onClick={handleDownload} className="rounded-full mb-2 py-4 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl">
