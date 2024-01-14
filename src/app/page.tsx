@@ -3,7 +3,7 @@ import { SocialPlatform } from '@/types';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import { useEffect, useRef, useState } from "react";
-import { FaGithub, FaXTwitter } from "react-icons/fa6";
+import { FaGithub, FaInstagram, FaXTwitter } from "react-icons/fa6";
 import Image from 'next/image'
 
 export default function Home() {
@@ -85,10 +85,12 @@ export default function Home() {
         )}
 
         <h1 className='font-semibold text-3xl'>Show Solidarity 🇵🇸</h1>
-        <p className="text-lg py-2">Frame your profile picture with the colors of resilience. #CeasefireNow ✊</p>
+        <p className="text-lg py-2">Use your profile picture to spotlight the cause. #CeasefireNow ✊</p>
+        <p className="text-lg py-2">Watch the <a href='https://www.instagram.com/p/C2B1DP0LqBl/' target='_blank' className='underline cursor-pointer text-blue-600'>step-by-step guide</a> 👀</p>
+
         <div className="my-12">
           <div className='flex justify-center'>
-          <div
+            <div
               style={{ width: '300px', height: '300px' }}
               className="relative"
               ref={ref}
