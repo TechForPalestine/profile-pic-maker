@@ -50,7 +50,7 @@ export default function Home() {
         }
         setUserImageUrl(response.profilePicUrl);
       } catch (error) {
-        console.error('Error fetching twitter profile picture:', error);
+        console.error('Error fetching profile picture:', error);
       }
     }
   };
