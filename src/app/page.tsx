@@ -2,9 +2,9 @@
 import { SocialPlatform } from '@/types';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
+import Image from 'next/image';
 import { useEffect, useRef, useState } from "react";
-import { FaGithub, FaXTwitter } from "react-icons/fa6";
-import Image from 'next/image'
+import { FaArrowRotateLeft, FaDownload, FaGithub, FaShare, FaXTwitter } from "react-icons/fa6";
 
 export default function Home() {
   const ref = useRef<HTMLDivElement>(null)
@@ -74,6 +74,10 @@ export default function Home() {
     }
   };
 
+  const startOver = async () => {
+    setUserImageUrl(undefined);
+  };
+
   return (
     <main className='text-center px-8 py-12 max-w-lg mx-auto flex justify-center align-center items-center min-h-screen'>
       <div>
@@ -85,9 +89,7 @@ export default function Home() {
         )}
 
         <h1 className='font-semibold text-3xl'>Show Solidarity 🇵🇸</h1>
-        <p className="text-lg py-2">Use your profile picture to spotlight the cause. <a href="https://x.com/hashtag/CeasefireNOW" target='_blank' className="text-blue-600 cursor-pointer">#CeasefireNow</a> ✊</p>
-        <p className="text-lg py-2">Watch the <a href='https://www.instagram.com/p/C2B1DP0LqBl/' target='_blank' className='underline cursor-pointer'>step-by-step guide</a> 👀</p>
-
+        <p className="text-lg py-2">Use your profile picture to spotlight the cause. <a href="https://x.com/hashtag/CeasefireNOW" target='_blank' className="text-blue-600 cursor-pointer hover:text-blue-900">#CeasefireNow</a> ✊</p>
         <div className="my-12">
           <div className='flex justify-center'>
             <div
@@ -138,21 +140,30 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div>{userImageUrl && (
-          <button onClick={handleDownload} className="rounded-full mb-2 py-4 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl">
-            Download Image
-          </button>
-        )}
-          <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="fileInput" />
-          <button onClick={handleUploadButtonClick} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
-            Upload Image
-          </button>
-          <button onClick={async () => await handleRetrieveProfilePicture(SocialPlatform.Twitter)} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
-            Use <FaXTwitter className="inline mb-1" /> Profile Pic
-          </button>
-          <button onClick={async () => await handleRetrieveProfilePicture(SocialPlatform.Github)} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
-            Use <FaGithub className="inline mb-1" /> Profile Pic
-          </button>
+        <div>{userImageUrl ? (
+          <>
+            <p className="p-2 my-6 text-sm border rounded-lg">Download the image, then use it as your new profile picture.</p>
+            <button onClick={handleDownload} className="rounded-full mb-2 py-3 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl">
+              Download Image <FaDownload className='inline mb-1 ml-2 text-md' />
+            </button>
+            <button onClick={startOver} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
+              Start Over <FaArrowRotateLeft className='inline mb-1 ml-2 text-md' />
+            </button>
+          </>
+        ) :
+          <>
+            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="fileInput" />
+            <button onClick={handleUploadButtonClick} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
+              Upload Image
+            </button>
+            <button onClick={async () => await handleRetrieveProfilePicture(SocialPlatform.Twitter)} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
+              Use <FaXTwitter className="inline mb-1" /> Profile Pic
+            </button>
+            <button onClick={async () => await handleRetrieveProfilePicture(SocialPlatform.Github)} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
+              Use <FaGithub className="inline mb-1" /> Profile Pic
+            </button>
+          </>
+        }
         </div>
         <div className='pt-8'>
           <p className="p-2 my-6 text-sm border rounded-lg">Note: This app runs purely on your browser end. No images nor data will be saved by the app.</p>
