@@ -86,7 +86,7 @@ export default function Home() {
           <div className='flex justify-center'>
             <div style={{ width: '300px', height: '300px' }} className="relative" ref={ref}>
               <img id="borderImage" src={"/bg.webp"} style={{ position: 'absolute', width: '100%', height: '100%' }} className="rounded-full" />
-              <img id="userImage" alt='profile-image' src={userImageUrl ?? "/user.jpg"} style={{ position: 'absolute', width: '85%', height: '85%', left: '7.5%', top: '7.5%' }} className="border object-cover rounded-full cursor-pointer" />
+              <img id="userImage" alt='profile-image' src={userImageUrl ?? "/user.jpg"} style={{ position: 'absolute', width: '85%', height: '85%', left: '7.5%', top: '7.5%' }} className="object-cover rounded-full cursor-pointer" />
             </div>
           </div>
 
