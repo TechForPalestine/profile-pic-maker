@@ -10,6 +10,7 @@ export default function Home() {
   const ref = useRef<HTMLDivElement>(null)
   const [userImageUrl, setUserImageUrl] = useState<string>();
   const [unsuportedBrowser, setUnsupportedBrowser] = useState(false);
+  const [loader, setLoader] = useState(false)
 
   useEffect(() => {
     const isInstagramBrowser = /Instagram/i.test(navigator.userAgent);
@@ -40,7 +41,9 @@ export default function Home() {
 
     if (userProvidedUsername) {
       try {
+        setLoader(true);
         const response = await fetch(`/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=${platform}`).then(res => res.ok ? res.json() : null);
+        setLoader(false);
         if (response === null) {
           alert('Error fetching your profile picture. Please make sure that you entered a correct username.');
           return;
@@ -80,6 +83,7 @@ export default function Home() {
             <p>Please open on regular browsers like Chrome or Safari.</p>
           </div>
         )}
+
         <h1 className='font-semibold text-3xl'>Show Solidarity 🇵🇸</h1>
         <p className="text-lg py-2">Frame your profile picture with the colors of resilience. #CeasefireNow ✊</p>
         <div className="my-12">
@@ -96,21 +100,39 @@ export default function Home() {
                 style={{ position: 'absolute', width: '100%', height: '100%' }}
                 className="rounded-full"
               />
-              <Image
-                id="userImage"
-                alt="profile-image"
-                src={userImageUrl ?? '/user.jpg'}
-                width={100}
-                height={100}
-                style={{
-                  position: 'absolute',
-                  width: '85%',
-                  height: '85%',
-                  left: '7.5%',
-                  top: '7.5%',
-                }}
-                className="object-cover rounded-full cursor-pointer"
-              />
+              {loader ? (
+                <Image
+                  id="spinner"
+                  alt="spinner-animation"
+                  src={'/spinner.svg'}
+                  width={100}
+                  height={100}
+                  style={{
+                    position: 'absolute',
+                    width: '85%',
+                    height: '85%',
+                    left: '7.5%',
+                    top: '7.5%',
+                  }}
+                  className="object-cover rounded-full cursor-wait"
+                />
+              ) : (
+                <Image
+                  id="userImage"
+                  alt="profile-image"
+                  src={userImageUrl ?? '/user.jpg'}
+                  width={100}
+                  height={100}
+                  style={{
+                    position: 'absolute',
+                    width: '85%',
+                    height: '85%',
+                    left: '7.5%',
+                    top: '7.5%',
+                  }}
+                  className="object-cover rounded-full cursor-pointer"
+                />
+              )}
             </div>
           </div>
         </div>
