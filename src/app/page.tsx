@@ -64,6 +64,10 @@ export default function Home() {
   }
 
   const handleDownload = async () => {
+    // TODO: Fix if possible. This is a hack to ensure that image generated is as expected. Without repeating generateImage(), at times, the image wont be generated correctly. 
+    await generateImage()
+    await generateImage()
+    await generateImage()
     const generatedImageUrl = await generateImage()
     if (generatedImageUrl) {
       download(generatedImageUrl, "profile-pic.png")
