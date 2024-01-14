@@ -109,11 +109,10 @@ export default function Home() {
                   left: '7.5%',
                   top: '7.5%',
                 }}
-                className="border object-cover rounded-full cursor-pointer"
+                className="object-cover rounded-full cursor-pointer"
               />
             </div>
           </div>
-
         </div>
         <div>{userImageUrl && (
           <button onClick={handleDownload} className="rounded-full mb-2 py-4 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl">
@@ -121,7 +120,7 @@ export default function Home() {
           </button>
         )}
           <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="fileInput" />
-          <button onClick={async () => await handleUploadButtonClick()} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
+          <button onClick={handleUploadButtonClick} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
             Upload Image
           </button>
           <button onClick={async () => await handleRetrieveProfilePicture(SocialPlatform.Twitter)} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
