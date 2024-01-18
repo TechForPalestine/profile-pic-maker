@@ -107,7 +107,8 @@ export default function Home() {
               className="relative"
               ref={ref}
             >
-              <Image
+              {/* eslint-disable-next-line */}
+              <img
                 alt="border"
                 id="borderImage"
                 src={'/bg.webp'}
