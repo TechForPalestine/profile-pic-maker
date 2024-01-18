@@ -23,7 +23,7 @@ export default function Home() {
   }, [unsuportedBrowser])
 
   useEffect(() => {
-    fetch('https://gazanumbers.jariyah.app/api').then(res => res.json).then(data => setGazaStatusSummary(data?.summary));
+    fetch('/api/gaza-status').then(res => res.json()).then(data => setGazaStatusSummary(data.summary));
   }, [gazaStatusSummary])
 
   const handleImageUpload = (e: any) => {
@@ -83,6 +83,7 @@ export default function Home() {
     setUserImageUrl(undefined);
   };
 
+
   return (
     <main className='text-center px-8 py-12 max-w-xl mx-auto flex justify-center align-center items-center min-h-screen'>
       <div>
@@ -93,7 +94,7 @@ export default function Home() {
           </div>
         )}
         {gazaStatusSummary && (
-          <a className="rounded-lg bg-gray-200 py-1.5 text-xs px-4 text-sm text-gray-800 cursor-pointer" href="https://gazanumbers.jariyah.app">
+          <a className="rounded-lg bg-gray-200 py-1.5 text-xs px-4 text-sm text-gray-800 cursor-pointer" href="https://data.techforpalestine.org/">
             😥 {gazaStatusSummary} →
           </a>
         )}
