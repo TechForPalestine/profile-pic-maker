@@ -83,7 +83,6 @@ export default function Home() {
     setUserImageUrl(undefined);
   };
 
-
   return (
     <main className='text-center px-8 py-12 max-w-xl mx-auto flex justify-center align-center items-center min-h-screen'>
       <div>
@@ -94,7 +93,7 @@ export default function Home() {
           </div>
         )}
         {gazaStatusSummary && (
-          <a className="rounded-lg bg-gray-200 py-1.5 text-xs px-4 text-sm text-gray-800 cursor-pointer" href="https://data.techforpalestine.org/">
+          <a className="rounded-lg bg-gray-200 py-1.5 text-xs px-4 text-sm text-gray-800 cursor-pointer" target="_blank" href="https://data.techforpalestine.org/">
             😥 {gazaStatusSummary} →
           </a>
         )}
