@@ -11,6 +11,7 @@ export default function Home() {
   const [userImageUrl, setUserImageUrl] = useState<string>();
   const [unsuportedBrowser, setUnsupportedBrowser] = useState(false);
   const [loader, setLoader] = useState(false)
+  const [gazaStatusSummary, setGazaStatusSummary] = useState()
 
   useEffect(() => {
     const isInstagramBrowser = /Instagram/i.test(navigator.userAgent);
@@ -20,6 +21,10 @@ export default function Home() {
       setUnsupportedBrowser(true)
     }
   }, [unsuportedBrowser])
+
+  useEffect(() => {
+    fetch('https://gazanumbers.jariyah.app/api').then(res => res.json).then(data => setGazaStatusSummary(data?.summary));
+  }, [gazaStatusSummary])
 
   const handleImageUpload = (e: any) => {
     const file = e.target.files[0];
@@ -79,7 +84,7 @@ export default function Home() {
   };
 
   return (
-    <main className='text-center px-8 py-12 max-w-lg mx-auto flex justify-center align-center items-center min-h-screen'>
+    <main className='text-center px-8 py-12 max-w-xl mx-auto flex justify-center align-center items-center min-h-screen'>
       <div>
         {unsuportedBrowser && (
           <div className='border p-2 rounded-lg bg-yellow-200 my-2  text-sm mb-8'>
@@ -87,9 +92,13 @@ export default function Home() {
             <p>Please open on regular browsers like Chrome or Safari.</p>
           </div>
         )}
-
-        <h1 className='font-semibold text-3xl'>Show Solidarity 🇵🇸</h1>
-        <p className="text-lg py-2">Use your profile picture to spotlight the cause. <a href="https://X.com/search?q=%23CeasefireNOW" target='_blank' className="text-blue-600 cursor-pointer hover:text-blue-900">#CeasefireNOW</a> ✊</p>
+        {gazaStatusSummary && (
+          <a className="rounded-lg bg-gray-200 py-1.5 text-xs px-4 text-sm text-gray-800 cursor-pointer" href="https://gazanumbers.jariyah.app">
+            😥 {gazaStatusSummary} →
+          </a>
+        )}
+        <h1 className='font-semibold text-3xl mt-6'>Show Solidarity 🇵🇸</h1>
+        <p className="text-lg py-2">Let's unite in our profile pictures  to spotlight the cause. ✊</p>
         <p className="text-gray-600">Watch the <a href='https://www.instagram.com/p/C2B1DP0LqBl/' target='_blank' className='underline cursor-pointer hover:text-gray-900'>step-by-step guide</a> 👀</p>
         <div className="my-12">
           <div className='flex justify-center'>
