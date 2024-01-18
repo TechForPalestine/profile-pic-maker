@@ -98,7 +98,7 @@ export default function Home() {
           </a>
         )}
         <h1 className='font-semibold text-3xl mt-6'>Show Solidarity 🇵🇸</h1>
-        <p className="text-lg py-2">Let's unite in our profile pictures  to spotlight the cause. ✊</p>
+        <p className="text-lg py-2">Let&apos;s unite in our profile pictures  to spotlight the cause. ✊</p>
         <p className="text-gray-600">Watch the <a href='https://www.instagram.com/p/C2B1DP0LqBl/' target='_blank' className='underline cursor-pointer hover:text-gray-900'>step-by-step guide</a> 👀</p>
         <div className="my-12">
           <div className='flex justify-center'>
@@ -107,7 +107,7 @@ export default function Home() {
               className="relative"
               ref={ref}
             >
-              <img
+              <Image
                 alt="border"
                 id="borderImage"
                 src={'/bg.webp'}
