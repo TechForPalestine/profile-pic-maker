@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
     if (!res.ok) {
         throw new Error('Failed to fetch data')
     }
-    const { martyred } = await res.json()
-    const daysOfWarCrimes = dayjs().diff('2023-10-07', 'day')
+    const { martyred, lastDailyUpdate } = await res.json()
+    const daysOfWarCrimes = dayjs(lastDailyUpdate).diff('2023-10-07', 'day')
 
-    return NextResponse.json({ summary: `${abbreviate(martyred.total)}+ killed after ${daysOfWarCrimes} days  of genocide` }, { status: 200 });
+    return NextResponse.json({ summary: `${abbreviate(martyred.total)}+ killed in ${daysOfWarCrimes} days` }, { status: 200 });
 }
