@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
         case SocialPlatform.Github:
             profilePicUrl = await fetchGithubProfilePic(username);
             break;
+        case SocialPlatform.Gitlab:
+            profilePicUrl = await fetchGitlabProfilePic(username);
+            break;
     }
 
     if (profilePicUrl === null) {
@@ -51,4 +54,14 @@ const fetchGithubProfilePic = async (username: string) => {
         return null;
     }
     return response.avatar_url;
+}
+
+const fetchGitlabProfilePic = async (username: string) => {
+    const endpoint = `https://gitlab.com/api/v4/users?username=${username}`;
+    const response = await fetch(endpoint).then(res => res.ok ? res.json() : null);
+
+    if (response === null) {
+        return null;
+    }
+    return response[0].avatar_url;
 }
