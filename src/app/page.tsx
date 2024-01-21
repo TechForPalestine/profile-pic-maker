@@ -12,6 +12,7 @@ export default function Home() {
   const [unsuportedBrowser, setUnsupportedBrowser] = useState(false);
   const [loader, setLoader] = useState(false)
   const [gazaStatusSummary, setGazaStatusSummary] = useState()
+  const [filePostfix, setFilePostfix] = useState<SocialPlatform | 'user-upload'>()
 
   useEffect(() => {
     const isInstagramBrowser = /Instagram/i.test(navigator.userAgent);
@@ -31,6 +32,7 @@ export default function Home() {
     const reader = new FileReader();
 
     reader.onload = async (event: any) => {
+      setFilePostfix('user-upload')
       setUserImageUrl(event.target.result);
     };
 
@@ -45,6 +47,7 @@ export default function Home() {
     const userProvidedUsername = prompt(`Enter your ${platform} username:`);
 
     if (userProvidedUsername) {
+      setFilePostfix(platform)
       try {
         setLoader(true);
         const response = await fetch(`/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=${platform}`).then(res => res.ok ? res.json() : null);
@@ -75,7 +78,7 @@ export default function Home() {
     await generateImage()
     const generatedImageUrl = await generateImage()
     if (generatedImageUrl) {
-      download(generatedImageUrl, "profile-pic.png")
+      download(generatedImageUrl, `profile-pic-${filePostfix}.png`)
     }
   };
 
