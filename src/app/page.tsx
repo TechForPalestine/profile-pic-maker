@@ -132,7 +132,7 @@ export default function Home() {
                   className="object-cover rounded-full cursor-wait"
                 />
               ) : (
-                <Image
+                <img
                   id="userImage"
                   alt="profile-image"
                   src={userImageUrl ?? '/user.jpg'}
