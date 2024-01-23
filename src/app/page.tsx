@@ -4,7 +4,7 @@ import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from "react";
-import { FaArrowRotateLeft, FaDownload, FaGithub, FaShare, FaXTwitter } from "react-icons/fa6";
+import { FaArrowRotateLeft, FaDownload, FaGithub, FaGitlab, FaShare, FaXTwitter } from "react-icons/fa6";
 
 export default function Home() {
   const ref = useRef<HTMLDivElement>(null)
@@ -172,6 +172,9 @@ export default function Home() {
             </button>
             <button onClick={async () => await handleRetrieveProfilePicture(SocialPlatform.Github)} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
               Use <FaGithub className="inline mb-1" /> Profile Pic
+            </button>
+            <button onClick={async () => await handleRetrieveProfilePicture(SocialPlatform.Gitlab)} className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl">
+              Use <FaGitlab className="inline mb-1" /> Profile Pic
             </button>
           </>
         }

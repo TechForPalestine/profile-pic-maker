@@ -7,6 +7,12 @@ const nextConfig = {
       },
       {
         hostname: 'avatars.githubusercontent.com'
+      },
+      {
+        hostname: 'secure.gravatar.com'
+      },
+      {
+        hostname: 'gitlab.com'
       }
     ],
   },

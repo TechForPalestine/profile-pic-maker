@@ -1,4 +1,5 @@
 export enum SocialPlatform {
     Twitter = "twitter",
-    Github = "github"
+    Github = "github",
+    Gitlab = "gitlab",
 }
