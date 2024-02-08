@@ -1,10 +1,10 @@
 import dayjs from 'dayjs';
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import abbreviate from 'number-abbreviate';
 
 
 export const runtime = 'edge';
-export async function GET(request: NextRequest) {
+export async function GET() {
     const res = await fetch('https://data.techforpalestine.org/api/v2/summary.json', { next: { revalidate: 3600 } })
     if (!res.ok) {
         throw new Error('Failed to fetch data')
