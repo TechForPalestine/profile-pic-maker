@@ -116,7 +116,7 @@ export default function Home() {
         )}
         {gazaStatusSummary && (
           <a
-            className="rounded-lg bg-gray-200 py-1.5 text-xs px-4 text-sm text-gray-800 cursor-pointer"
+            className="rounded-lg bg-gray-200 py-1.5 px-4 text-sm text-gray-800 cursor-pointer"
             target="_blank"
             href="https://data.techforpalestine.org/"
           >
