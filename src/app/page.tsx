@@ -27,16 +27,21 @@ export default function Home() {
     fetch('/api/gaza-status').then(res => res.json()).then(data => setGazaStatusSummary(data.summary));
   }, [gazaStatusSummary])
 
-  const handleImageUpload = (e: any) => {
-    const file = e.target.files[0];
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file : File | undefined  = e.target.files?.[0];
     const reader = new FileReader();
 
-    reader.onload = async (event: any) => {
-      setFilePostfix('user-upload')
-      setUserImageUrl(event.target.result);
+   if (file) {
+    reader.onload = async (event: ProgressEvent<FileReader>) => {
+      setFilePostfix('user-upload');
+      setUserImageUrl(event.target?.result as string);
     };
 
     reader.readAsDataURL(file);
+  } else {
+    // Handle the case when no file is selected (optional)
+    console.error('No file selected.');
+  }
   };
 
   const handleUploadButtonClick = () => {
