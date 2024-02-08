@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "format": "prettier --write --list-different ."
   },
   "dependencies": {
     "browser-image-compression": "^2.0.2",
