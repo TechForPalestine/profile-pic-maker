@@ -146,12 +146,15 @@ export default function Home() {
               ref={ref}
             >
               {/* eslint-disable-next-line */}
-              <img
+              <Image
+                width={100}
+                height={100}
                 alt="border"
                 id="borderImage"
                 src={'/bg.webp'}
                 style={{ position: 'absolute', width: '100%', height: '100%' }}
                 className="rounded-full"
+                unoptimized
               />
               {loader ? (
                 <Image
@@ -170,7 +173,7 @@ export default function Home() {
                   className="object-cover rounded-full cursor-wait"
                 />
               ) : (
-                <img
+                <Image
                   id="userImage"
                   alt="profile-image"
                   src={userImageUrl ?? '/user.jpg'}
