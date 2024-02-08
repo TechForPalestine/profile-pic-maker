@@ -4,7 +4,7 @@ import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from "react";
-import { FaArrowRotateLeft, FaDownload, FaGithub, FaGitlab, FaShare, FaXTwitter } from "react-icons/fa6";
+import { FaArrowRotateLeft, FaDownload, FaGithub, FaGitlab, FaXTwitter } from "react-icons/fa6";
 
 export default function Home() {
   const ref = useRef<HTMLDivElement>(null)
