@@ -6,7 +6,6 @@
 
 This is a simple browser-only web app that allows users to upload their profile picture and adds the Palestine border to show support for the Palestinian cause. The app provides an easy way for individuals to express solidarity and raise awareness.
 
-
 ## How to Use
 
 1. Visit the [Palestine Profile Pic Maker](https://ppm.techforpalestine.org/).
@@ -27,7 +26,6 @@ If you want to run the app locally, follow these steps:
 3. Install dependencies: `npm ci`
 4. Run the project: `npm run dev`
 
-
 ## License
 
 This project is open source and available under the [MIT License](LICENSE).
@@ -35,4 +33,3 @@ This project is open source and available under the [MIT License](LICENSE).
 ## Disclaimer
 
 This app is created for the purpose of expressing support for the Palestinian cause. Please use it responsibly and respect the rights and privacy of others.
-
