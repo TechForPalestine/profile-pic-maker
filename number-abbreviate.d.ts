@@ -1,1 +1,1 @@
-declare module 'number-abbreviate';
+declare module 'number-abbreviate'
