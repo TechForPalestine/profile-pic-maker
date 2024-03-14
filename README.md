@@ -23,8 +23,8 @@ If you want to run the app locally, follow these steps:
 
 1. Clone the repository: `git clone https://github.com/TechForPalestine/palestine-pfp-maker.git`
 2. Open the project directory: `cd palestine-pfp-maker`
-3. Install dependencies: `npm ci`
-4. Run the project: `npm run dev`
+3. Install dependencies: `pnpm ci`
+4. Run the project: `pnpm run dev`
 
 ## License
 
