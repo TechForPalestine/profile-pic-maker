@@ -75,7 +75,15 @@ export default function Home() {
           );
           return;
         }
-        setUserImageUrl(response.profilePicUrl);
+        const image = await fetch(response.profilePicUrl);
+        const blob = await image.blob();
+        const reader = new FileReader();
+
+        reader.onload = async (event: ProgressEvent<FileReader>) => {
+          setUserImageUrl(event.target?.result as string);
+        };
+
+        reader.readAsDataURL(blob);
       } catch (error) {
         console.error('Error fetching profile picture:', error);
       }
