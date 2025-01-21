@@ -6,13 +6,15 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const username = searchParams.get('username');
   const platform = searchParams.get('platform') as SocialPlatform;
+  const servername = searchParams.get('servername');
 
   let profilePicUrl = '/user.jpg';
 
   if (
     !username ||
     !platform ||
-    !Object.values(SocialPlatform).includes(platform)
+    !Object.values(SocialPlatform).includes(platform) ||
+    (platform == SocialPlatform.Mastodon && !servername)
   ) {
     // just return back default image for now - not handling this kind of error yet
     return NextResponse.json({ profilePicUrl }, { status: 200 });
@@ -27,6 +29,9 @@ export async function GET(request: NextRequest) {
       break;
     case SocialPlatform.Gitlab:
       profilePicUrl = await fetchGitlabProfilePic(username);
+      break;
+    case SocialPlatform.Mastodon:
+      profilePicUrl = await fetchMastodonProfilePic(username, servername);
       break;
   }
 
@@ -73,4 +78,20 @@ const fetchGitlabProfilePic = async (username: string) => {
     return null;
   }
   return response[0].avatar_url;
+};
+
+const fetchMastodonProfilePic = async (
+  username: string,
+  servername: string | null,
+) => {
+  const endpoint = `https://${servername}/api/v1/accounts/lookup?acct=${username}`;
+  const response = await fetch(endpoint).then((res) =>
+    res.ok ? res.json() : null,
+  );
+
+  if (response === null) {
+    return null;
+  }
+
+  return response.avatar;
 };
