@@ -10,6 +10,7 @@ import {
   FaGithub,
   FaGitlab,
   FaXTwitter,
+  FaMastodon,
 } from 'react-icons/fa6';
 
 export default function Home() {
@@ -60,13 +61,23 @@ export default function Home() {
 
   const handleRetrieveProfilePicture = async (platform: SocialPlatform) => {
     const userProvidedUsername = prompt(`Enter your ${platform} username:`);
+    const userProvidedServername =
+      platform == SocialPlatform.Mastodon
+        ? prompt(`Enter your ${platform} servername:`)
+        : null;
 
-    if (userProvidedUsername) {
+    if (
+      (userProvidedUsername && platform != SocialPlatform.Mastodon) ||
+      // mastodon needs a servername and a username
+      (platform == SocialPlatform.Mastodon &&
+        userProvidedServername &&
+        userProvidedUsername)
+    ) {
       setFilePostfix(platform);
       try {
         setLoader(true);
         const response = await fetch(
-          `/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=${platform}`,
+          `/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=${platform}&servername=${userProvidedServername}`,
         ).then((res) => (res.ok ? res.json() : null));
         setLoader(false);
         if (response === null) {
@@ -251,6 +262,14 @@ export default function Home() {
                 className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl"
               >
                 Use <FaGitlab className="inline mb-1" /> Profile Pic
+              </button>
+              <button
+                onClick={async () =>
+                  await handleRetrieveProfilePicture(SocialPlatform.Mastodon)
+                }
+                className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl"
+              >
+                Use <FaMastodon className="inline mb-1" /> Profile Pic
               </button>
             </>
           )}
