@@ -10,6 +10,7 @@ import {
   FaGithub,
   FaGitlab,
   FaXTwitter,
+  FaBluesky,
 } from 'react-icons/fa6';
 
 export default function Home() {
@@ -251,6 +252,14 @@ export default function Home() {
                 className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl"
               >
                 Use <FaGitlab className="inline mb-1" /> Profile Pic
+              </button>
+              <button
+                onClick={async () =>
+                  await handleRetrieveProfilePicture(SocialPlatform.Bluesky)
+                }
+                className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl"
+              >
+                Use <FaBluesky className="inline mb-1" /> Profile Pic
               </button>
             </>
           )}

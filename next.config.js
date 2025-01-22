@@ -14,6 +14,10 @@ const nextConfig = {
       {
         hostname: 'gitlab.com',
       },
+      {
+        hostname: 'cdn.bsky.app',
+        pathname: '/img/avatar/plain/**',
+      },
     ],
   },
 };
