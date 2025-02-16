@@ -28,6 +28,9 @@ export async function GET(request: NextRequest) {
     case SocialPlatform.Gitlab:
       profilePicUrl = await fetchGitlabProfilePic(username);
       break;
+    case SocialPlatform.Bluesky:
+      profilePicUrl = await fetchBlueskyProfilePic(username);
+      break;
   }
 
   if (profilePicUrl === null) {
@@ -73,4 +76,16 @@ const fetchGitlabProfilePic = async (username: string) => {
     return null;
   }
   return response[0].avatar_url;
+};
+
+const fetchBlueskyProfilePic = async (username: string) => {
+  const endpoint = `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${username}`;
+  const response = await fetch(endpoint).then((res) =>
+    res.ok ? res.json() : null,
+  );
+
+  if (response === null) {
+    return null;
+  }
+  return response.avatar;
 };
