@@ -22,6 +22,7 @@ export default function Home() {
   const [filePostfix, setFilePostfix] = useState<
     SocialPlatform | 'user-upload'
   >();
+  const [borderThickness, setBorderThickness] = useState(15);
 
   useEffect(() => {
     const isInstagramBrowser = /Instagram/i.test(navigator.userAgent);
@@ -104,6 +105,7 @@ export default function Home() {
 
   const startOver = async () => {
     setUserImageUrl(undefined);
+    setBorderThickness(15);
   };
 
   return (
@@ -166,10 +168,10 @@ export default function Home() {
                   height={100}
                   style={{
                     position: 'absolute',
-                    width: '85%',
-                    height: '85%',
-                    left: '7.5%',
-                    top: '7.5%',
+                    width: `${100 - borderThickness}%`,
+                    height: `${100 - borderThickness}%`,
+                    left: `${borderThickness / 2}%`,
+                    top: `${borderThickness / 2}%`,
                   }}
                   className="object-cover rounded-full cursor-wait"
                 />
@@ -182,16 +184,34 @@ export default function Home() {
                   height={100}
                   style={{
                     position: 'absolute',
-                    width: '85%',
-                    height: '85%',
-                    left: '7.5%',
-                    top: '7.5%',
+                    width: `${100 - borderThickness}%`,
+                    height: `${100 - borderThickness}%`,
+                    left: `${borderThickness / 2}%`,
+                    top: `${borderThickness / 2}%`,
                   }}
                   className="object-cover rounded-full cursor-pointer"
                 />
               )}
             </div>
           </div>
+        </div>
+        <div className="my-4">
+          <label
+            htmlFor="borderRange"
+            className="block text-xs font-normal text-gray-500 mb-2"
+          >
+            Border Thickness: <span>{borderThickness}%</span>
+          </label>
+          <input
+            id="borderRange"
+            type="range"
+            min="5"
+            max="25"
+            step="1"
+            value={borderThickness}
+            onChange={(e) => setBorderThickness(parseInt(e.target.value))}
+            className="slider-thumb"
+          />
         </div>
         <div>
           {userImageUrl ? (
