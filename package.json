@@ -11,17 +11,14 @@
   },
   "dependencies": {
     "browser-image-compression": "^2.0.2",
-    "child_process": "^1.0.2",
     "dayjs": "^1.11.10",
     "downloadjs": "^1.4.7",
     "html-to-image": "^1.11.11",
-    "html2canvas": "^1.4.1",
     "next": "^14.2.28",
     "number-abbreviate": "^2.0.0",
     "react": "^18",
     "react-dom": "^18",
-    "react-icons": "^5.4.0",
-    "sharp": "^0.32.6"
+    "react-icons": "^5.4.0"
   },
   "devDependencies": {
     "@types/downloadjs": "^1.4.5",
