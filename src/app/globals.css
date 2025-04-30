@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+    .slider-thumb {
+        @apply appearance-none w-full h-2 rounded-lg bg-gray-200 cursor-pointer;
+    }
+
+    .slider-thumb::-webkit-slider-thumb {
+        @apply w-5 h-5 bg-gray-800 hover:bg-gray-600 rounded-full cursor-pointer border-none;
+    }
+
+    .slider-thumb::-moz-range-thumb {
+        @apply w-5 h-5 bg-gray-800 hover:bg-gray-600 rounded-full cursor-pointer border-none;
+    }
+
+    /* Larger thumb size for mobile devices */
+    @media (max-width: 768px) {
+        .slider-thumb::-webkit-slider-thumb {
+            @apply w-7 h-7;
+        }
+
+        .slider-thumb::-moz-range-thumb {
+            @apply w-7 h-7;
+        }
+    }
+}
