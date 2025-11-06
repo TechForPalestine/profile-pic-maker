@@ -11,9 +11,6 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
-    ignore:
-      - dependency-name: "github/internal-actions"
-      - dependency-name: "github/gh-mirror-scripts"
     open-pull-requests-limit: 10
     groups:
       all-actions:
