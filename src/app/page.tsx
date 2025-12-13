@@ -1,7 +1,7 @@
 'use client';
 import { SocialPlatform } from '@/types';
 import download from 'downloadjs';
-import { toPng } from 'html-to-image';
+import html2canvas from 'html2canvas';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -83,22 +83,40 @@ export default function Home() {
     }
   };
 
-  const generateImage = async () => {
-    try {
-      return await toPng(ref.current as HTMLElement);
-    } catch (error) {
-      console.log('Error generating image', error);
-    }
-  };
-
   const handleDownload = async () => {
-    // TODO: Fix if possible. This is a hack to ensure that image generated is as expected. Without repeating generateImage(), at times, the image wont be generated correctly.
-    await generateImage();
-    await generateImage();
-    await generateImage();
-    const generatedImageUrl = await generateImage();
-    if (generatedImageUrl) {
-      download(generatedImageUrl, `profile-pic-${filePostfix}.png`);
+    if (!ref.current) return;
+
+    try {
+      // Wait for all images to be fully loaded before capture
+      const images = ref.current.querySelectorAll('img');
+      await Promise.all(
+        Array.from(images).map(
+          (img) =>
+            new Promise((resolve) => {
+              if (img.complete) {
+                resolve(true);
+              } else {
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+              }
+            }),
+        ),
+      );
+
+      // Use html2canvas for better cross-browser compatibility
+      const canvas = await html2canvas(ref.current, {
+        useCORS: true,
+        allowTaint: true,
+        scale: 2, // Higher quality output
+        backgroundColor: null,
+        logging: false,
+      });
+
+      const dataUrl = canvas.toDataURL('image/png');
+      download(dataUrl, `profile-pic-${filePostfix}.png`);
+    } catch (error) {
+      console.error('Error generating image:', error);
+      alert('Failed to generate image. Please try again.');
     }
   };
 
