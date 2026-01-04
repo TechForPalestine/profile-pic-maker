@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write --list-different ."
+    "format": "prettier --write --list-different .",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui"
   },
   "dependencies": {
     "browser-image-compression": "^2.0.2",
@@ -24,6 +27,7 @@
     "sharp": "^0.34.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/downloadjs": "^1.4.6",
     "@types/node": "^24",
     "@types/react": "^18",
