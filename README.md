@@ -26,6 +26,27 @@ If you want to run the app locally, follow these steps:
 3. Install dependencies: `npm ci`
 4. Run the project: `npm run dev`
 
+## Testing
+
+This project uses [Playwright](https://playwright.dev/) for cross-browser end-to-end testing.
+
+Run the test suite:
+```bash
+npm test
+```
+
+Run tests in headed mode (watch browsers run):
+```bash
+npm run test:headed
+```
+
+Run tests with UI mode (interactive debugging):
+```bash
+npm run test:ui
+```
+
+The tests validate download functionality across Chromium, Firefox, and WebKit browser engines.
+
 ## License
 
 This project is open source and available under the [MIT License](LICENSE).
