@@ -1,7 +1,7 @@
 'use client';
 import { SocialPlatform } from '@/types';
 import download from 'downloadjs';
-import { toPng } from 'html-to-image';
+import html2canvas from 'html2canvas';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -85,20 +85,50 @@ export default function Home() {
 
   const generateImage = async () => {
     try {
-      return await toPng(ref.current as HTMLElement);
+      if (!ref.current) {
+        throw new Error('Reference to element not found');
+      }
+
+      // Wait for images to load
+      const images = ref.current.querySelectorAll('img');
+      await Promise.all(
+        Array.from(images).map(
+          (img) =>
+            new Promise<void>((resolve, reject) => {
+              if (img.complete) {
+                resolve();
+              } else {
+                img.onload = () => resolve();
+                img.onerror = () => reject(new Error('Image failed to load'));
+              }
+            }),
+        ),
+      );
+
+      const canvas = await html2canvas(ref.current, {
+        useCORS: true,
+        allowTaint: true,
+        scale: 2,
+      });
+
+      return canvas.toDataURL('image/png');
     } catch (error) {
-      console.log('Error generating image', error);
+      console.error('Error generating image:', error);
+      throw error;
     }
   };
 
   const handleDownload = async () => {
-    // TODO: Fix if possible. This is a hack to ensure that image generated is as expected. Without repeating generateImage(), at times, the image wont be generated correctly.
-    await generateImage();
-    await generateImage();
-    await generateImage();
-    const generatedImageUrl = await generateImage();
-    if (generatedImageUrl) {
-      download(generatedImageUrl, `profile-pic-${filePostfix}.png`);
+    try {
+      const generatedImageUrl = await generateImage();
+      if (generatedImageUrl) {
+        download(generatedImageUrl, `profile-pic-${filePostfix}.png`);
+      }
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      alert(
+        'Failed to download the image. Please try again or use a different browser.',
+      );
     }
   };
 
