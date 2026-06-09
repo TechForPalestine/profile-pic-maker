@@ -16,7 +16,7 @@ import {
 export default function Home() {
   const ref = useRef<HTMLDivElement>(null);
   const [userImageUrl, setUserImageUrl] = useState<string>();
-  const [unsuportedBrowser, setUnsupportedBrowser] = useState(false);
+  const [unsupportedBrowser, setUnsupportedBrowser] = useState(false);
   const [loader, setLoader] = useState(false);
   const [gazaStatusSummary, setGazaStatusSummary] = useState();
   const [filePostfix, setFilePostfix] = useState<
@@ -109,7 +109,7 @@ export default function Home() {
   return (
     <main className="text-center px-8 py-12 max-w-xl mx-auto flex justify-center align-center items-center min-h-screen">
       <div>
-        {unsuportedBrowser && (
+        {unsupportedBrowser && (
           <div className="border p-2 rounded-lg bg-yellow-200 my-2  text-sm mb-8">
             <p className="font-semibold">⚠️ Unsupported Browser Detected</p>
             <p>Please open on regular browsers like Chrome or Safari.</p>
