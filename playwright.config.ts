@@ -22,7 +22,17 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          // In restricted sandboxes the Playwright/Chrome download CDNs are
+          // blocked, so we point at an npm-provided Chromium via this env var
+          // (see scripts/run-e2e-local.sh). Unset in CI, where Playwright's
+          // own bundled Chromium is used normally.
+          executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined,
+          args: process.env.PLAYWRIGHT_CHROMIUM_PATH ? ['--no-sandbox'] : [],
+        },
+      },
     },
   ],
   webServer: {

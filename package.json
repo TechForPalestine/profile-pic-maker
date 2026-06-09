@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:live": "vitest run --config vitest.live.config.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test --grep-invert @live",
+    "test:e2e:live": "playwright test --grep @live"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.58.0",

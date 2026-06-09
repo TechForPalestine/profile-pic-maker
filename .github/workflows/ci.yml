@@ -98,3 +98,45 @@ jobs:
 
       - name: Fetch the real tech4palestine profile picture
         run: npm run test:live
+
+  # Full-stack e2e against the REAL tech4palestine pic (drives the UI, calls
+  # the real upstreams). Non-blocking for the same reason as live-smoke.
+  e2e-live:
+    name: Live e2e (real pic, non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Build app
+        run: npm run build
+
+      - name: Run live e2e (real tech4palestine pic)
+        run: npm run test:e2e:live
+
+      - name: Upload generated profile picture (real)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-profile-pic-live
+          path: playwright-artifacts/
+          retention-days: 7

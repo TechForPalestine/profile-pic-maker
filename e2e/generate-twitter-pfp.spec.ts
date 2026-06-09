@@ -4,6 +4,8 @@ import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { PNG } from 'pngjs';
 
+import { pixelAt, solidPng } from './png-utils';
+
 const AVATAR_URL =
   'https://pbs.twimg.com/profile_images/test/tech4palestine_400x400.png';
 
@@ -12,32 +14,7 @@ const AVATAR_URL =
 // generated image (rather than just "some PNG came out").
 const AVATAR_RGBA: [number, number, number, number] = [255, 0, 255, 255];
 
-function solidPng(
-  width: number,
-  height: number,
-  [r, g, b, a]: [number, number, number, number],
-): Buffer {
-  const png = new PNG({ width, height });
-  for (let i = 0; i < png.data.length; i += 4) {
-    png.data[i] = r;
-    png.data[i + 1] = g;
-    png.data[i + 2] = b;
-    png.data[i + 3] = a;
-  }
-  return PNG.sync.write(png);
-}
-
 const AVATAR_PNG = solidPng(64, 64, AVATAR_RGBA);
-
-function pixelAt(png: PNG, x: number, y: number) {
-  const i = (png.width * y + x) << 2;
-  return {
-    r: png.data[i],
-    g: png.data[i + 1],
-    b: png.data[i + 2],
-    a: png.data[i + 3],
-  };
-}
 
 test.describe('Generate a profile picture from the tech4palestine X handle', () => {
   test.beforeEach(async ({ page }) => {
