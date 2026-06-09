@@ -30,13 +30,13 @@ export default function Home() {
     if (isInstagramBrowser || isFacebookBrowser) {
       setUnsupportedBrowser(true);
     }
-  }, [unsuportedBrowser]);
+  }, []);
 
   useEffect(() => {
     fetch('/api/gaza-status')
       .then((res) => res.json())
       .then((data) => setGazaStatusSummary(data.summary));
-  }, [gazaStatusSummary]);
+  }, []);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file: File | undefined = e.target.files?.[0];
