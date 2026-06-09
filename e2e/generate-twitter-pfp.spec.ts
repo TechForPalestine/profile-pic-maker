@@ -1,3 +1,6 @@
+import { mkdir, readFile } from 'node:fs/promises';
+import path from 'node:path';
+
 import { expect, test } from '@playwright/test';
 import { PNG } from 'pngjs';
 
@@ -93,16 +96,19 @@ test.describe('Generate a profile picture from the tech4palestine X handle', () 
 
     expect(download.suggestedFilename()).toBe('profile-pic-twitter.png');
 
-    // Persist the real generated image and attach it to the report so it can
-    // be eyeballed from the CI artifact.
-    const filePath = testInfo.outputPath('generated-profile-pic.png');
+    // Persist the real generated image to a stable folder that CI uploads as
+    // its own artifact, so it can be opened directly (the Playwright HTML
+    // report can't render attachments from a file:// URL). Also attach it to
+    // the report for when the report is served properly.
+    const outputDir = path.join(process.cwd(), 'playwright-artifacts');
+    await mkdir(outputDir, { recursive: true });
+    const filePath = path.join(outputDir, 'generated-profile-pic.png');
     await download.saveAs(filePath);
     await testInfo.attach('generated-profile-pic', {
       path: filePath,
       contentType: 'image/png',
     });
 
-    const { readFile } = await import('node:fs/promises');
     const bytes = await readFile(filePath);
 
     // It's a real PNG.

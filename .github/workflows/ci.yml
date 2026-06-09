@@ -55,11 +55,21 @@ jobs:
       - name: E2E tests (reuses the build above)
         run: npm run test:e2e
 
-      # Always upload (unless cancelled) so the report — which embeds the
-      # generated profile picture as an attachment — can be inspected on
-      # green runs too, not just failures.
-      - name: Upload Playwright report
+      # The generated profile picture as a standalone PNG — open it directly,
+      # no report server needed. Uploaded on every non-cancelled run.
+      - name: Upload generated profile picture
         if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-profile-pic
+          path: playwright-artifacts/
+          retention-days: 7
+
+      # Full Playwright report for debugging failures. Note: view it with
+      # `npx playwright show-report` — opening index.html from file:// leaves
+      # attachment images broken (the report fetches them over HTTP).
+      - name: Upload Playwright report
+        if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
