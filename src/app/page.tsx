@@ -129,16 +129,18 @@ export default function Home() {
           Let&apos;s unite in our profile pictures to spotlight the cause. ✊
         </p>
         <p className="text-gray-600">
-          Watch the{' '}
-          <a
-            href="https://www.instagram.com/p/C2B1DP0LqBl/"
-            target="_blank"
-            className="underline cursor-pointer hover:text-gray-900"
-          >
-            step-by-step guide
-          </a>{' '}
-          👀
+          Watch the step-by-step guide 👀
         </p>
+        <video
+          controls
+          playsInline
+          preload="metadata"
+          className="mt-4 mx-auto w-full max-w-[270px] rounded-lg shadow-md"
+          style={{ aspectRatio: '9 / 16' }}
+        >
+          <source src="/how-to-guide.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
         <div className="my-12">
           <div className="flex justify-center">
             <div
