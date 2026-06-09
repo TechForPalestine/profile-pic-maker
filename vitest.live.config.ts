@@ -3,8 +3,9 @@ import { defineConfig } from 'vitest/config';
 
 // Live smoke test that hits the REAL upstream (api.fxtwitter.com) to verify
 // the tech4palestine profile picture still resolves in production. It depends
-// on a third-party service, so it runs in a dedicated, NON-BLOCKING CI job
-// (continue-on-error) and is never part of the required `npm test` gate.
+// on a third-party service, so it runs in its own CI job (`npm run test:live`)
+// separate from the deterministic `npm test` gate. `retry` below absorbs
+// transient upstream blips so the required job stays stable.
 export default defineConfig({
   resolve: {
     alias: {

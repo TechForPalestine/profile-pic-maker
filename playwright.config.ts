@@ -11,7 +11,10 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // Two retries on CI: the @live spec hits real third-party upstreams, so a
+  // transient failure shouldn't fail a now-required job. The mocked specs are
+  // deterministic and won't need them.
+  retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI
     ? [['github'], ['list'], ['html', { open: 'never' }]]
     : 'list',

@@ -76,13 +76,12 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
-  # Kept separate and non-blocking: it depends on a third-party service
-  # (api.fxtwitter.com), so its flakiness must never gate the required job.
-  # Runs in parallel, so it adds no wall-clock time to the gate.
+  # Hits the real api.fxtwitter.com to confirm the tech4palestine integration
+  # works in production. Required: a failure means the Twitter fetch is broken.
+  # Vitest retries (see vitest.live.config.ts) absorb transient upstream blips.
   live-smoke:
-    name: Live upstream smoke (non-blocking)
+    name: Live upstream smoke
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -100,11 +99,11 @@ jobs:
         run: npm run test:live
 
   # Full-stack e2e against the REAL tech4palestine pic (drives the UI, calls
-  # the real upstreams). Non-blocking for the same reason as live-smoke.
+  # the real upstreams). Required; Playwright retries (CI) absorb transient
+  # network/upstream flakes.
   e2e-live:
-    name: Live e2e (real pic, non-blocking)
+    name: Live e2e (real pic)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -8,9 +8,9 @@ import { distinctColors, pixelAt } from './png-utils';
 
 // LIVE end-to-end — drives the full UI against the REAL upstreams: our API
 // route calls api.fxtwitter.com, and next/image fetches the real avatar from
-// the Twitter CDN. Tagged @live so the required e2e run skips it; it executes
-// only in the dedicated, non-blocking CI job (the avatar can change and the
-// third-party services can be flaky, so it must never gate a merge).
+// the Twitter CDN. Tagged @live so the default e2e run skips it; it executes
+// in its own `e2e-live` CI job. Playwright retries (CI) absorb transient
+// network flakes so this required job stays stable.
 //
 // Because the real photo is unknown and mutable, the assertions verify that a
 // valid, non-blank, correctly-framed PNG is produced — not exact pixels.
