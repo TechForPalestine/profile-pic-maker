@@ -270,24 +270,13 @@ export default function Home() {
             will be saved by the app.
           </p>
           <p className="text-gray-600">
-            Have any feedback?{' '}
+            Have feedback, a question, or found a bug?{' '}
             <a
-              href="https://www.x.com/sohafidz"
+              href="https://github.com/TechForPalestine/profile-pic-maker/issues"
               target="_blank"
               className="underline cursor-pointer"
             >
-              Let me know!
-            </a>
-          </p>
-          <p className="text-gray-600">
-            For any bugs, please report them to our{' '}
-            <a
-              href="https://github.com/TechForPalestine/palestine-pfp-maker/issues"
-              target="_blank"
-              className="underline cursor-pointer"
-            >
-              {' '}
-              GitHub repository.
+              Let us know on GitHub
             </a>
           </p>
         </div>
