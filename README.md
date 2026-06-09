@@ -21,8 +21,8 @@ Feel free to contribute to the project by submitting issues or pull requests. Yo
 
 If you want to run the app locally, follow these steps:
 
-1. Clone the repository: `git clone https://github.com/TechForPalestine/palestine-pfp-maker.git`
-2. Open the project directory: `cd palestine-pfp-maker`
+1. Clone the repository: `git clone https://github.com/TechForPalestine/profile-pic-maker.git`
+2. Open the project directory: `cd profile-pic-maker`
 3. Install dependencies: `npm ci`
 4. Run the project: `npm run dev`
 
