@@ -1,15 +1,40 @@
 import { expect, test } from '@playwright/test';
-
-// A tiny but valid 1x1 PNG, served same-origin in place of the real Twitter
-// CDN image. Keeping it same-origin avoids canvas tainting so html-to-image
-// can rasterise the frame into a downloadable PNG.
-const ONE_BY_ONE_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC',
-  'base64',
-);
+import { PNG } from 'pngjs';
 
 const AVATAR_URL =
   'https://pbs.twimg.com/profile_images/test/tech4palestine_400x400.png';
+
+// A solid, fully-opaque MAGENTA avatar. Using a distinctive known colour lets
+// us prove the avatar was actually fetched, rendered, and composited into the
+// generated image (rather than just "some PNG came out").
+const AVATAR_RGBA: [number, number, number, number] = [255, 0, 255, 255];
+
+function solidPng(
+  width: number,
+  height: number,
+  [r, g, b, a]: [number, number, number, number],
+): Buffer {
+  const png = new PNG({ width, height });
+  for (let i = 0; i < png.data.length; i += 4) {
+    png.data[i] = r;
+    png.data[i + 1] = g;
+    png.data[i + 2] = b;
+    png.data[i + 3] = a;
+  }
+  return PNG.sync.write(png);
+}
+
+const AVATAR_PNG = solidPng(64, 64, AVATAR_RGBA);
+
+function pixelAt(png: PNG, x: number, y: number) {
+  const i = (png.width * y + x) << 2;
+  return {
+    r: png.data[i],
+    g: png.data[i + 1],
+    b: png.data[i + 2],
+    a: png.data[i + 3],
+  };
+}
 
 test.describe('Generate a profile picture from the tech4palestine X handle', () => {
   test.beforeEach(async ({ page }) => {
@@ -29,18 +54,21 @@ test.describe('Generate a profile picture from the tech4palestine X handle', () 
     });
 
     // The avatar is rendered through next/image; intercept the optimizer so
-    // the bytes are served same-origin instead of from the Twitter CDN.
+    // the bytes are served same-origin instead of from the Twitter CDN. This
+    // also keeps the canvas untainted so html-to-image can rasterise it.
     await page.route('**/_next/image**', (route) =>
       route.fulfill({
         status: 200,
         contentType: 'image/png',
         headers: { 'access-control-allow-origin': '*' },
-        body: ONE_BY_ONE_PNG,
+        body: AVATAR_PNG,
       }),
     );
   });
 
-  test('fetches the avatar and downloads a generated PNG', async ({ page }) => {
+  test('composites the avatar into the frame and downloads it', async ({
+    page,
+  }, testInfo) => {
     // handleRetrieveProfilePicture() asks for the username via prompt().
     page.on('dialog', (dialog) => dialog.accept('tech4palestine'));
 
@@ -65,13 +93,36 @@ test.describe('Generate a profile picture from the tech4palestine X handle', () 
 
     expect(download.suggestedFilename()).toBe('profile-pic-twitter.png');
 
-    const filePath = await download.path();
-    expect(filePath).toBeTruthy();
+    // Persist the real generated image and attach it to the report so it can
+    // be eyeballed from the CI artifact.
+    const filePath = testInfo.outputPath('generated-profile-pic.png');
+    await download.saveAs(filePath);
+    await testInfo.attach('generated-profile-pic', {
+      path: filePath,
+      contentType: 'image/png',
+    });
 
     const { readFile } = await import('node:fs/promises');
-    const bytes = await readFile(filePath!);
-    // PNG magic number: 89 50 4E 47.
+    const bytes = await readFile(filePath);
+
+    // It's a real PNG.
     expect(bytes.subarray(0, 4)).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47]));
-    expect(bytes.byteLength).toBeGreaterThan(100);
+
+    const image = PNG.sync.read(bytes);
+
+    // The frame is square (300x300 source) — rasterised square.
+    expect(image.width).toBeGreaterThan(0);
+    expect(image.width).toBe(image.height);
+
+    // CENTER must be the avatar colour -> the fetched image was composited in.
+    const center = pixelAt(image, image.width >> 1, image.height >> 1);
+    expect(center.a).toBeGreaterThan(200); // opaque
+    expect(center.r).toBeGreaterThan(200);
+    expect(center.g).toBeLessThan(80);
+    expect(center.b).toBeGreaterThan(200);
+
+    // CORNERS must be transparent -> the circular profile frame was applied.
+    const corner = pixelAt(image, 3, 3);
+    expect(corner.a).toBeLessThan(60);
   });
 });
