@@ -128,9 +128,7 @@ export default function Home() {
         <p className="text-lg py-2">
           Let&apos;s unite in our profile pictures to spotlight the cause. ✊
         </p>
-        <p className="text-gray-600">
-          Watch the step-by-step guide 👀
-        </p>
+        <p className="text-gray-600">Watch the step-by-step guide 👀</p>
         <video
           controls
           playsInline
