@@ -266,8 +266,8 @@ export default function Home() {
         </div>
         <div className="pt-8">
           <p className="p-2 my-6 text-sm border rounded-lg">
-            Note: This app runs purely on your browser end. No images nor data
-            will be saved by the app.
+            Note: Your image is processed entirely in your browser. No images
+            are uploaded or saved by the app.
           </p>
           <p className="text-gray-600">
             Have any feedback?{' '}
