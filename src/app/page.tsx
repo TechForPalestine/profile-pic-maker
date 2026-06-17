@@ -130,8 +130,8 @@ export default function Home() {
   };
 
   return (
-    <main className="text-center px-8 py-12 max-w-xl mx-auto flex justify-center align-center items-center min-h-screen">
-      <div>
+    <main className="min-h-screen flex flex-col text-center">
+      <div className="flex-1 flex flex-col justify-center px-8 py-12 max-w-xl mx-auto w-full">
         {unsupportedBrowser && (
           <div className="border p-2 rounded-lg bg-yellow-200 my-2  text-sm mb-8">
             <p className="font-semibold">⚠️ Unsupported Browser Detected</p>
@@ -312,6 +312,29 @@ export default function Home() {
           </p>
         </div>
       </div>
+      <footer className="bg-[#303846] text-center py-8 px-4">
+        <div className="container max-w-xl mx-auto">
+          <div className="mb-4">
+            <a
+              href="https://techforpalestine.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block"
+            >
+              <img
+                src="/img/logo.svg"
+                alt="Tech For Palestine Logo"
+                width={320}
+                height={180}
+                className="mx-auto"
+              />
+            </a>
+          </div>
+          <p className="text-sm text-[#ebedf0]">
+            An open source initiative of the Tech For Palestine collective
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }
