@@ -1,4 +1,5 @@
 'use client';
+import { FunnelEvent, trackEvent } from '@/lib/analytics';
 import { SocialPlatform } from '@/types';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
@@ -24,6 +25,20 @@ export default function Home() {
   >();
 
   useEffect(() => {
+    trackEvent(FunnelEvent.Landed);
+  }, []);
+
+  // Step 4: a usable image source (data URL / social profile URL) is obtained.
+  useEffect(() => {
+    if (userImageUrl) {
+      trackEvent(FunnelEvent.PhotoFetched, {
+        method: filePostfix ?? 'unknown',
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userImageUrl]);
+
+  useEffect(() => {
     const isInstagramBrowser = /Instagram/i.test(navigator.userAgent);
     const isFacebookBrowser = /FBAN|FBAV/i.test(navigator.userAgent);
 
@@ -43,6 +58,7 @@ export default function Home() {
     const reader = new FileReader();
 
     if (file) {
+      trackEvent(FunnelEvent.PhotoProvided, { method: 'user-upload' });
       reader.onload = async (event: ProgressEvent<FileReader>) => {
         setFilePostfix('user-upload');
         setUserImageUrl(event.target?.result as string);
@@ -56,13 +72,16 @@ export default function Home() {
   };
 
   const handleUploadButtonClick = () => {
+    trackEvent(FunnelEvent.SourceSelected, { method: 'user-upload' });
     document.getElementById('fileInput')?.click();
   };
 
   const handleRetrieveProfilePicture = async (platform: SocialPlatform) => {
+    trackEvent(FunnelEvent.SourceSelected, { method: platform });
     const userProvidedUsername = prompt(`Enter your ${platform} username:`);
 
     if (userProvidedUsername) {
+      trackEvent(FunnelEvent.PhotoProvided, { method: platform });
       setFilePostfix(platform);
       try {
         setLoader(true);
@@ -99,10 +118,14 @@ export default function Home() {
     const generatedImageUrl = await generateImage();
     if (generatedImageUrl) {
       download(generatedImageUrl, `profile-pic-${filePostfix}.png`);
+      trackEvent(FunnelEvent.Downloaded, {
+        method: filePostfix ?? 'unknown',
+      });
     }
   };
 
   const startOver = async () => {
+    trackEvent(FunnelEvent.StartOver, { method: filePostfix ?? 'unknown' });
     setUserImageUrl(undefined);
   };
 
@@ -178,6 +201,14 @@ export default function Home() {
                   id="userImage"
                   alt="profile-image"
                   src={userImageUrl ?? '/user.jpg'}
+                  onLoad={() => {
+                    // Only the user's selected photo counts, not the placeholder.
+                    if (userImageUrl) {
+                      trackEvent(FunnelEvent.PreviewShown, {
+                        method: filePostfix ?? 'unknown',
+                      });
+                    }
+                  }}
                   width={100}
                   height={100}
                   style={{
