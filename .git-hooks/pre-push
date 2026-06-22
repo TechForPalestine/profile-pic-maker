@@ -1,0 +1,6 @@
+#!/bin/sh
+# Run lint before pushing to catch style/type issues early.
+# Bypass with: git push --no-verify
+
+echo "Running lint before push..."
+npm run lint
