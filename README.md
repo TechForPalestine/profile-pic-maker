@@ -19,7 +19,32 @@ Feel free to contribute to the project by submitting issues or pull requests. Yo
 
 ## Development
 
-If you want to run the app locally, follow these steps:
+This project uses [devbox](https://www.jetify.com/devbox) to provide a
+reproducible development environment (Node.js 22, git, and npm) without relying
+on a globally installed toolchain.
+
+### With devbox (recommended)
+
+1. Clone the repository: `git clone https://github.com/TechForPalestine/profile-pic-maker.git`
+2. Open the project directory: `cd profile-pic-maker`
+3. Install dependencies: `devbox run npm install`
+4. Run the project: `devbox run npm run dev`
+
+Run the full required test suite with:
+
+```bash
+devbox run test
+```
+
+Run the live upstream tests with:
+
+```bash
+devbox run test:live
+```
+
+### Without devbox
+
+If you already have Node.js 22 and git installed:
 
 1. Clone the repository: `git clone https://github.com/TechForPalestine/profile-pic-maker.git`
 2. Open the project directory: `cd profile-pic-maker`
@@ -34,6 +59,8 @@ If you want to run the app locally, follow these steps:
 | `npm run test:e2e` | Browser e2e (upload → fetch → generate → download), upstream mocked |
 | `npm run test:e2e:live` | Full-stack e2e against the **real** tech4palestine pic (needs network) |
 | `npm run test:live` | Live integration smoke against the real `api.fxtwitter.com` |
+
+Or use the devbox shortcuts: `devbox run test` and `devbox run test:live`.
 
 Playwright needs a browser. Normally `npx playwright install chromium` handles
 it; in sandboxes where that download is blocked, run `./scripts/run-e2e-local.sh`,

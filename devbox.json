@@ -1,0 +1,37 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.3/.schema/devbox.schema.json",
+  "packages": [
+    "nodejs@22",
+    "git@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "echo 'Welcome to devbox!' > /dev/null"
+    ],
+    "scripts": {
+      "install": [
+        "npm install"
+      ],
+      "lint": [
+        "npm run lint"
+      ],
+      "typecheck": [
+        "npx tsc --noEmit"
+      ],
+      "build": [
+        "npm run build"
+      ],
+      "test": [
+        "npm run lint",
+        "npx tsc --noEmit",
+        "npm run build",
+        "npm test",
+        "npm run test:e2e"
+      ],
+      "test:live": [
+        "npm run test:live",
+        "npm run test:e2e:live"
+      ]
+    }
+  }
+}
