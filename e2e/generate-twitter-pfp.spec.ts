@@ -33,17 +33,21 @@ test.describe('Generate a profile picture from the tech4palestine X handle', () 
       return route.fulfill({ json: { profilePicUrl: AVATAR_URL } });
     });
 
-    // The avatar is rendered through next/image; intercept the optimizer so
-    // the bytes are served same-origin instead of from the Twitter CDN. This
-    // also keeps the canvas untainted so html-to-image can rasterise it.
+    // The avatar may be rendered either through next/image's optimizer or
+    // loaded directly from pbs.twimg.com depending on the platform/build. Mock
+    // both paths so the bytes are served same-origin instead of from the Twitter
+    // CDN. This also keeps the canvas untainted so html-to-image can rasterise it.
+    const avatarResponse = {
+      status: 200,
+      contentType: 'image/png',
+      headers: { 'access-control-allow-origin': '*' },
+      body: AVATAR_PNG,
+    } as const;
+
     await page.route('**/_next/image**', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'image/png',
-        headers: { 'access-control-allow-origin': '*' },
-        body: AVATAR_PNG,
-      }),
+      route.fulfill(avatarResponse),
     );
+    await page.route(AVATAR_URL, (route) => route.fulfill(avatarResponse));
   });
 
   test('composites the avatar into the frame and downloads it', async ({
