@@ -7,8 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write --list-different .",
-    "prepare": "git config core.hooksPath .git-hooks"
+    "format": "prettier --write --list-different ."
   },
   "dependencies": {
     "@sentry/nextjs": "^10.58.0",
