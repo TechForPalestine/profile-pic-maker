@@ -26,6 +26,16 @@ const nextConfig = {
       },
     ],
   },
+  // next-on-pages' chunk deduplication aborts with "A duplicated identifier has
+  // been detected in the same function file" when Webpack assigns the same numeric
+  // module id to different modules across edge functions (triggered here by the
+  // Sentry edge SDK loaded via src/instrumentation.ts). Named module ids are
+  // path-based and globally unique, which sidesteps the collision.
+  // See https://github.com/cloudflare/next-on-pages/issues/931
+  webpack: (config) => {
+    config.optimization.moduleIds = 'named';
+    return config;
+  },
 };
 
 module.exports = withSentryConfig(nextConfig, {

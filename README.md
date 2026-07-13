@@ -21,6 +21,8 @@ Feel free to contribute to the project by submitting issues or pull requests. Yo
 
 If you want to run the app locally, follow these steps:
 
+> Requires Node.js 22+ (see `.nvmrc`).
+
 1. Clone the repository: `git clone https://github.com/TechForPalestine/profile-pic-maker.git`
 2. Open the project directory: `cd profile-pic-maker`
 3. Install dependencies: `npm ci`
