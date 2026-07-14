@@ -3,11 +3,20 @@ name: CI
 on:
   push:
     branches: [main]
+  # Run on every pull request, regardless of base branch, so stacked PRs are
+  # covered too.
   pull_request:
-    branches: [main]
+
+# Cancel superseded runs on the same ref so rapid pushes don't queue up.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  # One job for the whole required pipeline: install once, build once, install
+  # the Playwright browser once, and reuse all of that for every test step.
+  verify:
+    name: Lint, type-check, build & tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,3 +39,51 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Integration tests (mocked upstream)
+        run: npm test
+
+      - name: Cache Playwright browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests (mocked upstream, reuses the build above)
+        run: npm run test:e2e
+
+      # Hits the real api.fxtwitter.com to confirm the tech4palestine integration
+      # works in production. Required: a failure means the Twitter fetch is broken.
+      # Vitest retries (see vitest.live.config.ts) absorb transient upstream blips.
+      - name: Live upstream smoke
+        run: npm run test:live
+
+      # Full-stack e2e against the REAL tech4palestine pic (drives the UI, calls
+      # the real upstreams). Required; Playwright retries (CI) absorb transient
+      # network/upstream flakes.
+      - name: Live e2e (real pic)
+        run: npm run test:e2e:live
+
+      # The generated profile pictures as standalone PNGs — open them directly,
+      # no report server needed. Uploaded on every non-cancelled run.
+      - name: Upload generated profile pictures
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-profile-pics
+          path: playwright-artifacts/
+          retention-days: 7
+
+      # Full Playwright report for debugging failures. Note: view it with
+      # `npx playwright show-report` — opening index.html from file:// leaves
+      # attachment images broken (the report fetches them over HTTP).
+      - name: Upload Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
