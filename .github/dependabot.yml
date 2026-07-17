@@ -1,32 +1,85 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for more information:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
-# https://containers.dev/guide/dependabot
-
+# Dependabot configuration.
+#
+# Strategy (see docs/dependency-updates.md for the full policy):
+#   - Routine patch/minor bumps are batched into a SINGLE monthly PR.
+#   - A 7-day cooldown gives new releases time to be yanked/patched before we
+#     adopt them (supply-chain soak). Real security advisories bypass this and
+#     open immediately as their own PRs.
+#   - Coordinated toolchains (React core, the ESLint stack) update as one PR.
+#   - Framework / standalone majors (next, tailwindcss, @types/node, ...) fall
+#     outside every group and open as individual PRs, reviewed as migration work.
+#   - Nothing auto-merges; a human reviews and merges every PR.
+#
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 version: 2
+
 updates:
-  # GitHub Actions updates
+  # ---------------------------------------------------------------------------
+  # GitHub Actions
+  # ---------------------------------------------------------------------------
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 10
+      interval: monthly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "ci(deps)"
     groups:
-      all-actions:
+      github-actions:
         patterns:
           - "*"
 
-  # NPM updates
+  # ---------------------------------------------------------------------------
+  # npm
+  # ---------------------------------------------------------------------------
   - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 20
+      interval: monthly
+    open-pull-requests-limit: 10
+    # Supply-chain soak. Security updates are a separate channel and IGNORE this.
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-patch-days: 3
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "build(deps)"
+      prefix-development: "build(deps-dev)"
+    # Group order matters: a dependency joins the FIRST group whose patterns
+    # match, so the specific coordinated groups are declared before `routine`.
     groups:
-      prod-patch-minor:
-        update-types: ["patch", "minor"]
-        dependency-type: "production"
-      dev-patch-minor:
-        update-types: ["patch", "minor"]
-        dependency-type: "development"
+      # React core must always move together (react + react-dom + their types),
+      # including majors — never split across PRs.
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      # The ESLint 9 / typescript-eslint 8 flat-config migration as ONE PR.
+      eslint-stack:
+        patterns:
+          - "eslint"
+          - "eslint-config-next"
+          - "eslint-config-prettier"
+          - "eslint-plugin-prettier"
+          - "@typescript-eslint/*"
+      # Everything else: all remaining patch + minor bumps in a single PR.
+      # Majors of anything not captured above stay ungrouped -> individual PRs.
+      routine:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+          - "minor"
+        patterns:
+          - "*"
+    # NOTE: security updates are deliberately left UNGROUPED so each CVE fix
+    # opens as its own fast, independent PR (a critical is never blocked behind
+    # a co-grouped low-severity fix) and is unaffected by the cooldown above.

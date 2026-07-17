@@ -1,0 +1,23 @@
+# Code owners — auto-requests review on matching paths.
+#
+# Dependency and CI-config changes (including Dependabot PRs) are routed to the
+# maintainer TEAM rather than any single person, so whoever is on the team is
+# added as a reviewer. Replace the team slug below with the real one on the
+# upstream org if it differs.
+#
+# NOTE: team ownership (`@org/team`) only resolves on a repo owned by that org.
+# On a personal-account fork it is inert — it takes effect once this file lands
+# on the TechForPalestine org repo.
+
+# Dependency manifests & lockfile
+/package.json          @TechForPalestine/maintainers
+/package-lock.json     @TechForPalestine/maintainers
+/.npmrc                @TechForPalestine/maintainers
+
+# CI, Dependabot, and repo automation
+/.github/              @TechForPalestine/maintainers
+
+# Toolchain / runtime version pins
+/.nvmrc                @TechForPalestine/maintainers
+/devbox.json           @TechForPalestine/maintainers
+/devbox.lock           @TechForPalestine/maintainers
