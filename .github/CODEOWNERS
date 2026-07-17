@@ -1,0 +1,23 @@
+# Code owners: auto-requests review on matching paths.
+#
+# Dependency and CI-config changes (including Dependabot PRs) are routed to the
+# repo owner so they get a review request automatically.
+#
+# TEMPORARY (fork): set to @mostafazh so this validates on the personal-account
+# fork. When this file lands on the TechForPalestine org repo, replace @mostafazh
+# with the team that maintains this repo, e.g. @TechForPalestine/profile-pic-maker-maintainers
+# (an org owner can create that team and grant it Maintain), so review routes to
+# the repo's maintainers rather than a single person.
+
+# Dependency manifests & lockfile
+/package.json          @mostafazh
+/package-lock.json     @mostafazh
+/.npmrc                @mostafazh
+
+# CI, Dependabot, and repo automation
+/.github/              @mostafazh
+
+# Toolchain / runtime version pins
+/.nvmrc                @mostafazh
+/devbox.json           @mostafazh
+/devbox.lock           @mostafazh
