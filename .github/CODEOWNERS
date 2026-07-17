@@ -1,23 +1,27 @@
 # Code owners — auto-requests review on matching paths.
 #
 # Dependency and CI-config changes (including Dependabot PRs) are routed to the
-# maintainer TEAM rather than any single person, so whoever is on the team is
-# added as a reviewer. Replace the team slug below with the real one on the
-# upstream org if it differs.
+# team that maintains THIS repository, so whoever maintains profile-pic-maker is
+# added as a reviewer — not the whole org.
+#
+# Replace the slug below with the real team that has maintain/admin on this repo.
+# (If no such team exists, an org owner can create one, e.g.
+# "profile-pic-maker-maintainers", and grant it Maintain on this repo. As a
+# stop-gap you may instead list individual maintainer usernames: `@alice @bob`.)
 #
 # NOTE: team ownership (`@org/team`) only resolves on a repo owned by that org.
 # On a personal-account fork it is inert — it takes effect once this file lands
 # on the TechForPalestine org repo.
 
 # Dependency manifests & lockfile
-/package.json          @TechForPalestine/maintainers
-/package-lock.json     @TechForPalestine/maintainers
-/.npmrc                @TechForPalestine/maintainers
+/package.json          @TechForPalestine/profile-pic-maker-maintainers
+/package-lock.json     @TechForPalestine/profile-pic-maker-maintainers
+/.npmrc                @TechForPalestine/profile-pic-maker-maintainers
 
 # CI, Dependabot, and repo automation
-/.github/              @TechForPalestine/maintainers
+/.github/              @TechForPalestine/profile-pic-maker-maintainers
 
 # Toolchain / runtime version pins
-/.nvmrc                @TechForPalestine/maintainers
-/devbox.json           @TechForPalestine/maintainers
-/devbox.lock           @TechForPalestine/maintainers
+/.nvmrc                @TechForPalestine/profile-pic-maker-maintainers
+/devbox.json           @TechForPalestine/profile-pic-maker-maintainers
+/devbox.lock           @TechForPalestine/profile-pic-maker-maintainers
