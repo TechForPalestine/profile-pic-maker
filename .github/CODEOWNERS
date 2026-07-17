@@ -1,27 +1,23 @@
-# Code owners — auto-requests review on matching paths.
+# Code owners: auto-requests review on matching paths.
 #
 # Dependency and CI-config changes (including Dependabot PRs) are routed to the
-# team that maintains THIS repository, so whoever maintains profile-pic-maker is
-# added as a reviewer — not the whole org.
+# repo owner so they get a review request automatically.
 #
-# Replace the slug below with the real team that has maintain/admin on this repo.
-# (If no such team exists, an org owner can create one, e.g.
-# "profile-pic-maker-maintainers", and grant it Maintain on this repo. As a
-# stop-gap you may instead list individual maintainer usernames: `@alice @bob`.)
-#
-# NOTE: team ownership (`@org/team`) only resolves on a repo owned by that org.
-# On a personal-account fork it is inert — it takes effect once this file lands
-# on the TechForPalestine org repo.
+# TEMPORARY (fork): set to @mostafazh so this validates on the personal-account
+# fork. When this file lands on the TechForPalestine org repo, replace @mostafazh
+# with the team that maintains this repo, e.g. @TechForPalestine/profile-pic-maker-maintainers
+# (an org owner can create that team and grant it Maintain), so review routes to
+# the repo's maintainers rather than a single person.
 
 # Dependency manifests & lockfile
-/package.json          @TechForPalestine/profile-pic-maker-maintainers
-/package-lock.json     @TechForPalestine/profile-pic-maker-maintainers
-/.npmrc                @TechForPalestine/profile-pic-maker-maintainers
+/package.json          @mostafazh
+/package-lock.json     @mostafazh
+/.npmrc                @mostafazh
 
 # CI, Dependabot, and repo automation
-/.github/              @TechForPalestine/profile-pic-maker-maintainers
+/.github/              @mostafazh
 
 # Toolchain / runtime version pins
-/.nvmrc                @TechForPalestine/profile-pic-maker-maintainers
-/devbox.json           @TechForPalestine/profile-pic-maker-maintainers
-/devbox.lock           @TechForPalestine/profile-pic-maker-maintainers
+/.nvmrc                @mostafazh
+/devbox.json           @mostafazh
+/devbox.lock           @mostafazh
