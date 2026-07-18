@@ -106,7 +106,14 @@ export default function Home() {
 
   const generateImage = async () => {
     try {
-      return await toPng(ref.current as HTMLElement);
+      // includeQueryParams keeps html-to-image's per-resource cache keyed by the
+      // full URL. Social avatars all render through the next/image optimizer as
+      // `/_next/image?url=...`; without the query params every avatar collapses
+      // to the same cache key, so after "Start Over" a second avatar would be
+      // rasterised from the first one's cached bytes (issue #35).
+      return await toPng(ref.current as HTMLElement, {
+        includeQueryParams: true,
+      });
     } catch (error) {
       console.log('Error generating image', error);
     }
