@@ -51,8 +51,14 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/gaza-status')
-      .then((res) => res.json())
-      .then((data) => setGazaStatusSummary(data.summary));
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setGazaStatusSummary(data?.summary))
+      .catch((error) => {
+        // The Gaza status banner is non-essential. Swallow network failures
+        // here so they don't bubble up as an unhandled "Failed to fetch" /
+        // "Load failed" rejection (Sentry PPM-8 / PPM-A).
+        console.error('Error fetching Gaza status summary:', error);
+      });
   }, []);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
