@@ -67,6 +67,7 @@ updates:
       eslint-stack:
         patterns:
           - "eslint"
+          - "@eslint/js"
           - "eslint-config-next"
           - "eslint-config-prettier"
           - "eslint-plugin-prettier"

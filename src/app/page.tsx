@@ -43,6 +43,8 @@ export default function Home() {
     const isFacebookBrowser = /FBAN|FBAV/i.test(navigator.userAgent);
 
     if (isInstagramBrowser || isFacebookBrowser) {
+      // Browser detection must happen in an effect (navigator unavailable during SSR).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUnsupportedBrowser(true);
     }
   }, []);
@@ -169,7 +171,6 @@ export default function Home() {
               className="relative"
               ref={ref}
             >
-              {/* eslint-disable-next-line */}
               <Image
                 width={100}
                 height={100}
