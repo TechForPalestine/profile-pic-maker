@@ -34,3 +34,19 @@
   pointer-events: none;
   animation: confetti-fall 1.4s ease-in forwards;
 }
+
+/* Gentle entrance for the share panel after the download. */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.share-panel-enter {
+  animation: fade-in-up 0.5s ease-out;
+}

@@ -54,6 +54,7 @@ export default function SharePanel({
   method,
   generateProfileImage,
 }: SharePanelProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
   const [canNativeShare, setCanNativeShare] = useState(false);
   const [busyAction, setBusyAction] = useState<string>();
@@ -109,6 +110,9 @@ export default function SharePanel({
     trackEvent(ShareEvent.OptionsShown, { method });
     prepareFile('profile');
     prepareFile('story');
+    // The panel appears above the Download button the user just clicked —
+    // make sure its reveal is actually on screen.
+    panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     // Drop the confetti from the DOM once the burst has played out.
     const confettiTimer = setTimeout(() => setShowConfetti(false), 2500);
     return () => clearTimeout(confettiTimer);
@@ -181,7 +185,10 @@ export default function SharePanel({
   };
 
   return (
-    <div className="relative overflow-hidden mt-8 rounded-2xl border border-gray-300 bg-gray-50 px-4 py-5">
+    <div
+      ref={panelRef}
+      className="share-panel-enter relative overflow-hidden my-6 rounded-2xl border border-gray-300 bg-gray-50 px-4 py-5"
+    >
       {showConfetti &&
         CONFETTI_PIECES.map((piece, i) => (
           <span

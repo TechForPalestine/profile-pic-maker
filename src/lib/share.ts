@@ -12,9 +12,13 @@ export const STORY_URL_LABEL = 'ppm.t4p.al';
  * The message shared alongside the picture / link, without the URL.
  * Kept separate because some share targets (e.g. Telegram's share
  * endpoint) take the URL as its own parameter.
+ *
+ * Deliberately emoji-free: the 🇵🇸 flag arrived as "�" in WhatsApp
+ * Desktop on macOS (and renders as "PS" on Windows) — regional-indicator
+ * emoji don't survive every share target's decoding.
  */
 export const SHARE_MESSAGE =
-  'I framed my profile picture in solidarity with Palestine 🇵🇸 Make yours too:';
+  'I framed my profile picture in solidarity with Palestine. Make yours too:';
 
 /**
  * Landing URL tagged with a single compact `ref` param, which Plausible
@@ -73,9 +77,13 @@ export function buildShareLinks(): ShareLink[] {
     {
       channel: 'facebook',
       label: 'Share on Facebook',
+      // Facebook strips pre-filled text by platform policy — the post body
+      // must be typed by the user, and the preview comes from the landing
+      // page's Open Graph card. `quote` is passed for the few surfaces that
+      // still honour it.
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
         shareLandingUrl('facebook'),
-      )}`,
+      )}&quote=${encodeURIComponent(SHARE_MESSAGE)}`,
     },
   ];
 }

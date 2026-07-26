@@ -250,9 +250,17 @@ export default function Home() {
         <div>
           {userImageUrl ? (
             <>
-              <p className="p-2 my-6 text-sm border rounded-lg">
-                Download the image, then use it as your new profile picture.
-              </p>
+              {hasDownloaded ? (
+                <SharePanel
+                  userImageUrl={userImageUrl}
+                  method={filePostfix ?? 'unknown'}
+                  generateProfileImage={generateFinalImage}
+                />
+              ) : (
+                <p className="p-2 my-6 text-sm border rounded-lg">
+                  Download the image, then use it as your new profile picture.
+                </p>
+              )}
               <button
                 onClick={handleDownload}
                 className="rounded-full mb-2 py-3 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl"
@@ -267,13 +275,6 @@ export default function Home() {
                 Start Over{' '}
                 <FaArrowRotateLeft className="inline mb-1 ml-2 text-md" />
               </button>
-              {hasDownloaded && (
-                <SharePanel
-                  userImageUrl={userImageUrl}
-                  method={filePostfix ?? 'unknown'}
-                  generateProfileImage={generateFinalImage}
-                />
-              )}
             </>
           ) : (
             <>
