@@ -8,16 +8,31 @@ import {
 } from '@/lib/share';
 
 describe('shareLandingUrl', () => {
-  it('tags the landing URL with the channel as a Plausible ref', () => {
-    expect(shareLandingUrl('whatsapp')).toBe(`${APP_URL}?ref=whatsapp`);
-    expect(shareLandingUrl('system')).toBe(`${APP_URL}?ref=system`);
+  it('tags the landing URL with standard UTM params', () => {
+    const url = new URL(shareLandingUrl('whatsapp'));
+    expect(url.origin + url.pathname).toBe(APP_URL);
+    expect(url.searchParams.get('utm_source')).toBe('whatsapp');
+    expect(url.searchParams.get('utm_medium')).toBe('social');
+    expect(url.searchParams.get('utm_campaign')).toBe('profile-pic-share');
+    expect(url.searchParams.get('utm_content')).toBe('link');
+  });
+
+  it('records what travelled with the share in utm_content', () => {
+    const url = new URL(shareLandingUrl('system', 'story'));
+    expect(url.searchParams.get('utm_source')).toBe('system');
+    expect(url.searchParams.get('utm_content')).toBe('story');
   });
 });
 
 describe('shareCaption', () => {
-  it('ends with the channel-tagged landing URL', () => {
+  it('ends with the tagged landing URL', () => {
     const caption = shareCaption('copy');
     expect(caption.endsWith(shareLandingUrl('copy'))).toBe(true);
+  });
+
+  it('carries the share format through to the URL', () => {
+    const caption = shareCaption('system', 'profile');
+    expect(caption.endsWith(shareLandingUrl('system', 'profile'))).toBe(true);
   });
 });
 
@@ -63,10 +78,10 @@ describe('buildShareLinks', () => {
     expect(url.searchParams.get('u')).toBe(shareLandingUrl('facebook'));
   });
 
-  it('every link-out opens the channel it is labelled for', () => {
+  it('every link-out is attributed to the channel it is labelled for', () => {
     for (const { channel, href, label } of buildShareLinks()) {
       expect(label.toLowerCase()).toContain(channel === 'x' ? 'x' : channel);
-      expect(href).toContain(`ref%3D${channel}`);
+      expect(href).toContain(`utm_source%3D${channel}`);
     }
   });
 });

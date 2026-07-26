@@ -1,7 +1,9 @@
-import { ShareChannel } from '@/types';
+import { ShareChannel, ShareFormat } from '@/types';
 
-export const APP_URL = 'https://ppm.techforpalestine.org/';
-export const APP_HOSTNAME = 'ppm.techforpalestine.org';
+// Short link domain — must redirect to the app *preserving query params*
+// so the UTM tags survive into Plausible.
+export const APP_URL = 'https://ppm.t4p.al/';
+export const APP_HOSTNAME = 'ppm.t4p.al';
 
 /**
  * The message shared alongside the picture / link, without the URL.
@@ -12,16 +14,29 @@ export const SHARE_MESSAGE =
   'I framed my profile picture in solidarity with Palestine 🇵🇸 Make yours too:';
 
 /**
- * Landing URL tagged with the channel it was shared through. Plausible
- * picks up the `ref` query param as a source, so shares are attributable
- * without any user tracking.
+ * Landing URL tagged with standard UTM params, which Plausible picks up
+ * as source/medium/campaign — no user tracking involved.
+ * utm_source is the share channel; utm_content distinguishes whether an
+ * image (profile/story) or a bare link travelled with it.
  */
-export function shareLandingUrl(channel: ShareChannel): string {
-  return `${APP_URL}?ref=${channel}`;
+export function shareLandingUrl(
+  channel: ShareChannel,
+  format: ShareFormat = 'link',
+): string {
+  const params = new URLSearchParams({
+    utm_source: channel,
+    utm_medium: 'social',
+    utm_campaign: 'profile-pic-share',
+    utm_content: format,
+  });
+  return `${APP_URL}?${params.toString()}`;
 }
 
-export function shareCaption(channel: ShareChannel): string {
-  return `${SHARE_MESSAGE} ${shareLandingUrl(channel)}`;
+export function shareCaption(
+  channel: ShareChannel,
+  format: ShareFormat = 'link',
+): string {
+  return `${SHARE_MESSAGE} ${shareLandingUrl(channel, format)}`;
 }
 
 export interface ShareLink {

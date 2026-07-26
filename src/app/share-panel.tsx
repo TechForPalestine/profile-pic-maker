@@ -110,7 +110,7 @@ export default function SharePanel({
       await navigator.share({
         files: [file],
         title: 'Palestine Profile Pic Maker',
-        text: shareCaption('system'),
+        text: shareCaption('system', format),
       });
       trackEvent(ShareEvent.Completed, { channel: 'system', format, method });
     } catch (error) {
