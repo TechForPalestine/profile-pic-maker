@@ -14,12 +14,15 @@ import {
   FaBluesky,
 } from 'react-icons/fa6';
 
+import SharePanel from './share-panel';
+
 export default function Home() {
   const ref = useRef<HTMLDivElement>(null);
   const [userImageUrl, setUserImageUrl] = useState<string>();
   const [unsupportedBrowser, setUnsupportedBrowser] = useState(false);
   const [loader, setLoader] = useState(false);
   const [gazaStatusSummary, setGazaStatusSummary] = useState();
+  const [hasDownloaded, setHasDownloaded] = useState(false);
   const [filePostfix, setFilePostfix] = useState<
     SocialPlatform | 'user-upload'
   >();
@@ -125,23 +128,29 @@ export default function Home() {
     }
   };
 
-  const handleDownload = async () => {
+  const generateFinalImage = async () => {
     // TODO: Fix if possible. This is a hack to ensure that image generated is as expected. Without repeating generateImage(), at times, the image wont be generated correctly.
     await generateImage();
     await generateImage();
     await generateImage();
-    const generatedImageUrl = await generateImage();
+    return generateImage();
+  };
+
+  const handleDownload = async () => {
+    const generatedImageUrl = await generateFinalImage();
     if (generatedImageUrl) {
       download(generatedImageUrl, `profile-pic-${filePostfix}.png`);
       trackEvent(FunnelEvent.Downloaded, {
         method: filePostfix ?? 'unknown',
       });
+      setHasDownloaded(true);
     }
   };
 
   const startOver = async () => {
     trackEvent(FunnelEvent.StartOver, { method: filePostfix ?? 'unknown' });
     setUserImageUrl(undefined);
+    setHasDownloaded(false);
   };
 
   return (
@@ -241,9 +250,17 @@ export default function Home() {
         <div>
           {userImageUrl ? (
             <>
-              <p className="p-2 my-6 text-sm border rounded-lg">
-                Download the image, then use it as your new profile picture.
-              </p>
+              {hasDownloaded ? (
+                <SharePanel
+                  userImageUrl={userImageUrl}
+                  method={filePostfix ?? 'unknown'}
+                  generateProfileImage={generateFinalImage}
+                />
+              ) : (
+                <p className="p-2 my-6 text-sm border rounded-lg">
+                  Download the image, then use it as your new profile picture.
+                </p>
+              )}
               <button
                 onClick={handleDownload}
                 className="rounded-full mb-2 py-3 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl"
