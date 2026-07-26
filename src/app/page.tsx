@@ -14,6 +14,8 @@ import {
   FaBluesky,
 } from 'react-icons/fa6';
 
+import SharePanel from './share-panel';
+
 export default function Home() {
   const ref = useRef<HTMLDivElement>(null);
   const [userImageUrl, setUserImageUrl] = useState<string>();
@@ -125,12 +127,16 @@ export default function Home() {
     }
   };
 
-  const handleDownload = async () => {
+  const generateFinalImage = async () => {
     // TODO: Fix if possible. This is a hack to ensure that image generated is as expected. Without repeating generateImage(), at times, the image wont be generated correctly.
     await generateImage();
     await generateImage();
     await generateImage();
-    const generatedImageUrl = await generateImage();
+    return generateImage();
+  };
+
+  const handleDownload = async () => {
+    const generatedImageUrl = await generateFinalImage();
     if (generatedImageUrl) {
       download(generatedImageUrl, `profile-pic-${filePostfix}.png`);
       trackEvent(FunnelEvent.Downloaded, {
@@ -258,6 +264,11 @@ export default function Home() {
                 Start Over{' '}
                 <FaArrowRotateLeft className="inline mb-1 ml-2 text-md" />
               </button>
+              <SharePanel
+                userImageUrl={userImageUrl}
+                method={filePostfix ?? 'unknown'}
+                generateProfileImage={generateFinalImage}
+              />
             </>
           ) : (
             <>

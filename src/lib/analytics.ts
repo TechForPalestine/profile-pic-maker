@@ -34,10 +34,35 @@ export const FunnelEvent = {
 export type FunnelEventName = (typeof FunnelEvent)[keyof typeof FunnelEvent];
 
 /**
+ * Share funnel — tracked separately from the creation funnel above, in
+ * firing order. All events carry `channel` / `format` props (see
+ * `ShareChannel` / `ShareFormat` in `@/types`) plus `method` (the photo
+ * source, same as the creation funnel).
+ *
+ * OptionsShown: the share panel rendered (user has a framed picture).
+ * Clicked: user activated a share action (share sheet, link-out, copy,
+ *   story download).
+ * Completed: the action verifiably finished — the OS share sheet resolved
+ *   without cancellation, the caption was copied, or the story image was
+ *   saved. Link-out channels (WhatsApp, Telegram, X, Facebook) open a page
+ *   we can't observe, so by design they never reach step 3.
+ */
+export const ShareEvent = {
+  OptionsShown: 'Share: 1 Options Shown',
+  Clicked: 'Share: 2 Clicked',
+  Completed: 'Share: 3 Completed',
+} as const;
+
+export type ShareEventName = (typeof ShareEvent)[keyof typeof ShareEvent];
+
+/**
  * Safely fire a Plausible custom event. No-ops during SSR or if the
  * Plausible script hasn't loaded yet.
  */
-export function trackEvent(event: FunnelEventName, props?: PlausibleProps) {
+export function trackEvent(
+  event: FunnelEventName | ShareEventName,
+  props?: PlausibleProps,
+) {
   if (typeof window === 'undefined' || typeof window.plausible !== 'function') {
     return;
   }
