@@ -1,7 +1,7 @@
 'use client';
 import { ShareEvent, trackEvent } from '@/lib/analytics';
 import {
-  APP_HOSTNAME,
+  STORY_URL_LABEL,
   buildShareLinks,
   canShareImageFiles,
   dataUrlToFile,
@@ -22,11 +22,12 @@ import {
   FaXTwitter,
 } from 'react-icons/fa6';
 
-const CHANNEL_ICONS = {
-  whatsapp: FaWhatsapp,
-  telegram: FaTelegram,
-  x: FaXTwitter,
-  facebook: FaFacebookF,
+// Official brand colours make the row instantly recognisable.
+const CHANNEL_STYLES = {
+  whatsapp: { Icon: FaWhatsapp, background: '#25D366' },
+  telegram: { Icon: FaTelegram, background: '#229ED9' },
+  x: { Icon: FaXTwitter, background: '#000000' },
+  facebook: { Icon: FaFacebookF, background: '#1877F2' },
 } as const;
 
 interface SharePanelProps {
@@ -166,33 +167,46 @@ export default function SharePanel({
 
   return (
     <div className="mt-8">
-      <p className="font-semibold">Spread the word 📣</p>
+      <p className="font-semibold text-lg">Now spread the word 📣</p>
       <p className="text-sm text-gray-600 pb-3">
-        Share it to your story or send it to friends.
+        Post it to your story or send it to friends.
       </p>
       {canNativeShare && (
         <>
           <button
-            onClick={() => handleNativeShare('profile')}
-            disabled={!!busyAction}
-            className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl disabled:opacity-60"
-          >
-            {busyAction === 'share-profile' ? 'Preparing…' : 'Share Photo'}{' '}
-            <FaShareNodes className="inline mb-1 ml-2 text-md" />
-          </button>
-          <button
             onClick={() => handleNativeShare('story')}
             disabled={!!busyAction}
-            className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl disabled:opacity-60"
+            className="rounded-full my-2 py-3 px-4 w-full border border-gray-900 bg-gray-900 text-white disabled:opacity-60"
           >
-            {busyAction === 'share-story' ? 'Preparing…' : 'Share as Story'}{' '}
-            <FaShareNodes className="inline mb-1 ml-2 text-md" />
+            <span className="text-xl font-semibold">
+              {busyAction === 'share-story' ? 'Preparing…' : 'Share to Story'}{' '}
+              <FaShareNodes className="inline mb-1 ml-1 text-md" />
+            </span>
+            <span className="block text-xs text-gray-300 mt-0.5">
+              9:16 card with your pic and the link — for WhatsApp &amp;
+              Instagram stories
+            </span>
+          </button>
+          <button
+            onClick={() => handleNativeShare('profile')}
+            disabled={!!busyAction}
+            className="rounded-full my-2 py-3 px-4 w-full border border-gray-900 disabled:opacity-60"
+          >
+            <span className="text-xl font-semibold">
+              {busyAction === 'share-profile'
+                ? 'Preparing…'
+                : 'Share the Photo'}{' '}
+              <FaShareNodes className="inline mb-1 ml-1 text-md" />
+            </span>
+            <span className="block text-xs text-gray-500 mt-0.5">
+              Just your framed profile picture
+            </span>
           </button>
         </>
       )}
-      <div className="flex justify-center gap-3 my-3">
+      <div className="flex justify-center gap-3 my-4">
         {buildShareLinks().map(({ channel, label, href }) => {
-          const Icon = CHANNEL_ICONS[channel];
+          const { Icon, background } = CHANNEL_STYLES[channel];
           return (
             <a
               key={channel}
@@ -202,7 +216,8 @@ export default function SharePanel({
               aria-label={label}
               title={label}
               onClick={() => handleLinkOut(channel)}
-              className="rounded-full border border-gray-900 p-3 text-xl hover:bg-gray-100"
+              className="rounded-full p-3.5 text-2xl text-white shadow-md hover:scale-110 transition-transform"
+              style={{ backgroundColor: background }}
             >
               <Icon />
             </a>
@@ -212,7 +227,7 @@ export default function SharePanel({
           onClick={handleCopyCaption}
           aria-label="Copy caption and link"
           title="Copy caption and link"
-          className="rounded-full border border-gray-900 p-3 text-xl hover:bg-gray-100"
+          className="rounded-full p-3.5 text-2xl text-white bg-gray-600 shadow-md hover:scale-110 transition-transform"
         >
           <FaRegCopy />
         </button>
@@ -248,7 +263,7 @@ export default function SharePanel({
         >
           <div
             className="relative"
-            style={{ width: '260px', height: '260px', marginTop: '84px' }}
+            style={{ width: '250px', height: '250px', marginTop: '48px' }}
           >
             <Image
               width={100}
@@ -274,13 +289,13 @@ export default function SharePanel({
               className="object-cover rounded-full"
             />
           </div>
-          <p className="text-white text-3xl font-semibold mt-10">
+          <p className="text-white text-3xl font-semibold mt-6">
             I stand with Palestine
           </p>
           {/* Small Palestinian flag, drawn with CSS (no emoji: system emoji
               fonts don't rasterise reliably across platforms). */}
           <div
-            className="relative overflow-hidden mt-5"
+            className="relative overflow-hidden mt-4"
             style={{ width: '60px', height: '40px' }}
           >
             <div style={{ height: '13.4px', backgroundColor: '#000000' }} />
@@ -299,10 +314,13 @@ export default function SharePanel({
               }}
             />
           </div>
-          <p className="text-gray-300 mt-5">Frame your profile picture too</p>
-          <div className="mt-auto mb-12 rounded-full bg-white px-6 py-3 text-gray-900 font-semibold">
-            {APP_HOSTNAME}
+          {/* The URL pill sits in the upper two-thirds: WhatsApp/Instagram
+              overlay the caption and reply UI over roughly the bottom quarter
+              of a story, which swallowed it when it was bottom-anchored. */}
+          <div className="mt-6 rounded-full bg-white px-7 py-3 text-gray-900 text-2xl font-bold">
+            {STORY_URL_LABEL}
           </div>
+          <p className="text-gray-300 mt-5">Frame your profile picture too</p>
         </div>
       </div>
     </div>

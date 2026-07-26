@@ -22,6 +22,7 @@ export default function Home() {
   const [unsupportedBrowser, setUnsupportedBrowser] = useState(false);
   const [loader, setLoader] = useState(false);
   const [gazaStatusSummary, setGazaStatusSummary] = useState();
+  const [hasDownloaded, setHasDownloaded] = useState(false);
   const [filePostfix, setFilePostfix] = useState<
     SocialPlatform | 'user-upload'
   >();
@@ -142,12 +143,14 @@ export default function Home() {
       trackEvent(FunnelEvent.Downloaded, {
         method: filePostfix ?? 'unknown',
       });
+      setHasDownloaded(true);
     }
   };
 
   const startOver = async () => {
     trackEvent(FunnelEvent.StartOver, { method: filePostfix ?? 'unknown' });
     setUserImageUrl(undefined);
+    setHasDownloaded(false);
   };
 
   return (
@@ -264,11 +267,13 @@ export default function Home() {
                 Start Over{' '}
                 <FaArrowRotateLeft className="inline mb-1 ml-2 text-md" />
               </button>
-              <SharePanel
-                userImageUrl={userImageUrl}
-                method={filePostfix ?? 'unknown'}
-                generateProfileImage={generateFinalImage}
-              />
+              {hasDownloaded && (
+                <SharePanel
+                  userImageUrl={userImageUrl}
+                  method={filePostfix ?? 'unknown'}
+                  generateProfileImage={generateFinalImage}
+                />
+              )}
             </>
           ) : (
             <>

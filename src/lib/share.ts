@@ -1,9 +1,12 @@
 import { ShareChannel, ShareFormat } from '@/types';
 
-// Short link domain — must redirect to the app *preserving query params*
-// so the UTM tags survive into Plausible.
-export const APP_URL = 'https://ppm.t4p.al/';
-export const APP_HOSTNAME = 'ppm.t4p.al';
+// Full canonical URL, used on every shared/copied link so previews and
+// redirects behave predictably.
+export const APP_URL = 'https://ppm.techforpalestine.org/';
+
+// Short human-readable address shown on the story card, where people
+// retype what they see. Must redirect to the app.
+export const STORY_URL_LABEL = 'ppm.t4p.al';
 
 /**
  * The message shared alongside the picture / link, without the URL.
