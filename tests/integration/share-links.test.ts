@@ -28,6 +28,21 @@ describe('shareCaption', () => {
     expect(caption.endsWith(shareLandingUrl('copy'))).toBe(true);
   });
 
+  it('keeps the flag emoji everywhere except WhatsApp', () => {
+    // wa.me hand-offs mangled the regional-indicator emoji into "�" in
+    // WhatsApp Desktop on macOS.
+    expect(shareCaption('whatsapp')).not.toContain('🇵🇸');
+    for (const channel of [
+      'telegram',
+      'x',
+      'facebook',
+      'copy',
+      'system',
+    ] as const) {
+      expect(shareCaption(channel)).toContain('🇵🇸');
+    }
+  });
+
   it('carries the share format through to the URL', () => {
     const caption = shareCaption('system', 'profile');
     expect(caption.endsWith(shareLandingUrl('system', 'profile'))).toBe(true);

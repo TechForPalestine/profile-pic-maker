@@ -132,7 +132,6 @@ export default function SharePanel({
         title: 'Palestine Profile Pic Maker',
         text: shareCaption('system', format),
       });
-      trackEvent(ShareEvent.Completed, { channel: 'system', format, method });
     } catch (error) {
       // AbortError means the user dismissed the share sheet — not an error.
       if ((error as DOMException)?.name !== 'AbortError') {
@@ -154,11 +153,6 @@ export default function SharePanel({
       const file = await prepareFile('story');
       if (!file) return;
       download(file, 'palestine-story-pic.png');
-      trackEvent(ShareEvent.Completed, {
-        channel: 'download',
-        format: 'story',
-        method,
-      });
     } finally {
       setBusyAction(undefined);
     }
@@ -170,11 +164,6 @@ export default function SharePanel({
       await navigator.clipboard.writeText(shareCaption('copy'));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      trackEvent(ShareEvent.Completed, {
-        channel: 'copy',
-        format: 'link',
-        method,
-      });
     } catch (error) {
       console.error('Error copying caption', error);
     }

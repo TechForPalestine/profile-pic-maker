@@ -13,12 +13,18 @@ export const STORY_URL_LABEL = 'ppm.t4p.al';
  * Kept separate because some share targets (e.g. Telegram's share
  * endpoint) take the URL as its own parameter.
  *
- * Deliberately emoji-free: the 🇵🇸 flag arrived as "�" in WhatsApp
- * Desktop on macOS (and renders as "PS" on Windows) — regional-indicator
- * emoji don't survive every share target's decoding.
+ * WhatsApp gets the emoji-free variant: the 🇵🇸 flag arrived as "�" in
+ * WhatsApp Desktop on macOS — the wa.me hand-off doesn't decode
+ * regional-indicator emoji reliably. Every other channel keeps the flag.
  */
 export const SHARE_MESSAGE =
+  'I framed my profile picture in solidarity with Palestine 🇵🇸 Make yours too:';
+export const SHARE_MESSAGE_PLAIN =
   'I framed my profile picture in solidarity with Palestine. Make yours too:';
+
+export function shareMessage(channel: ShareChannel): string {
+  return channel === 'whatsapp' ? SHARE_MESSAGE_PLAIN : SHARE_MESSAGE;
+}
 
 /**
  * Landing URL tagged with a single compact `ref` param, which Plausible
@@ -40,7 +46,7 @@ export function shareCaption(
   channel: ShareChannel,
   format: ShareFormat = 'link',
 ): string {
-  return `${SHARE_MESSAGE} ${shareLandingUrl(channel, format)}`;
+  return `${shareMessage(channel)} ${shareLandingUrl(channel, format)}`;
 }
 
 export interface ShareLink {
