@@ -29,16 +29,24 @@ export function shareMessage(channel: ShareChannel): string {
 /**
  * Landing URL tagged with a single compact `ref` param, which Plausible
  * reads as the traffic source (same field as utm_source) — no user
- * tracking involved. Bare-link shares are tagged with just the channel
- * (`?ref=whatsapp`); image shares append what travelled with them
- * (`?ref=system-story`), since the share sheet can't tell us the
+ * tracking involved. Bare-link shares are tagged with the channel
+ * (`?ref=share-whatsapp`); image shares append what travelled with them
+ * (`?ref=share-system-story`), since the share sheet can't tell us the
  * destination app.
+ *
+ * The `share-` prefix keeps these sources unmistakable next to organic
+ * referrals: a bare `?ref=facebook` would land in the same Sources
+ * bucket Plausible uses for ordinary facebook.com referrer traffic.
+ * Organic visits carry no ref param, so the two can never mix — and
+ * filtering the Sources report for "share-" shows all share-driven
+ * traffic as a group.
  */
 export function shareLandingUrl(
   channel: ShareChannel,
   format: ShareFormat = 'link',
 ): string {
-  const ref = format === 'link' ? channel : `${channel}-${format}`;
+  const ref =
+    format === 'link' ? `share-${channel}` : `share-${channel}-${format}`;
   return `${APP_URL}?ref=${ref}`;
 }
 

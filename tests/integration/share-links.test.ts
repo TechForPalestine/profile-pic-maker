@@ -8,16 +8,19 @@ import {
 } from '@/lib/share';
 
 describe('shareLandingUrl', () => {
-  it('tags bare-link shares with just the channel in a compact ref', () => {
-    expect(shareLandingUrl('whatsapp')).toBe(`${APP_URL}?ref=whatsapp`);
+  it('tags bare-link shares with a share-prefixed channel ref', () => {
+    // The prefix keeps share traffic distinct from organic referrals:
+    // ?ref=facebook would merge with ordinary facebook.com traffic in
+    // Plausible's Sources report.
+    expect(shareLandingUrl('whatsapp')).toBe(`${APP_URL}?ref=share-whatsapp`);
   });
 
   it('appends what travelled with image shares to the ref', () => {
     expect(shareLandingUrl('system', 'story')).toBe(
-      `${APP_URL}?ref=system-story`,
+      `${APP_URL}?ref=share-system-story`,
     );
     expect(shareLandingUrl('system', 'profile')).toBe(
-      `${APP_URL}?ref=system-profile`,
+      `${APP_URL}?ref=share-system-profile`,
     );
   });
 });
@@ -94,7 +97,7 @@ describe('buildShareLinks', () => {
   it('every link-out is attributed to the channel it is labelled for', () => {
     for (const { channel, href, label } of buildShareLinks()) {
       expect(label.toLowerCase()).toContain(channel === 'x' ? 'x' : channel);
-      expect(href).toContain(`ref%3D${channel}`);
+      expect(href).toContain(`ref%3Dshare-${channel}`);
     }
   });
 });
