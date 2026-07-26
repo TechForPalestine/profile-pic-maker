@@ -30,6 +30,17 @@ const CHANNEL_STYLES = {
   facebook: { Icon: FaFacebookF, background: '#1877F2' },
 } as const;
 
+// Palestine flag colours, cycled across the confetti pieces.
+const CONFETTI_COLORS = ['#E4312B', '#149954', '#000000'];
+const CONFETTI_PIECES = Array.from({ length: 24 }, (_, i) => ({
+  // Deterministic pseudo-random spread — no Math.random so renders are stable.
+  left: `${(i * 41 + 13) % 100}%`,
+  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+  delay: `${(i % 6) * 0.12}s`,
+  width: `${6 + (i % 3) * 3}px`,
+  height: `${10 + ((i + 1) % 3) * 3}px`,
+}));
+
 interface SharePanelProps {
   userImageUrl: string;
   /** Photo source (upload / social platform), mirrored into event props. */
@@ -47,6 +58,7 @@ export default function SharePanel({
   const [canNativeShare, setCanNativeShare] = useState(false);
   const [busyAction, setBusyAction] = useState<string>();
   const [copied, setCopied] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(true);
 
   // Memoised per mounted picture: rasterising is slow, and iOS only allows
   // navigator.share() during (transient) user activation — so the files are
@@ -97,6 +109,9 @@ export default function SharePanel({
     trackEvent(ShareEvent.OptionsShown, { method });
     prepareFile('profile');
     prepareFile('story');
+    // Drop the confetti from the DOM once the burst has played out.
+    const confettiTimer = setTimeout(() => setShowConfetti(false), 2500);
+    return () => clearTimeout(confettiTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -166,7 +181,22 @@ export default function SharePanel({
   };
 
   return (
-    <div className="mt-8">
+    <div className="relative overflow-hidden mt-8 rounded-2xl border border-gray-300 bg-gray-50 px-4 py-5">
+      {showConfetti &&
+        CONFETTI_PIECES.map((piece, i) => (
+          <span
+            key={i}
+            aria-hidden="true"
+            className="confetti-piece"
+            style={{
+              left: piece.left,
+              width: piece.width,
+              height: piece.height,
+              backgroundColor: piece.color,
+              animationDelay: piece.delay,
+            }}
+          />
+        ))}
       <p className="font-semibold text-lg">Now spread the word 📣</p>
       <p className="text-sm text-gray-600 pb-3">
         Post it to your story or send it to friends.

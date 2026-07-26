@@ -17,22 +17,19 @@ export const SHARE_MESSAGE =
   'I framed my profile picture in solidarity with Palestine 🇵🇸 Make yours too:';
 
 /**
- * Landing URL tagged with standard UTM params, which Plausible picks up
- * as source/medium/campaign — no user tracking involved.
- * utm_source is the share channel; utm_content distinguishes whether an
- * image (profile/story) or a bare link travelled with it.
+ * Landing URL tagged with a single compact `ref` param, which Plausible
+ * reads as the traffic source (same field as utm_source) — no user
+ * tracking involved. Bare-link shares are tagged with just the channel
+ * (`?ref=whatsapp`); image shares append what travelled with them
+ * (`?ref=system-story`), since the share sheet can't tell us the
+ * destination app.
  */
 export function shareLandingUrl(
   channel: ShareChannel,
   format: ShareFormat = 'link',
 ): string {
-  const params = new URLSearchParams({
-    utm_source: channel,
-    utm_medium: 'social',
-    utm_campaign: 'profile-pic-share',
-    utm_content: format,
-  });
-  return `${APP_URL}?${params.toString()}`;
+  const ref = format === 'link' ? channel : `${channel}-${format}`;
+  return `${APP_URL}?ref=${ref}`;
 }
 
 export function shareCaption(

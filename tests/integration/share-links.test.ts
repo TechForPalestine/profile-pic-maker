@@ -8,19 +8,17 @@ import {
 } from '@/lib/share';
 
 describe('shareLandingUrl', () => {
-  it('tags the landing URL with standard UTM params', () => {
-    const url = new URL(shareLandingUrl('whatsapp'));
-    expect(url.origin + url.pathname).toBe(APP_URL);
-    expect(url.searchParams.get('utm_source')).toBe('whatsapp');
-    expect(url.searchParams.get('utm_medium')).toBe('social');
-    expect(url.searchParams.get('utm_campaign')).toBe('profile-pic-share');
-    expect(url.searchParams.get('utm_content')).toBe('link');
+  it('tags bare-link shares with just the channel in a compact ref', () => {
+    expect(shareLandingUrl('whatsapp')).toBe(`${APP_URL}?ref=whatsapp`);
   });
 
-  it('records what travelled with the share in utm_content', () => {
-    const url = new URL(shareLandingUrl('system', 'story'));
-    expect(url.searchParams.get('utm_source')).toBe('system');
-    expect(url.searchParams.get('utm_content')).toBe('story');
+  it('appends what travelled with image shares to the ref', () => {
+    expect(shareLandingUrl('system', 'story')).toBe(
+      `${APP_URL}?ref=system-story`,
+    );
+    expect(shareLandingUrl('system', 'profile')).toBe(
+      `${APP_URL}?ref=system-profile`,
+    );
   });
 });
 
@@ -81,7 +79,7 @@ describe('buildShareLinks', () => {
   it('every link-out is attributed to the channel it is labelled for', () => {
     for (const { channel, href, label } of buildShareLinks()) {
       expect(label.toLowerCase()).toContain(channel === 'x' ? 'x' : channel);
-      expect(href).toContain(`utm_source%3D${channel}`);
+      expect(href).toContain(`ref%3D${channel}`);
     }
   });
 });

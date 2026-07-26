@@ -14,3 +14,23 @@
     border-color: var(--color-gray-200, currentColor);
   }
 }
+
+/* One-shot celebration burst when the share panel appears. */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-16px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(180px) rotate(540deg);
+    opacity: 0;
+  }
+}
+
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  border-radius: 2px;
+  pointer-events: none;
+  animation: confetti-fall 1.4s ease-in forwards;
+}
