@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "postinstall": "node scripts/link-ts6-for-eslint.mjs",
     "format": "prettier --write --list-different .",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -48,7 +49,8 @@
     "postcss": "^8",
     "prettier": "^3.9.6",
     "tailwindcss": "^4.3.2",
-    "typescript": "^6",
+    "typescript": "^7.0.2",
+    "typescript-lint": "npm:typescript@^6.0.3",
     "vitest": "^4.1.10"
   }
 }

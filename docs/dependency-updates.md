@@ -101,6 +101,17 @@ Do this **after** the new `.github/dependabot.yml` lands on upstream:
   conflict, so a major bump (e.g. React 19, Next 15+) can install cleanly yet be
   subtly incompatible. During **major** reviews, check peer ranges by hand — don't
   rely on `npm ci` to surface the mismatch.
+- **TypeScript is on v7 but the lint stack still runs on v6.** `typescript@7` (the
+  Go-native rewrite) exposes no programmatic compiler API, which
+  `@typescript-eslint` and `ts-api-utils` need — pointing them at TS 7 crashes
+  ESLint on load. As a bridge, TS 6 is installed under the `typescript-lint` alias
+  and `scripts/link-ts6-for-eslint.mjs` (a `postinstall` hook) symlinks it into
+  every copy of those packages in `node_modules`, so ESLint type-checks against
+  TS 6 while `tsc`, `next build` (via `experimental.useTypeScriptCli`), and editors
+  use TS 7. **Future work:** once typescript-eslint releases TS 7 support, delete
+  the script, the `postinstall` hook, and the `typescript-lint` devDependency, and
+  drop `experimental.useTypeScriptCli` from `next.config.js` if Next.js no longer
+  requires it.
 - **CI runs live third-party tests (`api.fxtwitter.com`, Twitter CDN) on the
   required path.** A dependency PR can go red from an upstream outage, not the
   bump. Two retries are configured; if it's clearly a transient network failure,
