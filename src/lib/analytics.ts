@@ -18,7 +18,8 @@ declare global {
  * PhotoProvided: commits input (chooses a file / submits a username).
  * PhotoFetched: a usable source is obtained (data URL / social profile URL).
  * PreviewShown: that photo actually renders on screen.
- * Downloaded: the final framed image is downloaded.
+ * Downloaded: the final framed image is downloaded (carries `branding`:
+ *   whether the short URL was baked into the ring).
  */
 export const FunnelEvent = {
   Landed: 'Funnel: 1 Landed',
@@ -29,6 +30,9 @@ export const FunnelEvent = {
   Downloaded: 'Funnel: 6 Downloaded',
   // Not a funnel step: user resets to pick a different photo.
   StartOver: 'Start Over',
+  // Not a funnel step: user turned the ring's short URL on or off. Carries
+  // `branding` ('on' / 'off') — the state it was switched *to*.
+  BrandingToggled: 'Branding Toggled',
 } as const;
 
 export type FunnelEventName = (typeof FunnelEvent)[keyof typeof FunnelEvent];

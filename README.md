@@ -11,7 +11,8 @@ This is a simple browser-only web app that allows users to upload their profile 
 1. Visit the [Palestine Profile Pic Maker](https://ppm.techforpalestine.org/).
 2. Click on the "Upload" button to select your profile picture.
 3. Wait for the app to process the image and apply the Palestine border.
-4. Once processed, click on the "Download" button to save your modified profile picture.
+4. Optionally tick "Add ppm.t4p.al to the frame" to curve the short URL along the bottom of the border, so anyone who sees your picture knows where to make theirs. Left unticked, the border stays plain.
+5. Once processed, click on the "Download" button to save your modified profile picture.
 
 ## Contribution
 
