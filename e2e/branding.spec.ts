@@ -58,15 +58,14 @@ test.describe('Short URL on the frame', () => {
     ).toBeVisible();
   });
 
-  test('is on by default and rasterises into the downloaded picture', async ({
+  test('rasterises into the downloaded picture once switched on', async ({
     page,
   }) => {
-    await expect(page.getByRole('checkbox')).toBeChecked();
+    await page.getByRole('checkbox').check();
     expect(labelPixels(await downloadPicture(page))).toBeGreaterThan(50);
   });
 
-  test('leaves the frame untouched when switched off', async ({ page }) => {
-    await page.getByRole('checkbox').uncheck();
+  test('is off by default, leaving the frame untouched', async ({ page }) => {
     await expect(page.getByRole('checkbox')).not.toBeChecked();
     expect(labelPixels(await downloadPicture(page))).toBe(0);
   });

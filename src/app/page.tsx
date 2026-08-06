@@ -25,9 +25,9 @@ export default function Home() {
   const [loader, setLoader] = useState(false);
   const [gazaStatusSummary, setGazaStatusSummary] = useState();
   const [hasDownloaded, setHasDownloaded] = useState(false);
-  // On by default: a picture that carries the address is how the next person
-  // finds out they can make one too. Opt-out is one click away.
-  const [showBranding, setShowBranding] = useState(true);
+  // Off by default: the picture is the user's, so the address only goes on it
+  // if they ask for it. One click adds it.
+  const [showBranding, setShowBranding] = useState(false);
   const [filePostfix, setFilePostfix] = useState<
     SocialPlatform | 'user-upload'
   >();
