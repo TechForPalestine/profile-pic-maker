@@ -4,9 +4,9 @@ import { ShareChannel, ShareFormat } from '@/types';
 // redirects behave predictably.
 export const APP_URL = 'https://ppm.techforpalestine.org/';
 
-// Short human-readable address shown on the story card, where people
-// retype what they see. Must redirect to the app.
-export const STORY_URL_LABEL = 'ppm.t4p.al';
+// Short human-readable address shown on the story card and on the picture's
+// ring, where people retype what they see. Must redirect to the app.
+export const SHORT_URL_LABEL = 'ppm.t4p.al';
 
 /**
  * The message shared alongside the picture / link, without the URL.

@@ -1,5 +1,6 @@
 'use client';
 import { FunnelEvent, trackEvent } from '@/lib/analytics';
+import { SHORT_URL_LABEL } from '@/lib/share';
 import { SocialPlatform } from '@/types';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
@@ -14,6 +15,7 @@ import {
   FaBluesky,
 } from 'react-icons/fa6';
 
+import BrandingRing from './branding-ring';
 import SharePanel from './share-panel';
 
 export default function Home() {
@@ -23,6 +25,9 @@ export default function Home() {
   const [loader, setLoader] = useState(false);
   const [gazaStatusSummary, setGazaStatusSummary] = useState();
   const [hasDownloaded, setHasDownloaded] = useState(false);
+  // On by default: a picture that carries the address is how the next person
+  // finds out they can make one too. Opt-out is one click away.
+  const [showBranding, setShowBranding] = useState(true);
   const [filePostfix, setFilePostfix] = useState<
     SocialPlatform | 'user-upload'
   >();
@@ -142,6 +147,7 @@ export default function Home() {
       download(generatedImageUrl, `profile-pic-${filePostfix}.png`);
       trackEvent(FunnelEvent.Downloaded, {
         method: filePostfix ?? 'unknown',
+        branding: showBranding ? 'on' : 'off',
       });
       setHasDownloaded(true);
     }
@@ -244,6 +250,7 @@ export default function Home() {
                   className="object-cover rounded-full cursor-pointer"
                 />
               )}
+              {showBranding && !loader && <BrandingRing />}
             </div>
           </div>
         </div>
@@ -255,12 +262,36 @@ export default function Home() {
                   userImageUrl={userImageUrl}
                   method={filePostfix ?? 'unknown'}
                   generateProfileImage={generateFinalImage}
+                  showBranding={showBranding}
                 />
               ) : (
                 <p className="p-2 my-6 text-sm border rounded-lg">
                   Download the image, then use it as your new profile picture.
                 </p>
               )}
+              <label className="flex items-start gap-3 mb-3 p-3 text-left text-sm border rounded-lg cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showBranding}
+                  onChange={(e) => {
+                    setShowBranding(e.target.checked);
+                    trackEvent(FunnelEvent.BrandingToggled, {
+                      branding: e.target.checked ? 'on' : 'off',
+                      method: filePostfix ?? 'unknown',
+                    });
+                  }}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-gray-900"
+                />
+                <span>
+                  <span className="font-semibold">
+                    Add {SHORT_URL_LABEL} to the frame
+                  </span>
+                  <span className="block text-gray-600">
+                    So everyone who sees your picture knows where to make
+                    theirs.
+                  </span>
+                </span>
+              </label>
               <button
                 onClick={handleDownload}
                 className="rounded-full mb-2 py-3 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl"

@@ -1,7 +1,7 @@
 'use client';
 import { ShareEvent, trackEvent } from '@/lib/analytics';
 import {
-  STORY_URL_LABEL,
+  SHORT_URL_LABEL,
   buildShareLinks,
   canShareImageFiles,
   dataUrlToFile,
@@ -21,6 +21,8 @@ import {
   FaWhatsapp,
   FaXTwitter,
 } from 'react-icons/fa6';
+
+import BrandingRing from './branding-ring';
 
 // Official brand colours make the row instantly recognisable.
 const CHANNEL_STYLES = {
@@ -47,12 +49,16 @@ interface SharePanelProps {
   method: string;
   /** Rasterises the framed 1:1 profile picture (same node the download uses). */
   generateProfileImage: () => Promise<string | undefined>;
+  /** Mirrors the ring's short URL onto the story card's picture, so what gets
+   *  shared matches the picture the user just downloaded. */
+  showBranding: boolean;
 }
 
 export default function SharePanel({
   userImageUrl,
   method,
   generateProfileImage,
+  showBranding,
 }: SharePanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
@@ -314,6 +320,7 @@ export default function SharePanel({
               }}
               className="object-cover rounded-full"
             />
+            {showBranding && <BrandingRing />}
           </div>
           <p className="text-white text-3xl font-semibold mt-6">
             I stand with Palestine
@@ -344,7 +351,7 @@ export default function SharePanel({
               overlay the caption and reply UI over roughly the bottom quarter
               of a story, which swallowed it when it was bottom-anchored. */}
           <div className="mt-6 rounded-full bg-white px-7 py-3 text-gray-900 text-2xl font-bold">
-            {STORY_URL_LABEL}
+            {SHORT_URL_LABEL}
           </div>
           <p className="text-gray-300 mt-5">Frame your profile picture too</p>
         </div>
