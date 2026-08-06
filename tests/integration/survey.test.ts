@@ -1,7 +1,7 @@
 import {
   NEXT_STEPS,
+  PARKED_QUESTIONS,
   ROTATING_QUESTIONS,
-  SOURCE_QUESTION,
   SURVEY_STORAGE_KEY,
   SURVEY_VERSION,
   SurveyQuestion,
@@ -11,8 +11,8 @@ import {
 import { describe, expect, it } from 'vitest';
 
 const ALL_QUESTIONS: SurveyQuestion[] = [
-  SOURCE_QUESTION,
   ...ROTATING_QUESTIONS,
+  ...PARKED_QUESTIONS,
 ];
 
 describe('survey questions', () => {
@@ -40,17 +40,23 @@ describe('survey questions', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('asks about the two things analytics cannot see', () => {
-    const values = SOURCE_QUESTION.options.map((option) => option.value);
-    // Dark social (private group chats) and the organic loop both arrive as
-    // "Direct" in Plausible — losing either option defeats the survey.
-    expect(values).toContain('group-chat');
-    expect(values).toContain('saw-framed-pic');
+  it('keeps the wave small enough for each question to collect a readable sample', () => {
+    // Each visitor answers exactly one question, so the wave splits the same
+    // downloads N ways. Past four, answers arrive too thinly to act on.
+    expect(ROTATING_QUESTIONS.length).toBeGreaterThan(0);
+    expect(ROTATING_QUESTIONS.length).toBeLessThanOrEqual(4);
+  });
+
+  it('does not ask a parked question and a live one at the same time', () => {
+    const live = new Set(ROTATING_QUESTIONS.map((question) => question.id));
+    for (const parked of PARKED_QUESTIONS) {
+      expect(live.has(parked.id)).toBe(false);
+    }
   });
 });
 
 describe('pickRotatingQuestion', () => {
-  it('covers every rotating question across the random range', () => {
+  it('covers every question in the wave across the random range', () => {
     const picked = new Set(
       Array.from({ length: ROTATING_QUESTIONS.length }, (_, i) =>
         pickRotatingQuestion(i / ROTATING_QUESTIONS.length),
@@ -82,17 +88,14 @@ describe('next steps', () => {
 });
 
 describe('tallyFormUrl', () => {
-  it('passes the chip answers through as hidden fields', () => {
-    const url = new URL(
-      tallyFormUrl('abc123', { source: 'group-chat', blocker: 'work' }),
-    );
+  it('passes the tapped answer through as a hidden field', () => {
+    const url = new URL(tallyFormUrl('abc123', { friction: 'too-slow' }));
     expect(url.origin + url.pathname).toBe('https://tally.so/r/abc123');
-    expect(url.searchParams.get('source')).toBe('group-chat');
-    expect(url.searchParams.get('blocker')).toBe('work');
+    expect(url.searchParams.get('friction')).toBe('too-slow');
     expect(url.searchParams.get('from')).toBe('ppm');
   });
 
-  it('works with no answers recorded', () => {
+  it('works with no answer recorded', () => {
     const url = new URL(tallyFormUrl('abc123', {}));
     expect(url.searchParams.get('from')).toBe('ppm');
   });

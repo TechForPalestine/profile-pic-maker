@@ -2,7 +2,6 @@
 import { SurveyEvent, trackEvent } from '@/lib/analytics';
 import {
   NEXT_STEPS,
-  SOURCE_QUESTION,
   SURVEY_STORAGE_KEY,
   SurveyQuestion,
   TALLY_FORM_ID,
@@ -13,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { FaXmark } from 'react-icons/fa6';
 
 /**
- * Two-tap survey shown under the share options once the picture is
+ * One-tap survey shown under the share options once the picture is
  * downloaded. Rationale for the questions themselves lives in `@/lib/survey`.
  *
  * It sits *below* the download and share buttons on purpose: the share panel
@@ -22,11 +21,9 @@ import { FaXmark } from 'react-icons/fa6';
 export default function SurveyPanel({ method }: { method: string }) {
   // 'pending' until localStorage has been read — the answered/not-answered
   // split can't be known during SSR, so nothing renders on the first pass.
-  const [step, setStep] = useState<'pending' | 'source' | 'rotating' | 'done'>(
-    'pending',
-  );
-  const [rotating, setRotating] = useState<SurveyQuestion>();
-  // Kept so a written comment can be read next to the taps that preceded it.
+  const [step, setStep] = useState<'pending' | 'asking' | 'done'>('pending');
+  const [question, setQuestion] = useState<SurveyQuestion>();
+  // Kept so a written comment can be read next to the tap that preceded it.
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
   const close = () => {
@@ -51,38 +48,34 @@ export default function SurveyPanel({ method }: { method: string }) {
     // both unavailable/divergent during SSR, so the first paint can't know
     // whether this visitor has already been asked.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRotating(pickRotatingQuestion());
-    setStep('source');
+    setQuestion(pickRotatingQuestion());
+    setStep('asking');
     trackEvent(SurveyEvent.Shown, { method });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const dismiss = () => {
-    trackEvent(SurveyEvent.Dismissed, { step, method });
+    trackEvent(SurveyEvent.Dismissed, {
+      question: question?.id ?? 'unknown',
+      method,
+    });
     close();
     setStep('pending');
   };
 
-  const answer = (question: SurveyQuestion, option: string) => {
-    setAnswers((previous) => ({ ...previous, [question.id]: option }));
+  const answer = (asked: SurveyQuestion, option: string) => {
+    setAnswers({ [asked.id]: option });
     trackEvent(SurveyEvent.Answered, {
-      question: question.id,
+      question: asked.id,
       answer: option,
       method,
     });
-
-    if (step === 'source' && rotating) {
-      setStep('rotating');
-      return;
-    }
-    trackEvent(SurveyEvent.Completed, { method });
+    trackEvent(SurveyEvent.Completed, { question: asked.id, method });
     close();
     setStep('done');
   };
 
   if (step === 'pending') return null;
-
-  const question = step === 'source' ? SOURCE_QUESTION : rotating;
 
   return (
     <div className="survey-panel-enter relative my-6 rounded-2xl border border-gray-300 bg-gray-50 px-4 py-5 text-left">

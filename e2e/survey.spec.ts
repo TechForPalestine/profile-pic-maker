@@ -1,9 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+import { ROTATING_QUESTIONS } from '../src/lib/survey';
 import { solidPng } from './png-utils';
 
+const escapeForRegExp = (text: string) =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // Drives the real post-download survey: it must stay out of the way until the
-// picture is downloaded, then take two taps and remember it was answered.
+// picture is downloaded, then take a single tap and remember it was answered.
 //
 // Plausible is never loaded in tests, so `trackEvent` no-ops — these assertions
 // are about the UI contract, not the analytics payload (covered by unit tests).
@@ -48,40 +52,53 @@ test.describe('Post-download survey', () => {
     return downloadButton;
   };
 
-  const sourceQuestion = /How did you find this\?/;
+  // Which question a visitor gets is random, so the specs assert against the
+  // real wave rather than hard-coded copy — editing a prompt in
+  // `src/lib/survey.ts` must not break these.
+  const askedQuestion = (page: import('@playwright/test').Page) =>
+    page.getByText(
+      new RegExp(
+        ROTATING_QUESTIONS.map((question) =>
+          escapeForRegExp(question.prompt),
+        ).join('|'),
+      ),
+    );
+
+  /** Answer whichever question came up, by clicking its first option. */
+  const answerWhicheverAsked = async (
+    page: import('@playwright/test').Page,
+  ) => {
+    for (const question of ROTATING_QUESTIONS) {
+      const prompt = page.getByText(question.prompt, { exact: true });
+      if (await prompt.isVisible()) {
+        await page
+          .getByRole('button', { name: question.options[0].label })
+          .click();
+        return question;
+      }
+    }
+    throw new Error('No survey question was on screen');
+  };
 
   test('stays hidden until the picture has been downloaded', async ({
     page,
   }) => {
     const downloadButton = await pickAPhoto(page);
-    await expect(page.getByText(sourceQuestion)).toBeHidden();
+    await expect(askedQuestion(page)).toBeHidden();
 
     await Promise.all([page.waitForEvent('download'), downloadButton.click()]);
-    await expect(page.getByText(sourceQuestion)).toBeVisible();
+    await expect(askedQuestion(page)).toBeVisible();
   });
 
-  test('asks two questions, then offers ways to do more', async ({ page }) => {
+  test('asks one question, then offers ways to do more', async ({ page }) => {
     const downloadButton = await pickAPhoto(page);
     await Promise.all([page.waitForEvent('download'), downloadButton.click()]);
 
-    await page
-      .getByRole('button', { name: "I saw someone's framed picture" })
-      .click();
+    await expect(askedQuestion(page)).toBeVisible();
+    await answerWhicheverAsked(page);
 
-    // The second question is one of two, picked at random per visitor.
-    await expect(page.getByText(sourceQuestion)).toBeHidden();
-    const secondQuestion = page.getByText(
-      /Anything making you hesitate to post it\?|What would make this better\?/,
-    );
-    await expect(secondQuestion).toBeVisible();
-
-    // Answer whichever one came up.
-    await page
-      .getByRole('button', {
-        name: /Nothing — it's going up|More frame styles/,
-      })
-      .click();
-
+    // One tap is the whole survey — no second question follows.
+    await expect(askedQuestion(page)).toBeHidden();
     await expect(
       page.getByText('Want to do more than a profile picture?'),
     ).toBeVisible();
@@ -96,13 +113,13 @@ test.describe('Post-download survey', () => {
     const downloadButton = await pickAPhoto(page);
     await Promise.all([page.waitForEvent('download'), downloadButton.click()]);
 
-    await expect(page.getByText(sourceQuestion)).toBeVisible();
+    await expect(askedQuestion(page)).toBeVisible();
     await page.getByRole('button', { name: 'Dismiss the survey' }).click();
-    await expect(page.getByText(sourceQuestion)).toBeHidden();
+    await expect(askedQuestion(page)).toBeHidden();
 
     // A fresh visit shares the same origin, so the stored flag applies.
     const secondDownload = await pickAPhoto(page);
     await Promise.all([page.waitForEvent('download'), secondDownload.click()]);
-    await expect(page.getByText(sourceQuestion)).toBeHidden();
+    await expect(askedQuestion(page)).toBeHidden();
   });
 });

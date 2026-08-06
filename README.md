@@ -55,19 +55,21 @@ If you already have Node.js 22 and git installed:
 
 ## Post-download survey
 
-Once a picture is downloaded, a two-tap survey appears below the share and
-download buttons. It closes a gap analytics can't: the app spreads mostly
-through WhatsApp and Telegram groups, which all reach Plausible as "Direct",
-and referrers can never show the organic loop — people who arrived because they
-saw someone else's framed picture.
+Once a picture is downloaded, a one-tap survey appears below the share and
+download buttons, asking the things Plausible can't answer: where the framed
+picture is actually going, where that person's attention lives, whether anyone
+else in their circle has framed a picture, and what nearly stopped them.
 
-Everyone is asked how they found the site, plus one rotating second question
-(what's making them hesitate to post it / what would improve the app). Answers
-are fixed choices sent to Plausible as `Survey: …` custom events, so nothing
-personal or free-form ever reaches analytics. The survey is asked once per
-browser — bump `SURVEY_VERSION` in `src/lib/survey.ts` to run a fresh wave.
+Each visitor is asked exactly one question, drawn at random from the current
+wave in `src/lib/survey.ts`. Answers are fixed choices sent to Plausible as
+`Survey: …` custom events, so nothing personal or free-form ever reaches
+analytics. The survey is asked once per browser.
 
-Questions and answer options live in `src/lib/survey.ts`; edit them there.
+Keep a wave to three or four questions: every visitor answers one, so a larger
+wave splits the same downloads more thinly and each question takes
+proportionally longer to reach a readable sample. To start the next wave, swap
+the set (there are spares in `PARKED_QUESTIONS`) and bump `SURVEY_VERSION`,
+which re-asks everyone.
 
 ### Optional: written feedback via Tally
 
