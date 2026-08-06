@@ -51,11 +51,33 @@ export const ShareEvent = {
 export type ShareEventName = (typeof ShareEvent)[keyof typeof ShareEvent];
 
 /**
+ * Post-download micro-survey (see `@/lib/survey`), in firing order.
+ *
+ * Shown: the survey rendered — the denominator for every response rate below.
+ * Answered: one question answered; carries `question` and `answer` (both are
+ *   fixed tokens from the question definitions, never free text).
+ * Completed: both questions answered.
+ * Dismissed: closed early; carries `step` so partial drop-off is visible.
+ * NextStepClicked: followed one of the "do more than a picture" links.
+ * FeedbackOpened: opened the written-feedback form.
+ */
+export const SurveyEvent = {
+  Shown: 'Survey: 1 Shown',
+  Answered: 'Survey: 2 Answered',
+  Completed: 'Survey: 3 Completed',
+  Dismissed: 'Survey: Dismissed',
+  NextStepClicked: 'Survey: Next Step Clicked',
+  FeedbackOpened: 'Survey: Feedback Opened',
+} as const;
+
+export type SurveyEventName = (typeof SurveyEvent)[keyof typeof SurveyEvent];
+
+/**
  * Safely fire a Plausible custom event. No-ops during SSR or if the
  * Plausible script hasn't loaded yet.
  */
 export function trackEvent(
-  event: FunnelEventName | ShareEventName,
+  event: FunnelEventName | ShareEventName | SurveyEventName,
   props?: PlausibleProps,
 ) {
   if (typeof window === 'undefined' || typeof window.plausible !== 'function') {

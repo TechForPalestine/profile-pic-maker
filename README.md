@@ -53,14 +53,39 @@ If you already have Node.js 22 and git installed:
 3. Install dependencies: `npm ci`
 4. Run the project: `npm run dev`
 
+## Post-download survey
+
+Once a picture is downloaded, a two-tap survey appears below the share and
+download buttons. It closes a gap analytics can't: the app spreads mostly
+through WhatsApp and Telegram groups, which all reach Plausible as "Direct",
+and referrers can never show the organic loop — people who arrived because they
+saw someone else's framed picture.
+
+Everyone is asked how they found the site, plus one rotating second question
+(what's making them hesitate to post it / what would improve the app). Answers
+are fixed choices sent to Plausible as `Survey: …` custom events, so nothing
+personal or free-form ever reaches analytics. The survey is asked once per
+browser — bump `SURVEY_VERSION` in `src/lib/survey.ts` to run a fresh wave.
+
+Questions and answer options live in `src/lib/survey.ts`; edit them there.
+
+### Optional: written feedback via Tally
+
+Set `NEXT_PUBLIC_TALLY_FORM_ID` to a [Tally](https://tally.so) form ID and a
+"Tell us more" link appears on the thank-you step, carrying the tapped answers
+across as hidden fields (`source`, `blocker`/`improve`, `from=ppm`) so a written
+comment can be read next to them. Leave it unset and the link is simply hidden.
+Tally's free plan covers unlimited responses; no third-party script is loaded on
+the page either way.
+
 ## Testing
 
-| Command | What it runs |
-|---|---|
-| `npm test` | Integration tests (API route, upstream mocked) — fast & deterministic |
-| `npm run test:e2e` | Browser e2e (upload → fetch → generate → download), upstream mocked |
+| Command                 | What it runs                                                           |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `npm test`              | Integration tests (API route, upstream mocked) — fast & deterministic  |
+| `npm run test:e2e`      | Browser e2e (upload → fetch → generate → download), upstream mocked    |
 | `npm run test:e2e:live` | Full-stack e2e against the **real** tech4palestine pic (needs network) |
-| `npm run test:live` | Live integration smoke against the real `api.fxtwitter.com` |
+| `npm run test:live`     | Live integration smoke against the real `api.fxtwitter.com`            |
 
 Or use the devbox shortcuts: `devbox run test` and `devbox run test:live`.
 

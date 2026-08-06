@@ -47,6 +47,7 @@
   }
 }
 
-.share-panel-enter {
+.share-panel-enter,
+.survey-panel-enter {
   animation: fade-in-up 0.5s ease-out;
 }
