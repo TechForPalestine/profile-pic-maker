@@ -4,6 +4,7 @@ import { faqPageSchema, webApplicationSchema } from '@/lib/structured-data';
 import Faq from './faq';
 import JsonLd from './json-ld';
 import ProfilePicMaker from './profile-pic-maker';
+import RelatedLinks from './related-links';
 import SiteFooter from './site-footer';
 
 /**
@@ -17,6 +18,8 @@ export default function Home() {
       <JsonLd data={faqPageSchema(FAQ_ITEMS)} />
       <ProfilePicMaker />
       <Faq />
+      {/* currentPath '/' isn't a landing page, so all three are listed. */}
+      <RelatedLinks currentPath="/" />
       <SiteFooter />
     </main>
   );
