@@ -1,3 +1,4 @@
+import { APP_URL } from '@/lib/share';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
@@ -7,14 +8,19 @@ import DomSafety from './dom-safety';
 
 const inter = Inter({ subsets: ['latin'] });
 
+// Defaults for the site. The homepage inherits all of this; the landing pages
+// under src/app/* each export their own title, description, canonical and
+// Open Graph block, which replace these.
 export const metadata: Metadata = {
   title: 'Palestine Profile Pic Maker 🇵🇸',
   description:
-    'Frame your profile with the colors of Palestine. Let your profile picture speak volumes for peace and justice. #IStandWithPalestine',
-  metadataBase: new URL('https://ppm.techforpalestine.org'),
+    'Free tool to frame your profile picture with the colors of Palestine. Your photo is framed in your browser and never uploaded. No account needed. #IStandWithPalestine',
+  metadataBase: new URL(APP_URL),
+  alternates: { canonical: '/' },
   openGraph: {
     title: 'Palestine Profile Pic Maker 🇵🇸',
-    description: 'Create your Palestine profile picture to show your support',
+    description:
+      'Create your Palestine profile picture to show your support. Free, no sign-up, and your photo never leaves your browser.',
     siteName: 'Palestine Profile Pic Maker 🇵🇸',
     images: '/social-card.png',
   },
