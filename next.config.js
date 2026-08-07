@@ -5,6 +5,9 @@ const nextConfig = {
   // Required on Next.js 14 so `src/instrumentation.ts` is loaded (stable in Next 15).
   experimental: {
     instrumentationHook: true,
+    // TypeScript 7 ships no programmatic compiler API, so Next.js must shell out
+    // to the tsc CLI for build-time type checking instead.
+    useTypeScriptCli: true,
   },
   images: {
     remotePatterns: [
