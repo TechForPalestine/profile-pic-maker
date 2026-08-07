@@ -21,7 +21,7 @@ interface LandingShellProps {
  * Shared chrome for the intent-based landing pages: heading, frame preview,
  * a button through to the tool, then the page's own copy and the cross-links.
  *
- * Only the structure is shared — every page writes its own heading, tagline
+ * Only the structure is shared. Every page writes its own heading, tagline
  * and body copy, so no two pages serve the same text.
  */
 export default function LandingShell({

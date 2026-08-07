@@ -29,7 +29,7 @@ export default function PalestineFlagBorderPage() {
       <p>
         The border is a circular band carrying the four colours of the
         Palestinian flag. It hugs the outer edge of the picture and leaves the
-        middle alone, so whatever is in the photo stays fully visible — the
+        middle alone, so whatever is in the photo stays fully visible. The
         border adds to it rather than covering it up.
       </p>
       <p>
@@ -43,7 +43,7 @@ export default function PalestineFlagBorderPage() {
         You get a square PNG back, with the corners outside the circle left
         transparent. That matters on platforms that crop avatars into a circle:
         the band lands exactly on the edge instead of being sliced off. The same
-        file uploads anywhere you have a profile — social networks, messaging
+        file uploads anywhere you have a profile: social networks, messaging
         apps, work tools, forums.
       </p>
       <p>

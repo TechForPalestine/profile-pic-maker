@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Palestine Facebook Profile Frame (Frames Feature Replacement)',
     description:
-      'Facebook removed profile frames. Frame your photo here and upload it as your Facebook profile picture — free, no account.',
+      'Facebook removed profile frames. Frame your photo here and upload it as your Facebook profile picture. Free, no account.',
     url: '/palestine-facebook-frame',
     siteName: 'Palestine Profile Pic Maker 🇵🇸',
     images: '/social-card.png',
@@ -47,7 +47,7 @@ export default function PalestineFacebookFramePage() {
         and the frame is drawn to match, so nothing important gets cut off.
       </p>
       <p>
-        The result is an ordinary PNG, so it is not locked to one network — the
+        The result is an ordinary PNG, so it is not locked to one network. The
         same file works on Instagram, WhatsApp, X, LinkedIn and anywhere else.
         Your photo is framed inside your browser and never uploaded to us, and
         your original file is left exactly as it was.

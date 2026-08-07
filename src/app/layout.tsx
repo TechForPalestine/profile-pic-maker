@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Palestine Profile Pic Maker 🇵🇸',
     description:
-      'Create your Palestine profile picture to show your support — free, no sign-up, and your photo never leaves your browser',
+      'Create your Palestine profile picture to show your support. Free, no sign-up, and your photo never leaves your browser.',
     siteName: 'Palestine Profile Pic Maker 🇵🇸',
     images: '/social-card.png',
   },

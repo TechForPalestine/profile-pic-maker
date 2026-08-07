@@ -7,8 +7,9 @@ import { SITE_NAME } from './seo';
  *  - WebApplication: https://schema.org/WebApplication
  *  - FAQPage / Question / Answer: https://schema.org/FAQPage
  *
- * A free tool still needs an `offers` node with `price: '0'` and a currency —
- * Google's "free" signal comes from the price, not from omitting the offer.
+ * A free tool still needs an `offers` node with `price: '0'` and a currency,
+ * because Google's "free" signal comes from the price, not from omitting the
+ * offer.
  */
 
 interface FaqItem {

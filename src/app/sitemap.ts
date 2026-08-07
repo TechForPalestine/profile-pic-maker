@@ -2,7 +2,7 @@ import { LANDING_PAGES, pageUrl } from '@/lib/seo';
 import type { MetadataRoute } from 'next';
 
 /**
- * Every indexable page. Static routes only — nothing here reads from the
+ * Every indexable page. Static routes only: nothing here reads from the
  * network or the request, so Next renders the sitemap at build time.
  */
 export default function sitemap(): MetadataRoute.Sitemap {

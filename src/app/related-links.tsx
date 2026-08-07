@@ -2,35 +2,28 @@ import { LANDING_PAGES } from '@/lib/seo';
 import Link from 'next/link';
 
 /**
- * Cross-links between the landing pages, the tool and the FAQ. Every page
- * links to every other one, so someone who arrived on the "flag border" page
- * can reach the Facebook page — and so crawlers find all of them from any
- * single entry point.
+ * Cross-links shown at the foot of the landing pages, never on the homepage:
+ * someone who searched their way onto one of these pages may want a different
+ * one, but a visitor who came for the tool should not be sent on a tour of
+ * keyword pages.
  *
- * `currentPath` is the route rendering the links: that page is left out, and
- * on the homepage the tool and FAQ links are dropped too, since both are
- * already on the page.
+ * `currentPath` is the page rendering the links, which is left out of the list.
  */
 export default function RelatedLinks({ currentPath }: { currentPath: string }) {
-  const isHome = currentPath === '/';
   const others = LANDING_PAGES.filter(({ path }) => path !== currentPath);
 
   return (
     <nav className="px-8 pb-12 max-w-xl mx-auto w-full text-left">
-      <h2 className="font-semibold text-2xl text-center mb-6">
-        {isHome ? 'More about the frame' : 'Related pages'}
-      </h2>
+      <h2 className="font-semibold text-2xl text-center mb-6">Related pages</h2>
       <ul className="flex flex-col gap-3">
-        {!isHome && (
-          <li>
-            <Link
-              href="/"
-              className="block border rounded-lg p-4 underline hover:text-gray-900"
-            >
-              Palestine Profile Pic Maker — open the tool
-            </Link>
-          </li>
-        )}
+        <li>
+          <Link
+            href="/"
+            className="block border rounded-lg p-4 underline hover:text-gray-900"
+          >
+            Open the Palestine Profile Pic Maker
+          </Link>
+        </li>
         {others.map(({ path, label }) => (
           <li key={path}>
             <Link
@@ -41,16 +34,14 @@ export default function RelatedLinks({ currentPath }: { currentPath: string }) {
             </Link>
           </li>
         ))}
-        {!isHome && (
-          <li>
-            <Link
-              href="/#faq"
-              className="block border rounded-lg p-4 underline hover:text-gray-900"
-            >
-              FAQ — privacy, file formats and where the picture works
-            </Link>
-          </li>
-        )}
+        <li>
+          <Link
+            href="/#faq"
+            className="block border rounded-lg p-4 underline hover:text-gray-900"
+          >
+            FAQ: privacy, file formats and where the picture works
+          </Link>
+        </li>
       </ul>
     </nav>
   );

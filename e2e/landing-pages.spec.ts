@@ -3,13 +3,13 @@ import { expect, test } from '@playwright/test';
 // The SEO landing pages are content pages: each targets one search intent,
 // carries its own title/description/canonical, and sends people to the tool on
 // the homepage. These tests pin the two things that are easy to break silently
-// — metadata that quietly duplicates across pages, and a call to action that
-// no longer reaches the tool.
+// metadata that quietly duplicates across pages, and a call to action that no
+// longer reaches the tool.
 
 const PAGES = [
   {
     path: '/palestine-profile-picture-frame',
-    title: 'Palestine Profile Picture Frame — Free, No Sign-Up',
+    title: 'Palestine Profile Picture Frame, Free and No Sign-Up',
     heading: 'Palestine Profile Picture Frame',
   },
   {
@@ -106,6 +106,12 @@ test('the homepage carries the FAQ and its structured data', async ({
   // would and check the text is really there.
   await privacyQuestion.click();
   await expect(page.getByText(/never sent to our servers/)).toBeVisible();
+
+  // The landing pages are for search traffic, not a link farm on the tool's
+  // own page: they are discoverable through the sitemap, not from here.
+  for (const { path } of PAGES) {
+    await expect(page.locator(`a[href="${path}"]`)).toHaveCount(0);
+  }
 
   const blocks = await page
     .locator('script[type="application/ld+json"]')

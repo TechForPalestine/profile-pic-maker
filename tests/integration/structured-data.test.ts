@@ -40,8 +40,8 @@ describe('FAQPage schema', () => {
       expect(entry['@type']).toBe('Question');
       expect(entry.name).toBe(FAQ_ITEMS[index].question);
       expect(entry.acceptedAnswer['@type']).toBe('Answer');
-      // The text has to be the same string the page renders — a mismatch is
-      // what gets FAQ rich results dropped.
+      // The text has to be the same string the page renders, since a mismatch
+      // is what gets FAQ rich results dropped.
       expect(entry.acceptedAnswer.text).toBe(FAQ_ITEMS[index].answer);
     }
   });

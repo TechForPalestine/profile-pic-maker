@@ -3,7 +3,8 @@ import Image from 'next/image';
 /**
  * A static rendering of what the tool produces: the flag ring with a photo
  * inside it. Same geometry as the live preview in `profile-pic-maker.tsx`, but
- * without any of its state — landing pages are plain server-rendered pages.
+ * without any of its state, since landing pages are plain server-rendered
+ * pages.
  */
 export default function FramePreview() {
   return (

@@ -5,9 +5,6 @@
  * *and* emitted as FAQPage structured data (see `@/lib/structured-data`), and
  * Google only accepts structured-data answers that are visible on the page. One
  * source of text keeps the two provably identical.
- *
- * The privacy answer is checked against the code, not aspirational — see the
- * note on `FAQ_ITEMS[0]`.
  */
 export const FAQ_ITEMS = [
   {
@@ -16,7 +13,7 @@ export const FAQ_ITEMS = [
     // URL, `next/image` skips the optimizer for `data:` sources, and
     // html-to-image rasterises the framed picture on a canvas in the page. No
     // request carries the photo. The one call that does leave the browser is
-    // the optional social-avatar lookup, which sends a username — hence the
+    // the optional social-avatar lookup, which sends a username, hence the
     // second half of this answer.
     question: 'Is my photo uploaded anywhere?',
     answer:
@@ -35,12 +32,12 @@ export const FAQ_ITEMS = [
   {
     question: 'What image formats and sizes work best?',
     answer:
-      'JPG, PNG, WebP and GIF all work — anything your browser can display. A square photo of at least 400 by 400 pixels gives the sharpest result, because the picture is rendered at your screen density and then downloaded as a PNG. Photos that are not square are centred and cropped to a circle, so choose one where your face is roughly in the middle rather than off to one side.',
+      'JPG, PNG, WebP and GIF all work, along with anything else your browser can display. A square photo of at least 400 by 400 pixels gives the sharpest result, because the picture is rendered at your screen density and then downloaded as a PNG. Photos that are not square are centred and cropped to a circle, so choose one where your face is roughly in the middle rather than off to one side.',
   },
   {
-    question: 'Can I remove the frame later?',
+    question: 'How do I go back to my old profile picture?',
     answer:
-      'Yes, and nothing is permanent. The tool never changes your original photo; it creates a new file and leaves the original untouched on your device. To go back, upload your original picture to the platform again. If you just want a different framed version, hit Start Over and pick another photo.',
+      'Upload your original photo to the platform again. The tool never touches that file: it leaves your photo exactly where it was on your device and gives you a separate, framed copy to download. The frame is part of that new image, so it cannot be peeled off afterwards, which is why keeping the original is worth doing. If you want a different version instead, hit Start Over and run your photo through again.',
   },
   {
     question: 'Does this replace the Facebook profile frames feature?',
