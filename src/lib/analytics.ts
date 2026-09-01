@@ -54,10 +54,14 @@ export type ShareEventName = (typeof ShareEvent)[keyof typeof ShareEvent];
  * Post-download micro-survey (see `@/lib/survey`), in firing order.
  *
  * Shown: the survey rendered — the denominator for every response rate below.
- * Answered: one question answered; carries `question` and `answer` (both are
- *   fixed tokens from the question definitions, never free text).
- * Completed: both questions answered.
- * Dismissed: closed early; carries `step` so partial drop-off is visible.
+ *   Carries `method`, as every event here does (the photo source, matching the
+ *   creation funnel), so responses can be split by how the picture was made.
+ * Answered: the question was answered; carries `question` and `answer`, both
+ *   fixed tokens from the question definitions, never free text.
+ * Completed: fires alongside Answered — one question is the whole survey — and
+ *   exists so the funnel reads end to end next to the other two.
+ * Dismissed: closed without answering; carries the `question` that went
+ *   unanswered, so a prompt people refuse is visible.
  * NextStepClicked: followed one of the "do more than a picture" links.
  * FeedbackOpened: opened the written-feedback form.
  */
