@@ -16,6 +16,7 @@ import {
 } from 'react-icons/fa6';
 
 import BrandingRing from './branding-ring';
+import Faq from './faq';
 import SharePanel from './share-panel';
 
 export default function Home() {
@@ -373,6 +374,7 @@ export default function Home() {
             </a>
           </p>
         </div>
+        <Faq />
       </div>
       <footer className="bg-[#303846] text-center py-8 px-4">
         <div className="container max-w-xl mx-auto">
