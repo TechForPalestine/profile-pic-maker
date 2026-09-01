@@ -8,7 +8,7 @@
 #
 # Note: the @live suite (real tech4palestine pic) is NOT run here — it needs
 # the real Twitter upstreams, which are typically unreachable from sandboxes.
-# It runs in the non-blocking `e2e-live` CI job instead.
+# It runs in the `e2e` CI job instead.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -26,4 +26,5 @@ export PLAYWRIGHT_CHROMIUM_PATH
 echo "Using Chromium at ${PLAYWRIGHT_CHROMIUM_PATH}"
 
 npm run build
-npm run test:e2e -- "$@"
+# Chromium only — that's the browser this script installs.
+npm run test:e2e -- --project=chromium "$@"

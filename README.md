@@ -59,16 +59,23 @@ If you already have Node.js 22 and git installed:
 | Command | What it runs |
 |---|---|
 | `npm test` | Integration tests (API route, upstream mocked) — fast & deterministic |
-| `npm run test:e2e` | Browser e2e (upload → fetch → generate → download), upstream mocked |
+| `npm run test:e2e` | Browser e2e (upload → fetch → generate → download) on Chromium, Firefox and WebKit, upstream mocked |
 | `npm run test:e2e:live` | Full-stack e2e against the **real** tech4palestine pic (needs network) |
 | `npm run test:live` | Live integration smoke against the real `api.fxtwitter.com` |
 
 Or use the devbox shortcuts: `devbox run test` and `devbox run test:live`.
 
-Playwright needs a browser. Normally `npx playwright install chromium` handles
-it; in sandboxes where that download is blocked, run `./scripts/run-e2e-local.sh`,
-which installs an npm-hosted Chromium and points Playwright at it via
-`PLAYWRIGHT_CHROMIUM_PATH`.
+### Browsers
+
+The e2e suite runs on Chromium, Firefox and WebKit — the app rasterises a DOM
+node client-side (`html-to-image` → canvas → download), which is where the
+engines disagree. CI runs one job per engine; locally `npm run test:e2e` runs
+all three and `npm run test:e2e -- --project=webkit` narrows to one.
+
+Install them with `npx playwright install chromium firefox webkit`. In
+sandboxes where that download is blocked, `./scripts/run-e2e-local.sh` installs
+an npm-hosted Chromium and points Playwright at it via
+`PLAYWRIGHT_CHROMIUM_PATH` (Chromium only).
 
 ## License
 

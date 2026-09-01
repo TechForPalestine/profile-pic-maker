@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # One job for the whole required pipeline: install once, build once, install
-  # the Playwright browser once, and reuse all of that for every test step.
+  # Static checks, the build, and the Node-side test suites. The browser suites
+  # run per-engine in the `e2e` job below.
   verify:
     name: Lint, type-check, build & tests
     runs-on: ubuntu-latest
@@ -43,37 +43,67 @@ jobs:
       - name: Integration tests (mocked upstream)
         run: npm test
 
-      - name: Cache Playwright browser
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-
-      - name: E2E tests (mocked upstream, reuses the build above)
-        run: npm run test:e2e
-
       # Hits the real api.fxtwitter.com to confirm the tech4palestine integration
       # works in production. Required: a failure means the Twitter fetch is broken.
       # Vitest retries (see vitest.live.config.ts) absorb transient upstream blips.
       - name: Live upstream smoke
         run: npm run test:live
 
+  # The product is a client-side rasterisation of a DOM node (html-to-image ->
+  # canvas -> download), which is exactly where Blink, Gecko and WebKit disagree.
+  # One job per engine, so a browser-specific regression is caught on the PR that
+  # introduces it. fail-fast is off: one engine failing shouldn't hide the others.
+  e2e:
+    name: E2E Tests (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # Keyed per browser: the jobs share one cache scope, so a single key would
+      # have all three saving and restoring each other's engine.
+      - name: Cache Playwright browser
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: E2E tests (mocked upstream, reuses the build above)
+        run: npm run test:e2e -- --project=${{ matrix.browser }}
+
       # Full-stack e2e against the REAL tech4palestine pic (drives the UI, calls
       # the real upstreams). Required; Playwright retries (CI) absorb transient
       # network/upstream flakes.
       - name: Live e2e (real pic)
-        run: npm run test:e2e:live
+        run: npm run test:e2e:live -- --project=${{ matrix.browser }}
 
       # The generated profile pictures as standalone PNGs — open them directly,
-      # no report server needed. Uploaded on every non-cancelled run.
+      # no report server needed. One set per engine, so a rendering regression
+      # can be eyeballed side by side.
       - name: Upload generated profile pictures
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: generated-profile-pics
+          name: generated-profile-pics-${{ matrix.browser }}
           path: playwright-artifacts/
           retention-days: 7
 
@@ -84,6 +114,6 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.browser }}
           path: playwright-report/
           retention-days: 7
