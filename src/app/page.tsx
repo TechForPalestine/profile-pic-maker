@@ -15,8 +15,11 @@ import {
   FaBluesky,
 } from 'react-icons/fa6';
 
+import { FEATURED_FAQ_ENTRIES } from '@/lib/faq';
+import Link from 'next/link';
+
 import BrandingRing from './branding-ring';
-import Faq from './faq';
+import FaqList from './faq';
 import SharePanel from './share-panel';
 
 export default function Home() {
@@ -374,7 +377,17 @@ export default function Home() {
             </a>
           </p>
         </div>
-        <Faq />
+        <section aria-labelledby="faq-heading" className="pt-8">
+          <h2 id="faq-heading" className="text-2xl font-bold mb-4">
+            Frequently Asked Questions
+          </h2>
+          <FaqList entries={FEATURED_FAQ_ENTRIES} />
+          <p className="mt-4">
+            <Link href="/faq" className="underline text-gray-600">
+              Read all FAQs
+            </Link>
+          </p>
+        </section>
       </div>
       <footer className="bg-[#303846] text-center py-8 px-4">
         <div className="container max-w-xl mx-auto">

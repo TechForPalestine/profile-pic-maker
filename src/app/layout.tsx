@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
 
-import { buildStructuredData } from '@/lib/faq';
+import { buildSiteStructuredData } from '@/lib/faq';
 
 import './globals.css';
 import DomSafety from './dom-safety';
@@ -42,12 +42,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <DomSafety />
-        {/* schema.org data (app, publisher, FAQ) for search and AI engines;
-            rendered server-side so it's always in the initial HTML. */}
+        {/* schema.org data (app and publisher) for search and AI engines;
+            rendered server-side so it's always in the initial HTML. The
+            FAQPage schema lives on /faq, next to the visible questions. */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(buildStructuredData()),
+            __html: JSON.stringify(buildSiteStructuredData()),
           }}
         />
         {children}

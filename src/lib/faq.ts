@@ -4,12 +4,14 @@ export interface FaqEntry {
   question: string;
   answer: string;
   link?: { href: string; label: string };
+  // Featured entries also render on the home page; everything renders on /faq.
+  featured?: boolean;
 }
 
-// Single source of truth for the FAQ: the visible section on the page and the
-// FAQPage JSON-LD in the layout both render from this list, so the structured
-// data can never drift from what visitors actually read (a requirement for
-// Google's rich results).
+// Single source of truth for the FAQ: the visible sections (home teaser and
+// the /faq page) and the FAQPage JSON-LD all render from this list, so the
+// structured data can never drift from what visitors actually read (a
+// requirement for Google's rich results).
 //
 // Answers lead with a direct one-sentence answer and stay self-contained, so
 // search and AI answer engines can quote them without surrounding context.
@@ -18,6 +20,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     question: 'How do I add a Palestine flag frame to my profile picture?',
     answer:
       'Pick a photo from your device or import your current avatar, and the Palestine Profile Pic Maker instantly wraps it in a Palestinian flag ring, right in your browser. Save the framed picture as a PNG, then set it as your profile photo on any platform. The whole process takes under a minute and requires no account.',
+    featured: true,
   },
   {
     question: 'Is the Palestine Profile Pic Maker free?',
@@ -28,6 +31,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     question: 'Is my photo uploaded anywhere? Is this safe to use?',
     answer:
       'Your photo never leaves your device: the image is processed entirely in your browser, and no images are uploaded or saved by the app. The tool is open source, so anyone can inspect the code on GitHub to verify exactly how it works.',
+    featured: true,
   },
   {
     question:
@@ -39,6 +43,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     question: "Why doesn't it work inside the Instagram or Facebook app?",
     answer:
       'The in-app browsers built into Instagram and Facebook block the step that saves the framed image to your device. Open ppm.techforpalestine.org in a regular browser such as Chrome or Safari instead, and everything works normally.',
+    featured: true,
   },
   {
     question:
@@ -76,14 +81,17 @@ export const FAQ_ENTRIES: FaqEntry[] = [
   },
 ];
 
+export const FEATURED_FAQ_ENTRIES = FAQ_ENTRIES.filter(
+  (entry) => entry.featured,
+);
+
 const ORGANIZATION_ID = 'https://techforpalestine.org/#organization';
 
 /**
- * schema.org JSON-LD for the site, rendered once in the root layout. One
- * @graph carries the app itself, its publisher, and the FAQ so search
- * engines and AI answer engines get the who/what/cost alongside the Q&A.
+ * Site-wide schema.org JSON-LD (the app and its publisher), rendered once in
+ * the root layout so every page carries the who/what/cost.
  */
-export function buildStructuredData(): Record<string, unknown> {
+export function buildSiteStructuredData(): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@graph': [
@@ -106,15 +114,23 @@ export function buildStructuredData(): Record<string, unknown> {
         url: 'https://techforpalestine.org',
         sameAs: ['https://github.com/TechForPalestine'],
       },
-      {
-        '@type': 'FAQPage',
-        '@id': `${APP_URL}#faq`,
-        mainEntity: FAQ_ENTRIES.map((entry) => ({
-          '@type': 'Question',
-          name: entry.question,
-          acceptedAnswer: { '@type': 'Answer', text: entry.answer },
-        })),
-      },
     ],
+  };
+}
+
+/**
+ * FAQPage JSON-LD, rendered only on /faq where all the entries are visible:
+ * Google requires the marked-up Q&A to appear on the same page.
+ */
+export function buildFaqStructuredData(): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    '@id': `${APP_URL}faq#faq`,
+    mainEntity: FAQ_ENTRIES.map((entry) => ({
+      '@type': 'Question',
+      name: entry.question,
+      acceptedAnswer: { '@type': 'Answer', text: entry.answer },
+    })),
   };
 }

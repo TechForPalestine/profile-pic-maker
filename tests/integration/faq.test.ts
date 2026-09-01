@@ -1,18 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildStructuredData, FAQ_ENTRIES } from '@/lib/faq';
+import {
+  buildFaqStructuredData,
+  buildSiteStructuredData,
+  FAQ_ENTRIES,
+  FEATURED_FAQ_ENTRIES,
+} from '@/lib/faq';
 
-interface GraphNode {
+interface Question {
   '@type': string;
-  mainEntity?: {
-    '@type': string;
-    name: string;
-    acceptedAnswer: { '@type': string; text: string };
-  }[];
-}
-
-function graph(): GraphNode[] {
-  return (buildStructuredData() as { '@graph': GraphNode[] })['@graph'];
+  name: string;
+  acceptedAnswer: { '@type': string; text: string };
 }
 
 describe('FAQ_ENTRIES', () => {
@@ -20,6 +18,13 @@ describe('FAQ_ENTRIES', () => {
     for (const entry of FAQ_ENTRIES) {
       expect(entry.question.trim()).not.toBe('');
       expect(entry.answer.trim()).not.toBe('');
+    }
+  });
+
+  it('features exactly the three entries shown on the home page', () => {
+    expect(FEATURED_FAQ_ENTRIES).toHaveLength(3);
+    for (const entry of FEATURED_FAQ_ENTRIES) {
+      expect(FAQ_ENTRIES).toContain(entry);
     }
   });
 
@@ -35,27 +40,43 @@ describe('FAQ_ENTRIES', () => {
   });
 });
 
-describe('buildStructuredData', () => {
+describe('buildFaqStructuredData', () => {
   it('survives a JSON round-trip unchanged', () => {
-    const data = buildStructuredData();
+    const data = buildFaqStructuredData();
     expect(JSON.parse(JSON.stringify(data))).toEqual(data);
   });
 
-  it('contains a FAQPage mirroring every visible FAQ entry', () => {
-    const faqPage = graph().find((node) => node['@type'] === 'FAQPage');
-    expect(faqPage).toBeDefined();
-    expect(faqPage?.mainEntity).toHaveLength(FAQ_ENTRIES.length);
-    faqPage?.mainEntity?.forEach((question, i) => {
+  it('is a FAQPage mirroring every FAQ entry', () => {
+    const data = buildFaqStructuredData() as {
+      '@type': string;
+      mainEntity: Question[];
+    };
+    expect(data['@type']).toBe('FAQPage');
+    expect(data.mainEntity).toHaveLength(FAQ_ENTRIES.length);
+    data.mainEntity.forEach((question, i) => {
       expect(question['@type']).toBe('Question');
       expect(question.name).toBe(FAQ_ENTRIES[i].question);
       expect(question.acceptedAnswer['@type']).toBe('Answer');
       expect(question.acceptedAnswer.text).toBe(FAQ_ENTRIES[i].answer);
     });
   });
+});
 
-  it('declares the app and its publisher', () => {
-    const types = graph().map((node) => node['@type']);
+describe('buildSiteStructuredData', () => {
+  it('survives a JSON round-trip unchanged', () => {
+    const data = buildSiteStructuredData();
+    expect(JSON.parse(JSON.stringify(data))).toEqual(data);
+  });
+
+  it('declares the app and its publisher, but no FAQPage', () => {
+    const graph = (
+      buildSiteStructuredData() as { '@graph': { '@type': string }[] }
+    )['@graph'];
+    const types = graph.map((node) => node['@type']);
     expect(types).toContain('WebApplication');
     expect(types).toContain('Organization');
+    // The FAQPage schema belongs on /faq, where all its questions are
+    // visible — site-wide it would claim content the home page doesn't show.
+    expect(types).not.toContain('FAQPage');
   });
 });
