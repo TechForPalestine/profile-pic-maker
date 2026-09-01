@@ -19,12 +19,12 @@
     "test:e2e:live": "playwright test --grep @live"
   },
   "dependencies": {
-    "@sentry/nextjs": "^10.68.0",
-    "dayjs": "^1.11.21",
+    "@sentry/nextjs": "^10.71.0",
+    "dayjs": "^1.11.23",
     "downloadjs": "^1.4.7",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
-    "next": "^16.2.12",
+    "next": "^16.3.3",
     "number-abbreviate": "^2.0.0",
     "react": "^19",
     "react-dom": "^19",
@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.3.2",
     "@types/downloadjs": "^1.4.6",
     "@types/node": "^26",
@@ -51,6 +51,6 @@
     "tailwindcss": "^4.3.2",
     "typescript": "^7.0.2",
     "typescript-lint": "npm:typescript@^6.0.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }
