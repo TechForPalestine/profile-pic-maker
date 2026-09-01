@@ -67,12 +67,13 @@ const fetchGithubProfilePic = async (username: string) => {
 };
 
 const fetchGitlabProfilePic = async (username: string) => {
-  const endpoint = `https://gitlab.com/api/v4/users?username=${username}`;
-  const response = await fetch(endpoint).then((res) =>
+  const endpoint = new URL('https://gitlab.com/api/v4/users');
+  endpoint.searchParams.set('username', username);
+  const response = await fetch(endpoint.toString()).then((res) =>
     res.ok ? res.json() : null,
   );
 
-  if (response === null) {
+  if (!Array.isArray(response) || typeof response[0]?.avatar_url !== 'string') {
     return null;
   }
   return response[0].avatar_url;

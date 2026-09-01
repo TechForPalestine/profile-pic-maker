@@ -62,12 +62,10 @@ for (const { platform, username, buttonIndex } of CASES) {
 
       const outputDir = path.join(process.cwd(), 'playwright-artifacts');
       await mkdir(outputDir, { recursive: true });
-      const filePath = path.join(
-        outputDir,
-        `generated-profile-pic-${platform}-live.png`,
-      );
+      const name = `generated-profile-pic-${platform}-live-${testInfo.project.name}`;
+      const filePath = path.join(outputDir, `${name}.png`);
       await download.saveAs(filePath);
-      await testInfo.attach(`generated-profile-pic-${platform}-live`, {
+      await testInfo.attach(name, {
         path: filePath,
         contentType: 'image/png',
       });

@@ -111,6 +111,32 @@ describe.each(CASES)(
 );
 
 describe('GET /api/retrieve-profile-pic (bad input)', () => {
+  it('returns 404 when GitLab finds no matching user', async () => {
+    mockFetch(() => ({ ok: true, json: async () => [] }));
+
+    const res = await GET(
+      new NextRequest(`${ROUTE}?username=missing-user&platform=gitlab`),
+    );
+
+    expect(res.status).toBe(404);
+  });
+
+  it('encodes the username in the GitLab request', async () => {
+    const fetchMock = mockFetch(() => ({
+      ok: true,
+      json: async () => [{ avatar_url: 'https://gitlab.com/avatar.jpg' }],
+    }));
+    const requestUrl = new URL(ROUTE);
+    requestUrl.searchParams.set('username', 'name&admin=true');
+    requestUrl.searchParams.set('platform', SocialPlatform.Gitlab);
+
+    await GET(new NextRequest(requestUrl));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://gitlab.com/api/v4/users?username=name%26admin%3Dtrue',
+    );
+  });
+
   it('returns the default image without calling upstream when username is missing', async () => {
     const fetchMock = mockFetch(() => ({ ok: true, json: async () => ({}) }));
 

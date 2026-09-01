@@ -115,15 +115,15 @@ for (const { platform, username, buttonIndex, avatarUrl, rgba } of CASES) {
       expect(download.suggestedFilename()).toBe(`profile-pic-${platform}.png`);
 
       // Persist the generated image to a stable folder CI uploads as an
-      // artifact, and attach it to the Playwright report.
+      // artifact, and attach it to the Playwright report. The browser is part
+      // of the name so a multi-project run keeps one picture per engine
+      // instead of the projects racing on a single path.
       const outputDir = path.join(process.cwd(), 'playwright-artifacts');
       await mkdir(outputDir, { recursive: true });
-      const filePath = path.join(
-        outputDir,
-        `generated-profile-pic-${platform}.png`,
-      );
+      const name = `generated-profile-pic-${platform}-${testInfo.project.name}`;
+      const filePath = path.join(outputDir, `${name}.png`);
       await download.saveAs(filePath);
-      await testInfo.attach(`generated-profile-pic-${platform}`, {
+      await testInfo.attach(name, {
         path: filePath,
         contentType: 'image/png',
       });

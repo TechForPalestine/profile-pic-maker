@@ -11,7 +11,8 @@ This is a simple browser-only web app that allows users to upload their profile 
 1. Visit the [Palestine Profile Pic Maker](https://ppm.techforpalestine.org/).
 2. Click on the "Upload" button to select your profile picture.
 3. Wait for the app to process the image and apply the Palestine border.
-4. Once processed, click on the "Download" button to save your modified profile picture.
+4. Optionally tick "Add ppm.t4p.al to the frame" to curve the short URL along the bottom of the border, so anyone who sees your picture knows where to make theirs. Left unticked, the border stays plain.
+5. Once processed, click on the "Download" button to save your modified profile picture.
 
 ## Contribution
 
@@ -74,27 +75,35 @@ which re-asks everyone.
 ### Optional: written feedback via Tally
 
 Set `NEXT_PUBLIC_TALLY_FORM_ID` to a [Tally](https://tally.so) form ID and a
-"Tell us more" link appears on the thank-you step, carrying the tapped answers
-across as hidden fields (`source`, `blocker`/`improve`, `from=ppm`) so a written
-comment can be read next to them. Leave it unset and the link is simply hidden.
+"Tell us more" link appears on the thank-you step, carrying the tapped answer
+across as a hidden field (the question's id — `destination`, `attention`,
+`network` or `friction` — plus `from=ppm`) so a written comment can be read
+next to it. Leave it unset and the link is simply hidden.
 Tally's free plan covers unlimited responses; no third-party script is loaded on
 the page either way.
 
 ## Testing
 
-| Command                 | What it runs                                                           |
-| ----------------------- | ---------------------------------------------------------------------- |
-| `npm test`              | Integration tests (API route, upstream mocked) — fast & deterministic  |
-| `npm run test:e2e`      | Browser e2e (upload → fetch → generate → download), upstream mocked    |
+| Command | What it runs |
+|---|---|
+| `npm test` | Integration tests (API route, upstream mocked) — fast & deterministic |
+| `npm run test:e2e` | Browser e2e (upload → fetch → generate → download) on Chromium, Firefox and WebKit, upstream mocked |
 | `npm run test:e2e:live` | Full-stack e2e against the **real** tech4palestine pic (needs network) |
-| `npm run test:live`     | Live integration smoke against the real `api.fxtwitter.com`            |
+| `npm run test:live` | Live integration smoke against the real `api.fxtwitter.com` |
 
 Or use the devbox shortcuts: `devbox run test` and `devbox run test:live`.
 
-Playwright needs a browser. Normally `npx playwright install chromium` handles
-it; in sandboxes where that download is blocked, run `./scripts/run-e2e-local.sh`,
-which installs an npm-hosted Chromium and points Playwright at it via
-`PLAYWRIGHT_CHROMIUM_PATH`.
+### Browsers
+
+The e2e suite runs on Chromium, Firefox and WebKit — the app rasterises a DOM
+node client-side (`html-to-image` → canvas → download), which is where the
+engines disagree. CI runs one job per engine; locally `npm run test:e2e` runs
+all three and `npm run test:e2e -- --project=webkit` narrows to one.
+
+Install them with `npx playwright install chromium firefox webkit`. In
+sandboxes where that download is blocked, `./scripts/run-e2e-local.sh` installs
+an npm-hosted Chromium and points Playwright at it via
+`PLAYWRIGHT_CHROMIUM_PATH` (Chromium only).
 
 ## License
 
