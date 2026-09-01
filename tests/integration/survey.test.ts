@@ -77,13 +77,32 @@ describe('pickRotatingQuestion', () => {
   });
 });
 
+/**
+ * The host must be techforpalestine.org itself or a subdomain of it. A bare
+ * `endsWith('techforpalestine.org')` would also accept
+ * `evil-techforpalestine.org` (CodeQL js/incomplete-url-substring-sanitization).
+ */
+const isTechForPalestineHost = (hostname: string) =>
+  hostname === 'techforpalestine.org' ||
+  hostname.endsWith('.techforpalestine.org');
+
 describe('next steps', () => {
   it('links only to Tech For Palestine properties over https', () => {
     for (const next of NEXT_STEPS) {
       const url = new URL(next.href);
       expect(url.protocol).toBe('https:');
-      expect(url.hostname.endsWith('techforpalestine.org')).toBe(true);
+      expect(isTechForPalestineHost(url.hostname)).toBe(true);
     }
+  });
+
+  it('does not accept a lookalike host', () => {
+    // Guards the guard: the check above must not be weakened back into a
+    // plain suffix match.
+    expect(isTechForPalestineHost('evil-techforpalestine.org')).toBe(false);
+    expect(isTechForPalestineHost('techforpalestine.org.attacker.test')).toBe(
+      false,
+    );
+    expect(isTechForPalestineHost('updates.techforpalestine.org')).toBe(true);
   });
 });
 
