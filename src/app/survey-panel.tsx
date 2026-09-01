@@ -70,7 +70,6 @@ export default function SurveyPanel({ method }: { method: string }) {
       answer: option,
       method,
     });
-    trackEvent(SurveyEvent.Completed, { question: asked.id, method });
     close();
     setStep('done');
   };

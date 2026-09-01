@@ -57,9 +57,9 @@ export type ShareEventName = (typeof ShareEvent)[keyof typeof ShareEvent];
  *   Carries `method`, as every event here does (the photo source, matching the
  *   creation funnel), so responses can be split by how the picture was made.
  * Answered: the question was answered; carries `question` and `answer`, both
- *   fixed tokens from the question definitions, never free text.
- * Completed: fires alongside Answered — one question is the whole survey — and
- *   exists so the funnel reads end to end next to the other two.
+ *   fixed tokens from the question definitions, never free text. One question
+ *   is the whole survey, so this is also the completion event — Shown over
+ *   Answered is the response rate.
  * Dismissed: closed without answering; carries the `question` that went
  *   unanswered, so a prompt people refuse is visible.
  * NextStepClicked: followed one of the "do more than a picture" links.
@@ -68,7 +68,6 @@ export type ShareEventName = (typeof ShareEvent)[keyof typeof ShareEvent];
 export const SurveyEvent = {
   Shown: 'Survey: 1 Shown',
   Answered: 'Survey: 2 Answered',
-  Completed: 'Survey: 3 Completed',
   Dismissed: 'Survey: Dismissed',
   NextStepClicked: 'Survey: Next Step Clicked',
   FeedbackOpened: 'Survey: Feedback Opened',
