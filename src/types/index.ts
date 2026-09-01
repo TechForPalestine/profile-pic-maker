@@ -18,3 +18,6 @@ export type ShareChannel =
 
 /** What was shared: the framed picture, the 9:16 story card, or just a link. */
 export type ShareFormat = 'profile' | 'story' | 'link';
+
+/** Shape used for the generated profile picture. */
+export type FrameShape = 'circle' | 'original';

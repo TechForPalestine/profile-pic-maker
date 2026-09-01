@@ -1,7 +1,8 @@
 'use client';
 import { FunnelEvent, trackEvent } from '@/lib/analytics';
+import { RECTANGLE_BORDER_SIZE, getRectangleFrameSize } from '@/lib/frame';
 import { SHORT_URL_LABEL } from '@/lib/share';
-import { SocialPlatform } from '@/types';
+import { FrameShape, SocialPlatform } from '@/types';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import Image from 'next/image';
@@ -28,6 +29,8 @@ export default function Home() {
   // Off by default: the picture is the user's, so the address only goes on it
   // if they ask for it. One click adds it.
   const [showBranding, setShowBranding] = useState(false);
+  const [frameShape, setFrameShape] = useState<FrameShape>('circle');
+  const [imageAspectRatio, setImageAspectRatio] = useState(1);
   const [filePostfix, setFilePostfix] = useState<
     SocialPlatform | 'user-upload'
   >();
@@ -157,7 +160,18 @@ export default function Home() {
     trackEvent(FunnelEvent.StartOver, { method: filePostfix ?? 'unknown' });
     setUserImageUrl(undefined);
     setHasDownloaded(false);
+    setFrameShape('circle');
+    setImageAspectRatio(1);
   };
+
+  const rectangleFrame = getRectangleFrameSize(imageAspectRatio);
+  const frameStyle =
+    frameShape === 'circle'
+      ? { width: '300px', height: '300px' }
+      : {
+          width: `${rectangleFrame.width}px`,
+          height: `${rectangleFrame.height}px`,
+        };
 
   return (
     <main className="min-h-screen flex flex-col text-center">
@@ -195,8 +209,10 @@ export default function Home() {
         <div className="my-12">
           <div className="flex justify-center">
             <div
-              style={{ width: '300px', height: '300px' }}
-              className="relative"
+              style={frameStyle}
+              className={`relative overflow-hidden ${
+                frameShape === 'circle' ? 'rounded-full' : 'rounded-lg'
+              }`}
               ref={ref}
             >
               <Image
@@ -206,7 +222,9 @@ export default function Home() {
                 id="borderImage"
                 src={'/bg.webp'}
                 style={{ position: 'absolute', width: '100%', height: '100%' }}
-                className="rounded-full"
+                className={`object-cover ${
+                  frameShape === 'circle' ? 'rounded-full' : ''
+                }`}
                 unoptimized
               />
               {loader ? (
@@ -230,27 +248,46 @@ export default function Home() {
                   id="userImage"
                   alt="profile-image"
                   src={userImageUrl ?? '/user.jpg'}
-                  onLoad={() => {
-                    // Only the user's selected photo counts, not the placeholder.
+                  width={100}
+                  height={100}
+                  onLoad={(event) => {
                     if (userImageUrl) {
+                      const image = event.currentTarget;
+                      if (image.naturalWidth && image.naturalHeight) {
+                        setImageAspectRatio(
+                          image.naturalWidth / image.naturalHeight,
+                        );
+                      }
                       trackEvent(FunnelEvent.PreviewShown, {
                         method: filePostfix ?? 'unknown',
                       });
                     }
                   }}
-                  width={100}
-                  height={100}
-                  style={{
-                    position: 'absolute',
-                    width: '85%',
-                    height: '85%',
-                    left: '7.5%',
-                    top: '7.5%',
-                  }}
-                  className="object-cover rounded-full cursor-pointer"
+                  style={
+                    frameShape === 'circle'
+                      ? {
+                          position: 'absolute',
+                          width: '85%',
+                          height: '85%',
+                          left: '7.5%',
+                          top: '7.5%',
+                        }
+                      : {
+                          position: 'absolute',
+                          width: `${rectangleFrame.imageWidth}px`,
+                          height: `${rectangleFrame.imageHeight}px`,
+                          left: `${RECTANGLE_BORDER_SIZE}px`,
+                          top: `${RECTANGLE_BORDER_SIZE}px`,
+                        }
+                  }
+                  className={`object-cover cursor-pointer ${
+                    frameShape === 'circle' ? 'rounded-full' : 'rounded-sm'
+                  }`}
                 />
               )}
-              {showBranding && !loader && <BrandingRing />}
+              {showBranding && frameShape === 'circle' && !loader && (
+                <BrandingRing />
+              )}
             </div>
           </div>
         </div>
@@ -263,35 +300,71 @@ export default function Home() {
                   method={filePostfix ?? 'unknown'}
                   generateProfileImage={generateFinalImage}
                   showBranding={showBranding}
+                  frameShape={frameShape}
+                  imageAspectRatio={imageAspectRatio}
                 />
               ) : (
                 <p className="p-2 my-6 text-sm border rounded-lg">
                   Download the image, then use it as your new profile picture.
                 </p>
               )}
-              <label className="flex items-start gap-3 mb-3 p-3 text-left text-sm border rounded-lg cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={showBranding}
-                  onChange={(e) => {
-                    setShowBranding(e.target.checked);
-                    trackEvent(FunnelEvent.BrandingToggled, {
-                      branding: e.target.checked ? 'on' : 'off',
-                      method: filePostfix ?? 'unknown',
-                    });
-                  }}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-gray-900"
-                />
-                <span>
-                  <span className="font-semibold">
-                    Add {SHORT_URL_LABEL} to the frame
+              <fieldset className="mb-3 text-left">
+                <legend className="mb-2 text-sm font-semibold">
+                  Frame shape
+                </legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ['circle', 'Circle'],
+                      ['original', 'Original shape'],
+                    ] as const
+                  ).map(([shape, label]) => (
+                    <button
+                      key={shape}
+                      type="button"
+                      aria-pressed={frameShape === shape}
+                      onClick={() => {
+                        setFrameShape(shape);
+                        setHasDownloaded(false);
+                        if (shape === 'original') setShowBranding(false);
+                      }}
+                      className={`rounded-lg border px-3 py-2 text-sm ${
+                        frameShape === shape
+                          ? 'border-gray-900 bg-gray-900 text-white'
+                          : 'border-gray-300'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+              {frameShape === 'circle' && (
+                <label className="flex items-start gap-3 mb-3 p-3 text-left text-sm border rounded-lg cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showBranding}
+                    onChange={(e) => {
+                      setShowBranding(e.target.checked);
+                      setHasDownloaded(false);
+                      trackEvent(FunnelEvent.BrandingToggled, {
+                        branding: e.target.checked ? 'on' : 'off',
+                        method: filePostfix ?? 'unknown',
+                      });
+                    }}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-gray-900"
+                  />
+                  <span>
+                    <span className="font-semibold">
+                      Add {SHORT_URL_LABEL} to the frame
+                    </span>
+                    <span className="block text-gray-600">
+                      So everyone who sees your picture knows where to make
+                      theirs.
+                    </span>
                   </span>
-                  <span className="block text-gray-600">
-                    So everyone who sees your picture knows where to make
-                    theirs.
-                  </span>
-                </span>
-              </label>
+                </label>
+              )}
               <button
                 onClick={handleDownload}
                 className="rounded-full mb-2 py-3 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl"

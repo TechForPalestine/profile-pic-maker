@@ -1,5 +1,6 @@
 'use client';
 import { ShareEvent, trackEvent } from '@/lib/analytics';
+import { getRectangleFrameSize } from '@/lib/frame';
 import {
   SHORT_URL_LABEL,
   buildShareLinks,
@@ -7,7 +8,7 @@ import {
   dataUrlToFile,
   shareCaption,
 } from '@/lib/share';
-import { ShareChannel, ShareFormat } from '@/types';
+import { FrameShape, ShareChannel, ShareFormat } from '@/types';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import Image from 'next/image';
@@ -52,6 +53,8 @@ interface SharePanelProps {
   /** Mirrors the ring's short URL onto the story card's picture, so what gets
    *  shared matches the picture the user just downloaded. */
   showBranding: boolean;
+  frameShape: FrameShape;
+  imageAspectRatio: number;
 }
 
 export default function SharePanel({
@@ -59,6 +62,8 @@ export default function SharePanel({
   method,
   generateProfileImage,
   showBranding,
+  frameShape,
+  imageAspectRatio,
 }: SharePanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
@@ -66,6 +71,7 @@ export default function SharePanel({
   const [busyAction, setBusyAction] = useState<string>();
   const [copied, setCopied] = useState(false);
   const [showConfetti, setShowConfetti] = useState(true);
+  const storyFrame = getRectangleFrameSize(imageAspectRatio, 214, 18);
 
   // Memoised per mounted picture: rasterising is slow, and iOS only allows
   // navigator.share() during (transient) user activation — so the files are
@@ -294,8 +300,14 @@ export default function SharePanel({
           }}
         >
           <div
-            className="relative"
-            style={{ width: '250px', height: '250px', marginTop: '48px' }}
+            className={`relative overflow-hidden ${
+              frameShape === 'circle' ? 'rounded-full' : 'rounded-lg'
+            }`}
+            style={{
+              width: frameShape === 'circle' ? '250px' : storyFrame.width,
+              height: frameShape === 'circle' ? '250px' : storyFrame.height,
+              marginTop: '48px',
+            }}
           >
             <Image
               width={100}
@@ -303,7 +315,9 @@ export default function SharePanel({
               alt=""
               src={'/bg.webp'}
               style={{ position: 'absolute', width: '100%', height: '100%' }}
-              className="rounded-full"
+              className={`object-cover ${
+                frameShape === 'circle' ? 'rounded-full' : ''
+              }`}
               unoptimized
             />
             <Image
@@ -311,16 +325,28 @@ export default function SharePanel({
               src={userImageUrl}
               width={100}
               height={100}
-              style={{
-                position: 'absolute',
-                width: '85%',
-                height: '85%',
-                left: '7.5%',
-                top: '7.5%',
-              }}
-              className="object-cover rounded-full"
+              style={
+                frameShape === 'circle'
+                  ? {
+                      position: 'absolute',
+                      width: '85%',
+                      height: '85%',
+                      left: '7.5%',
+                      top: '7.5%',
+                    }
+                  : {
+                      position: 'absolute',
+                      width: storyFrame.imageWidth,
+                      height: storyFrame.imageHeight,
+                      left: '18px',
+                      top: '18px',
+                    }
+              }
+              className={`object-cover ${
+                frameShape === 'circle' ? 'rounded-full' : 'rounded-sm'
+              }`}
             />
-            {showBranding && <BrandingRing />}
+            {showBranding && frameShape === 'circle' && <BrandingRing />}
           </div>
           <p className="text-white text-3xl font-semibold mt-6">
             I stand with Palestine
