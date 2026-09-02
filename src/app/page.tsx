@@ -21,6 +21,7 @@ import Link from 'next/link';
 import BrandingRing from './branding-ring';
 import FaqList from './faq';
 import SharePanel from './share-panel';
+import SurveyPanel from './survey-panel';
 
 export default function Home() {
   const ref = useRef<HTMLDivElement>(null);
@@ -310,6 +311,11 @@ export default function Home() {
                 Start Over{' '}
                 <FaArrowRotateLeft className="inline mb-1 ml-2 text-md" />
               </button>
+              {/* Asked only after the picture is in hand, and below the share
+                  and download buttons so it never competes with them. */}
+              {hasDownloaded && (
+                <SurveyPanel method={filePostfix ?? 'unknown'} />
+              )}
             </>
           ) : (
             <>

@@ -54,6 +54,34 @@ If you already have Node.js 22 and git installed:
 3. Install dependencies: `npm ci`
 4. Run the project: `npm run dev`
 
+## Post-download survey
+
+Once a picture is downloaded, a one-tap survey appears below the share and
+download buttons, asking the things Plausible can't answer: where the framed
+picture is actually going, where that person's attention lives, whether anyone
+else in their circle has framed a picture, and what nearly stopped them.
+
+Each visitor is asked exactly one question, drawn at random from the current
+wave in `src/lib/survey.ts`. Answers are fixed choices sent to Plausible as
+`Survey: …` custom events, so nothing personal or free-form ever reaches
+analytics. The survey is asked once per browser.
+
+Keep a wave to three or four questions: every visitor answers one, so a larger
+wave splits the same downloads more thinly and each question takes
+proportionally longer to reach a readable sample. To start the next wave, swap
+the set (there are spares in `PARKED_QUESTIONS`) and bump `SURVEY_VERSION`,
+which re-asks everyone.
+
+### Optional: written feedback via Tally
+
+Set `NEXT_PUBLIC_TALLY_FORM_ID` to a [Tally](https://tally.so) form ID and a
+"Tell us more" link appears on the thank-you step, carrying the tapped answer
+across as a hidden field (the question's id — `destination`, `attention`,
+`network` or `friction` — plus `from=ppm`) so a written comment can be read
+next to it. Leave it unset and the link is simply hidden.
+Tally's free plan covers unlimited responses; no third-party script is loaded on
+the page either way.
+
 ## Testing
 
 | Command | What it runs |
