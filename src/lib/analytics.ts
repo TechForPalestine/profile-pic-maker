@@ -13,13 +13,15 @@ declare global {
  * Funnel events tracked end to end in Plausible, in firing order. The
  * numeric prefix keeps them ordered in the Plausible dashboard.
  *
- * Landed: visitor opens the page.
+ * Landed: visitor opens the page. Carries `referrer`: the referral code this
+ *   browser is crediting (see `@/lib/referral`), or `none`.
  * SourceSelected: clicks a "pick a photo" button (upload or a social platform).
  * PhotoProvided: commits input (chooses a file / submits a username).
  * PhotoFetched: a usable source is obtained (data URL / social profile URL).
  * PreviewShown: that photo actually renders on screen.
  * Downloaded: the final framed image is downloaded (carries `branding`:
- *   whether the short URL was baked into the ring).
+ *   whether the short URL was baked into the ring, and `referrer` as above,
+ *   which is what the promoter leaderboard counts).
  */
 export const FunnelEvent = {
   Landed: 'Funnel: 1 Landed',

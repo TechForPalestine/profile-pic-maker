@@ -1,5 +1,10 @@
 'use client';
 import { FunnelEvent, trackEvent } from '@/lib/analytics';
+import {
+  readReferralCode,
+  referrerProp,
+  rememberReferrer,
+} from '@/lib/referral';
 import { SHORT_URL_LABEL } from '@/lib/share';
 import { SocialPlatform } from '@/types';
 import download from 'downloadjs';
@@ -38,7 +43,11 @@ export default function Home() {
   >();
 
   useEffect(() => {
-    trackEvent(FunnelEvent.Landed);
+    // A referral link (`?ref=<code>`) credits its promoter for this browser's
+    // downloads for the next 30 days, first touch wins (see `@/lib/referral`).
+    const code = readReferralCode(window.location.search);
+    if (code) rememberReferrer(code);
+    trackEvent(FunnelEvent.Landed, { referrer: referrerProp() });
   }, []);
 
   // Step 4: a usable image source (data URL / social profile URL) is obtained.
@@ -153,6 +162,7 @@ export default function Home() {
       trackEvent(FunnelEvent.Downloaded, {
         method: filePostfix ?? 'unknown',
         branding: showBranding ? 'on' : 'off',
+        referrer: referrerProp(),
       });
       setHasDownloaded(true);
     }
