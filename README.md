@@ -82,6 +82,52 @@ next to it. Leave it unset and the link is simply hidden.
 Tally's free plan covers unlimited responses; no third-party script is loaded on
 the page either way.
 
+## Referral links and the promoter leaderboard
+
+Anyone can share a personal link, `https://ppm.techforpalestine.org/?ref=<code>`,
+and every person who arrives through it and downloads a framed picture counts
+for that code. `/leaderboard` ranks the approved promoters by unique downloads
+(today, last 7 days, all time) and shows where downloads come from;
+`/leaderboard/join` creates a link instantly and lets people ask to be listed;
+`/leaderboard/how-it-works` explains the rules.
+
+How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
+
+- **Attribution.** Plausible reads `ref` as the visit source, so hand-made
+  channel links (`?ref=ch-newsletter`) attribute with no code at all. The code
+  is also remembered per browser for 30 days (first touch wins) and sent as the
+  `referrer` custom prop on the `Landed` and `Downloaded` events, which is what
+  the ranking counts. `share-*` refs belong to the share buttons and are never
+  ranked; `ch-*` codes are channels, reported but not ranked as a person.
+- **Registry.** Listing is moderated: join requests land as `pending` in a
+  Workers KV namespace (accessed over the REST API, so no build-time binding),
+  and an approver publishes or rejects them on `/admin/promoters`, which talks
+  to a bearer-token admin API. Only approved entries are ever served publicly.
+  Without Cloudflare credentials an in-memory store is used, so the whole flow
+  works in `npm run dev`.
+- **Counts.** `/api/leaderboard` queries the Plausible Stats API (v2) for
+  downloads grouped by `referrer` and by visit source, joins them onto the
+  approved registry, and caches for five minutes. Without a Plausible key it
+  answers 503 and the page shows a "warming up" state.
+
+Environment variables (Cloudflare Pages → Settings → Environment variables):
+
+| Variable | Purpose |
+|---|---|
+| `PLAUSIBLE_API_KEY` | Stats API key (Business plan feature). Without it the board shows the unavailable state. |
+| `PLAUSIBLE_SITE_ID`, `PLAUSIBLE_API_HOST` | Optional overrides (default `ppm.techforpalestine.org`, `https://plausible.io`). |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_KV_NAMESPACE_ID`, `CLOUDFLARE_API_TOKEN` | KV namespace for the registry. Token scope: Workers KV Storage, Edit. |
+| `ADMIN_TOKEN` | Shared secret for `/admin/promoters` (32+ random characters). |
+| `TURNSTILE_SECRET`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile on the listing form. Unset: no bot check, no widget. |
+| `LEADERBOARD_JOIN_ENABLED` | Set to `false` to pause new listing requests (kill switch). |
+
+One-time Plausible step: add `referrer` under the site's allowed custom
+properties so the prop is queryable.
+
+Moderation: approve only names that are not impersonating anyone and links
+that go to real public profiles with nothing abusive on them. "Take down"
+removes an approved entry immediately; the board refreshes within five minutes.
+
 ## Testing
 
 | Command | What it runs |
