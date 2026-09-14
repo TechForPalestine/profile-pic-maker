@@ -62,6 +62,15 @@ export const FAQ_ENTRIES: FaqEntry[] = [
       'It is an optional short link to this tool, drawn along the bottom of the flag ring so people who see your picture can make their own. It is off by default, and the framed picture is yours either way.',
   },
   {
+    question: 'What is the promoter leaderboard?',
+    answer:
+      'A public list of the people who bring the most others to the tool. Anyone can create a referral link on the leaderboard page, and every person who arrives through that link and saves a framed picture counts towards it. Appearing on the list with your name and social links takes a quick review by a Tech for Palestine volunteer first.',
+    link: {
+      href: '/leaderboard/how-it-works',
+      label: 'How the leaderboard works',
+    },
+  },
+  {
     question: 'Who built the Palestine Profile Pic Maker?',
     answer:
       'The Palestine Profile Pic Maker was built by Tech for Palestine, an open source collective of engineers, founders, and technologists. The live casualty figures shown on the page come from the collective’s data project at data.techforpalestine.org.',

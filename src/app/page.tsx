@@ -398,9 +398,12 @@ export default function Home() {
             Frequently Asked Questions
           </h2>
           <FaqList entries={FEATURED_FAQ_ENTRIES} />
-          <p className="mt-4">
+          <p className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-1">
             <Link href="/faq" className="underline text-gray-600">
               Read all FAQs
+            </Link>
+            <Link href="/leaderboard" className="underline text-gray-600">
+              See the promoter leaderboard
             </Link>
           </p>
         </section>

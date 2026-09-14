@@ -82,11 +82,34 @@ export const SurveyEvent = {
 export type SurveyEventName = (typeof SurveyEvent)[keyof typeof SurveyEvent];
 
 /**
+ * Referral links and the promoter leaderboard (see `@/lib/referral`).
+ *
+ * LeaderboardViewed: the board fetched a window; carries `window`.
+ * LinkGenerated: a visitor copied a referral link or caption from the join
+ *   page; carries `format` ('link' / 'caption'). Only ever fixed tokens: the
+ *   code itself stays out of analytics props here (it reaches Plausible as
+ *   `referrer` on downloads, where it is the point).
+ * JoinRequested: the listing form was submitted; carries `outcome`
+ *   ('pending' or the error class: 'invalid', 'taken', 'bot', 'full',
+ *   'paused', 'error').
+ * CtaClicked: the post-download prompt to join was followed; carries `method`.
+ */
+export const ReferralEvent = {
+  LeaderboardViewed: 'Referral: Leaderboard Viewed',
+  LinkGenerated: 'Referral: Link Generated',
+  JoinRequested: 'Referral: Join Requested',
+  CtaClicked: 'Referral: CTA Clicked',
+} as const;
+
+export type ReferralEventName =
+  (typeof ReferralEvent)[keyof typeof ReferralEvent];
+
+/**
  * Safely fire a Plausible custom event. No-ops during SSR or if the
  * Plausible script hasn't loaded yet.
  */
 export function trackEvent(
-  event: FunnelEventName | ShareEventName | SurveyEventName,
+  event: FunnelEventName | ShareEventName | SurveyEventName | ReferralEventName,
   props?: PlausibleProps,
 ) {
   if (typeof window === 'undefined' || typeof window.plausible !== 'function') {
