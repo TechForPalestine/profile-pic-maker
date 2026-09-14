@@ -11,8 +11,9 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      // The API routes and the Sentry tunnel carry no indexable content.
-      disallow: ['/api/', '/monitoring'],
+      // The API routes and the Sentry tunnel carry no indexable content, and
+      // the approvals page is for maintainers only.
+      disallow: ['/api/', '/monitoring', '/admin/'],
     },
     sitemap: `${APP_URL}sitemap.xml`,
   };
