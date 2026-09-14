@@ -1,0 +1,64 @@
+import { NextResponse, type NextRequest } from 'next/server';
+
+import { buildLeaderboard } from '@/lib/leaderboard';
+import {
+  createPlausibleClient,
+  hasPlausibleEnv,
+  isLeaderboardWindow,
+  type PlausibleEnv,
+} from '@/lib/plausible-stats';
+import { getPromoterStore } from '@/lib/promoters';
+
+export const runtime = 'edge';
+
+const CACHE = 'public, s-maxage=300, stale-while-revalidate=600';
+const SHORT_CACHE = 'public, s-maxage=60';
+
+/**
+ * GET /api/leaderboard?window=day|7d|all
+ *
+ * Joins Plausible's download counts onto the approved promoter registry.
+ * Cached for five minutes at the edge: the board is a shared, public view
+ * and Plausible's API key has an hourly budget.
+ */
+export async function GET(request: NextRequest) {
+  const requested = request.nextUrl.searchParams.get('window') ?? '7d';
+  if (!isLeaderboardWindow(requested)) {
+    return NextResponse.json(
+      { error: 'window must be one of day, 7d, all' },
+      { status: 400 },
+    );
+  }
+
+  const env = process.env as PlausibleEnv;
+  if (!hasPlausibleEnv(env)) {
+    // No Stats API key configured (or no Business plan yet). The page shows
+    // a friendly "not available" state rather than an empty board.
+    return NextResponse.json(
+      { error: 'leaderboard-unavailable' },
+      { status: 503, headers: { 'Cache-Control': SHORT_CACHE } },
+    );
+  }
+
+  try {
+    const plausible = createPlausibleClient(env);
+    const [approved, byReferrer, bySource] = await Promise.all([
+      getPromoterStore().listApproved(),
+      plausible.downloadsBy('event:props:referrer', requested),
+      plausible.downloadsBy('visit:source', requested),
+    ]);
+    const board = buildLeaderboard({
+      window: requested,
+      byReferrer,
+      bySource,
+      approved,
+    });
+    return NextResponse.json(board, { headers: { 'Cache-Control': CACHE } });
+  } catch (error) {
+    console.error('Leaderboard query failed', error);
+    return NextResponse.json(
+      { error: 'leaderboard-upstream-error' },
+      { status: 502, headers: { 'Cache-Control': SHORT_CACHE } },
+    );
+  }
+}
