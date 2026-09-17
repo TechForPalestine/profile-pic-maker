@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       plausible.downloadsBy('event:props:referrer', requested),
       plausible.downloadsBy('visit:source', requested),
     ]);
-    const board = buildLeaderboard({
+    const board = await buildLeaderboard({
       window: requested,
       byReferrer,
       bySource,

@@ -8,6 +8,7 @@ import {
   REFERRER_TTL_MS,
   RESERVED_CODES,
   currentReferrer,
+  hashReferralCode,
   isChannelCode,
   isPromoterCode,
   isReferralCode,
@@ -69,6 +70,14 @@ describe('referral code grammar', () => {
     for (const word of RESERVED_CODES) {
       expect(isPromoterCode(word)).toBe(false);
     }
+  });
+});
+
+describe('hashReferralCode', () => {
+  it('is a 12-hex fingerprint that does not reveal the code', async () => {
+    const hash = await hashReferralCode('paul');
+    expect(hash).toMatch(/^[0-9a-f]{12}$/);
+    expect(hash).not.toContain('paul');
   });
 });
 

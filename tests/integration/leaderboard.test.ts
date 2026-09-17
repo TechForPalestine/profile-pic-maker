@@ -6,9 +6,11 @@ import {
   bucketSource,
   buildChannels,
   buildLeaderboard,
+  buildPendingCounts,
   channelLabel,
   rankPromoters,
 } from '@/lib/leaderboard';
+import { hashReferralCode } from '@/lib/referral';
 import {
   createPlausibleClient,
   downloadsQuery,
@@ -118,9 +120,33 @@ describe('channel buckets', () => {
   });
 });
 
+describe('pending counts', () => {
+  it('publishes unapproved codes only as fingerprints, never in the clear', async () => {
+    const counts = await buildPendingCounts(
+      BY_REFERRER,
+      new Set(['paul', 'zaher']),
+    );
+    const keys = Object.keys(counts);
+    expect(keys).toHaveLength(2);
+    for (const key of keys) expect(key).toMatch(/^[0-9a-f]{12}$/);
+    expect(JSON.stringify(counts)).not.toContain('stranger');
+    expect(counts[await hashReferralCode('stranger')]).toBe(30);
+    expect(counts[await hashReferralCode('ch-newsletter')]).toBe(12);
+    expect(counts[await hashReferralCode('none')]).toBeUndefined();
+    expect(counts[await hashReferralCode('paul')]).toBeUndefined();
+  });
+
+  it('hashes deterministically', async () => {
+    expect(await hashReferralCode('paul')).toBe(await hashReferralCode('paul'));
+    expect(await hashReferralCode('paul')).not.toBe(
+      await hashReferralCode('paula'),
+    );
+  });
+});
+
 describe('buildLeaderboard', () => {
-  it('assembles the response for a window', () => {
-    const board = buildLeaderboard({
+  it('assembles the response for a window', async () => {
+    const board = await buildLeaderboard({
       window: '7d',
       byReferrer: BY_REFERRER,
       bySource: BY_SOURCE,
@@ -131,6 +157,7 @@ describe('buildLeaderboard', () => {
     expect(board.generatedAt).toBe('2026-09-14T12:00:00.000Z');
     expect(board.promoters).toHaveLength(3);
     expect(board.channels[0].bucket).toBe('organic');
+    expect(Object.keys(board.pendingCounts)).toHaveLength(2);
   });
 });
 
@@ -275,6 +302,11 @@ describe('GET /api/leaderboard', () => {
       { bucket: 'shared', label: 'Shared by users', downloads: 120 },
       { bucket: 'organic', label: 'Direct and organic', downloads: 30 },
     ]);
+    // The pending promoter's count is there for their own browser to find,
+    // under a fingerprint rather than the code itself.
+    expect(board.pendingCounts).toEqual({
+      [await hashReferralCode('stranger')]: 30,
+    });
   });
 
   it('answers 502 when Plausible fails', async () => {

@@ -177,3 +177,20 @@ export function currentReferrer(now: number = Date.now()): string | undefined {
 export function referrerProp(now: number = Date.now()): string {
   return currentReferrer(now) ?? REFERRER_NONE;
 }
+
+/**
+ * A short, stable fingerprint of a code (first 12 hex chars of SHA-256).
+ *
+ * The leaderboard API publishes download counts for codes that are not
+ * approved yet, so a promoter can watch their own number while they wait
+ * for review. Those codes are free text nobody has looked at, so they are
+ * keyed by this fingerprint rather than in the clear: the promoter's browser
+ * knows their code and can hash it, the public sees only numbers.
+ */
+export async function hashReferralCode(code: string): Promise<string> {
+  const bytes = new TextEncoder().encode(code);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest).slice(0, 6))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}

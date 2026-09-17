@@ -3,7 +3,12 @@ import {
   type Promoter,
   type PublicPromoter,
 } from '@/lib/promoters';
-import { CHANNEL_PREFIX, isShareCode } from '@/lib/referral';
+import {
+  CHANNEL_PREFIX,
+  REFERRER_NONE,
+  hashReferralCode,
+  isShareCode,
+} from '@/lib/referral';
 import type { CountRow, LeaderboardWindow } from '@/lib/plausible-stats';
 
 /**
@@ -20,7 +25,10 @@ import type { CountRow, LeaderboardWindow } from '@/lib/plausible-stats';
  *
  * Only approved promoters are ever ranked. Downloads credited to a code that
  * is pending, rejected or simply never registered are not shown under any
- * name; in the channel mix they count as direct and organic traffic.
+ * name; in the channel mix they count as direct and organic traffic. Their
+ * counts are still published, keyed by a fingerprint of the code (see
+ * `pendingCounts`), so a promoter waiting for review can see their own
+ * number without any unreviewed text reaching the page.
  */
 
 export const WINDOW_LABELS: Record<LeaderboardWindow, string> = {
@@ -48,6 +56,12 @@ export interface LeaderboardResponse {
   generatedAt: string;
   promoters: PromoterRow[];
   channels: ChannelRow[];
+  /**
+   * Unique downloads for codes that are not (yet) approved, keyed by
+   * `hashReferralCode(code)`. A browser that created a code can look up its
+   * own count here; nobody else can tell which code a key belongs to.
+   */
+  pendingCounts: Record<string, number>;
 }
 
 const BUCKET_LABELS: Record<
@@ -135,7 +149,32 @@ export function rankPromoters(
   return rows;
 }
 
-export function buildLeaderboard({
+export async function buildPendingCounts(
+  byReferrer: CountRow[],
+  approvedCodes: Set<string>,
+): Promise<Record<string, number>> {
+  const entries = await Promise.all(
+    byReferrer
+      .map((row) => ({
+        code: row.key.trim().toLowerCase(),
+        visitors: row.visitors,
+      }))
+      .filter(
+        (row) =>
+          row.code !== REFERRER_NONE &&
+          row.code !== '' &&
+          !approvedCodes.has(row.code) &&
+          row.visitors > 0,
+      )
+      .map(
+        async (row) =>
+          [await hashReferralCode(row.code), row.visitors] as const,
+      ),
+  );
+  return Object.fromEntries(entries);
+}
+
+export async function buildLeaderboard({
   window,
   byReferrer,
   bySource,
@@ -147,12 +186,13 @@ export function buildLeaderboard({
   bySource: CountRow[];
   approved: Promoter[];
   now?: Date;
-}): LeaderboardResponse {
+}): Promise<LeaderboardResponse> {
   const approvedCodes = new Set(approved.map((p) => p.code));
   return {
     window,
     generatedAt: now.toISOString(),
     promoters: rankPromoters(byReferrer, approved),
     channels: buildChannels(bySource, approvedCodes),
+    pendingCounts: await buildPendingCounts(byReferrer, approvedCodes),
   };
 }
