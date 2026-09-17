@@ -1,4 +1,12 @@
+import { createHash } from 'node:crypto';
+
 import { expect, test } from '@playwright/test';
+
+import { MY_PROMOTER_STORAGE_KEY } from '../src/lib/my-promoter';
+
+// Same fingerprint the app computes with Web Crypto (first 12 hex of SHA-256).
+const fingerprint = (code: string) =>
+  createHash('sha256').update(code).digest('hex').slice(0, 12);
 
 // The public board, driven against a mocked /api/leaderboard. Only approved
 // promoters ever reach this page (the API guarantees it, see the integration
@@ -30,7 +38,17 @@ const board = (window: string) => ({
     { bucket: 'shared', label: 'Shared by users', downloads: 180 },
     { bucket: 'promoters', label: 'Promoter links', downloads: 200 },
   ],
+  pendingCounts: { [fingerprint('newbie-7k2q')]: 3 },
 });
+
+const rememberMine = (
+  page: import('@playwright/test').Page,
+  record: Record<string, unknown>,
+) =>
+  page.addInitScript(([key, value]) => localStorage.setItem(key, value), [
+    MY_PROMOTER_STORAGE_KEY,
+    JSON.stringify(record),
+  ] as const);
 
 test.describe('The leaderboard page', () => {
   test('ranks promoters, links to their profiles, and shows the channel mix', async ({
@@ -64,6 +82,50 @@ test.describe('The leaderboard page', () => {
     await page.getByRole('tab', { name: 'Today' }).click();
     await expect(rows.first()).toContainText('5');
     expect(windows).toEqual(['7d', 'day']);
+  });
+
+  test('shows a promoter their own pending row, and only to them', async ({
+    page,
+  }) => {
+    await page.route('**/api/leaderboard**', (route) =>
+      route.fulfill({ json: board('7d') }),
+    );
+    await rememberMine(page, {
+      code: 'newbie-7k2q',
+      displayName: 'Newbie',
+      createdAt: '2026-09-17T10:00:00.000Z',
+      submittedAt: '2026-09-17T10:05:00.000Z',
+    });
+    await page.goto('/leaderboard');
+
+    const own = page.getByTestId('my-pending-row');
+    await expect(own).toContainText('Newbie');
+    await expect(own).toContainText('pending review');
+    await expect(own).toContainText('3');
+    await expect(own).toContainText('at most a day');
+    // The public ranking is unchanged: the pending code is not in it.
+    await expect(
+      page.getByRole('list', { name: 'Promoters' }).locator('li'),
+    ).toHaveCount(2);
+    // And the API response never names the code.
+    const res = await page.request.get('/api/leaderboard?window=7d');
+    expect(await res.text()).not.toContain('newbie');
+  });
+
+  test('tags the approved promoter’s own row', async ({ page }) => {
+    await page.route('**/api/leaderboard**', (route) =>
+      route.fulfill({ json: board('7d') }),
+    );
+    await rememberMine(page, {
+      code: 'zaher',
+      displayName: 'Zaher',
+      createdAt: '2026-09-01T10:00:00.000Z',
+      submittedAt: '2026-09-01T10:05:00.000Z',
+    });
+    await page.goto('/leaderboard');
+    await expect(page.getByTestId('my-pending-row')).toHaveCount(0);
+    await expect(page.locator('li[data-mine]')).toContainText('Zaher');
+    await expect(page.locator('li[data-mine]')).toContainText('you');
   });
 
   test('explains itself while analytics access is not configured', async ({

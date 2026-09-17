@@ -88,7 +88,8 @@ Anyone can share a personal link, `https://ppm.techforpalestine.org/?ref=<code>`
 and every person who arrives through it and downloads a framed picture counts
 for that code. `/leaderboard` ranks the approved promoters by unique downloads
 (today, last 7 days, all time) and shows where downloads come from;
-`/leaderboard/join` creates a link instantly and lets people ask to be listed;
+`/leaderboard/join` creates a link instantly (the code is generated from the
+name, nothing is stored server-side) and lets people ask to be listed;
 `/leaderboard/how-it-works` explains the rules.
 
 How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
@@ -108,34 +109,39 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
 - **Counts.** `/api/leaderboard` queries the Plausible Stats API (v2) for
   downloads grouped by `referrer` and by visit source, joins them onto the
   approved registry, and caches for five minutes. Without a Plausible key it
-  answers 503 and the page shows a "warming up" state.
+  answers 503 and the page shows a "warming up" state. Counts for codes that
+  are not approved travel as `pendingCounts`, keyed by a SHA-256 fingerprint
+  of the code, so the browser that created a code can show its owner their
+  own row (marked pending) while nobody else learns the code.
 
 Environment variables (Cloudflare Pages → Settings → Environment variables):
 
-| Variable | Purpose |
-|---|---|
-| `PLAUSIBLE_API_KEY` | Stats API key (Business plan feature). Without it the board shows the unavailable state. |
-| `PLAUSIBLE_SITE_ID`, `PLAUSIBLE_API_HOST` | Optional overrides (default `ppm.techforpalestine.org`, `https://plausible.io`). |
-| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_KV_NAMESPACE_ID`, `CLOUDFLARE_API_TOKEN` | KV namespace for the registry. Token scope: Workers KV Storage, Edit. |
-| `ADMIN_TOKEN` | Shared secret for `/admin/promoters` (32+ random characters). |
-| `TURNSTILE_SECRET`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile on the listing form. Unset: no bot check, no widget. |
-| `LEADERBOARD_JOIN_ENABLED` | Set to `false` to pause new listing requests (kill switch). |
+| Variable                                                                      | Purpose                                                                                  |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `PLAUSIBLE_API_KEY`                                                           | Stats API key (Business plan feature). Without it the board shows the unavailable state. |
+| `PLAUSIBLE_SITE_ID`, `PLAUSIBLE_API_HOST`                                     | Optional overrides (default `ppm.techforpalestine.org`, `https://plausible.io`).         |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_KV_NAMESPACE_ID`, `CLOUDFLARE_API_TOKEN` | KV namespace for the registry. Token scope: Workers KV Storage, Edit.                    |
+| `ADMIN_TOKEN`                                                                 | Shared secret for `/admin/promoters` (32+ random characters).                            |
+| `TURNSTILE_SECRET`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`                          | Cloudflare Turnstile on the listing form. Unset: no bot check, no widget.                |
+| `LEADERBOARD_JOIN_ENABLED`                                                    | Set to `false` to pause new listing requests (kill switch).                              |
 
 One-time Plausible step: add `referrer` under the site's allowed custom
 properties so the prop is queryable.
 
 Moderation: approve only names that are not impersonating anyone and links
-that go to real public profiles with nothing abusive on them. "Take down"
-removes an approved entry immediately; the board refreshes within five minutes.
+that go to real public profiles with nothing abusive on them. The pages
+promise a review within a few hours and at most a day, so keep two approvers
+on rota. "Take down" removes an approved entry immediately; the board
+refreshes within five minutes.
 
 ## Testing
 
-| Command | What it runs |
-|---|---|
-| `npm test` | Integration tests (API route, upstream mocked) — fast & deterministic |
-| `npm run test:e2e` | Browser e2e (upload → fetch → generate → download) on Chromium, Firefox and WebKit, upstream mocked |
-| `npm run test:e2e:live` | Full-stack e2e against the **real** tech4palestine pic (needs network) |
-| `npm run test:live` | Live integration smoke against the real `api.fxtwitter.com` |
+| Command                 | What it runs                                                                                        |
+| ----------------------- | --------------------------------------------------------------------------------------------------- |
+| `npm test`              | Integration tests (API route, upstream mocked) — fast & deterministic                               |
+| `npm run test:e2e`      | Browser e2e (upload → fetch → generate → download) on Chromium, Firefox and WebKit, upstream mocked |
+| `npm run test:e2e:live` | Full-stack e2e against the **real** tech4palestine pic (needs network)                              |
+| `npm run test:live`     | Live integration smoke against the real `api.fxtwitter.com`                                         |
 
 Or use the devbox shortcuts: `devbox run test` and `devbox run test:live`.
 

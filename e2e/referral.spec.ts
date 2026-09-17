@@ -2,6 +2,7 @@ import path from 'node:path';
 
 import { expect, test } from '@playwright/test';
 
+import { MY_PROMOTER_STORAGE_KEY } from '../src/lib/my-promoter';
 import { REFERRER_STORAGE_KEY } from '../src/lib/referral';
 
 // The referral loop end to end: a link with ?ref= is remembered, the person
@@ -74,28 +75,52 @@ test.describe('Referral links', () => {
 });
 
 test.describe('The join page', () => {
-  test('suggests a code from the name and shows the link instantly', async ({
+  const createLink = async (
+    page: import('@playwright/test').Page,
+    name = 'Paul Biggar',
+  ) => {
+    await page.goto('/leaderboard/join');
+    await page.getByLabel(/Your name/).fill(name);
+    await page.getByRole('button', { name: 'Create my link' }).click();
+    return (await page.getByTestId('referral-link').textContent()) ?? '';
+  };
+
+  test('makes the code from the name, with a random tail, and can shuffle it', async ({
     page,
   }) => {
     await page.goto('/leaderboard/join');
-    await page.getByLabel('Display name').fill('Paul Biggar');
-    await expect(page.getByLabel('Your code')).toHaveValue('paul-biggar');
-    await expect(page.getByTestId('referral-link')).toHaveText(
-      'https://ppm.techforpalestine.org/?ref=paul-biggar',
+    await page.getByLabel(/Your name/).fill('Paul Biggar');
+    const suggested = page.getByTestId('suggested-code');
+    await expect(suggested).toHaveText(/^paul-biggar-[a-z0-9]{4}$/);
+    const before = await suggested.textContent();
+    await page.getByRole('button', { name: 'Pick a different code' }).click();
+    await expect(suggested).toHaveText(/^paul-biggar-[a-z0-9]{4}$/);
+    expect(await suggested.textContent()).not.toBe(before);
+  });
+
+  test('creates the link in the browser only and remembers it', async ({
+    page,
+  }) => {
+    const link = await createLink(page);
+    expect(link).toMatch(
+      /^https:\/\/ppm\.techforpalestine\.org\/\?ref=paul-biggar-[a-z0-9]{4}$/,
     );
     await expect(page.getByRole('button', { name: 'Copy link' })).toBeVisible();
+
+    const stored = await page.evaluate(
+      (key) => localStorage.getItem(key),
+      MY_PROMOTER_STORAGE_KEY,
+    );
+    expect(JSON.parse(stored ?? '{}')).toMatchObject({
+      displayName: 'Paul Biggar',
+      code: expect.stringMatching(/^paul-biggar-/),
+    });
+
+    await page.reload();
+    await expect(page.getByTestId('referral-link')).toHaveText(link);
   });
 
-  test('rejects reserved and malformed codes inline', async ({ page }) => {
-    await page.goto('/leaderboard/join');
-    await page.getByLabel('Your code').fill('admin');
-    await expect(page.getByText(/not a reserved word/)).toBeVisible();
-    await expect(page.getByTestId('referral-link')).toHaveCount(0);
-    await page.getByLabel('Your code').fill('Paul Biggar');
-    await expect(page.getByTestId('referral-link')).toHaveCount(0);
-  });
-
-  test('submits a listing request and confirms it is pending', async ({
+  test('submits a listing request with the created code and confirms it is pending', async ({
     page,
   }) => {
     let posted: unknown;
@@ -103,11 +128,12 @@ test.describe('The join page', () => {
       posted = route.request().postDataJSON();
       await route.fulfill({
         status: 201,
-        json: { status: 'pending', code: 'paul-biggar' },
+        json: { status: 'pending', code: 'paul-biggar-x' },
       });
     });
-    await page.goto('/leaderboard/join');
-    await page.getByLabel('Display name').fill('Paul Biggar');
+    const link = await createLink(page);
+    const code = new URL(link).searchParams.get('ref');
+
     const submit = page.getByRole('button', { name: 'Ask to be listed' });
     await expect(submit).toBeDisabled();
     await page
@@ -116,9 +142,10 @@ test.describe('The join page', () => {
     await expect(submit).toBeEnabled();
     await submit.click();
 
-    await expect(page.getByRole('status')).toContainText('Request received');
+    await expect(page.getByRole('status')).toContainText('Listing requested');
+    await expect(page.getByRole('status')).toContainText('at most a day');
     expect(posted).toMatchObject({
-      code: 'paul-biggar',
+      code,
       displayName: 'Paul Biggar',
       links: { x: 'https://x.com/paulbiggar' },
     });
@@ -133,8 +160,7 @@ test.describe('The join page', () => {
         json: { errors: ['That code is already taken. Pick another one.'] },
       }),
     );
-    await page.goto('/leaderboard/join');
-    await page.getByLabel('Display name').fill('Paul');
+    await createLink(page, 'Paul');
     await page.getByLabel('X', { exact: true }).fill('https://x.com/paul');
     await page.getByRole('button', { name: 'Ask to be listed' }).click();
     await expect(
