@@ -339,6 +339,102 @@ describe('join and approval flow (memory store)', () => {
     expect(unknown.status).toBe(404);
   });
 
+  it('pulls an approved entry back into review without losing it', async () => {
+    await join(jsonRequest('http://localhost/api/promoters', validBody));
+    await approve('paul');
+    const res = await adminPost(
+      jsonRequest(
+        'http://localhost/api/admin/promoters',
+        { action: 'unapprove', code: 'paul' },
+        adminHeaders,
+      ),
+    );
+    expect(res.status).toBe(200);
+    await expect((await publicGet()).json()).resolves.toEqual({
+      promoters: [],
+    });
+    const listed = await adminGet(
+      new NextRequest('http://localhost/api/admin/promoters', {
+        headers: adminHeaders,
+      }),
+    );
+    const registry = (await listed.json()) as { pending: Promoter[] };
+    expect(registry.pending.map((p) => p.code)).toEqual(['paul']);
+    // And it can go straight back up.
+    await approve('paul');
+    const { promoters } = (await (await publicGet()).json()) as {
+      promoters: { code: string }[];
+    };
+    expect(promoters.map((p) => p.code)).toEqual(['paul']);
+  });
+
+  it('edits an approved entry in place and the public read follows', async () => {
+    await join(jsonRequest('http://localhost/api/promoters', validBody));
+    await approve('paul');
+    const res = await adminPost(
+      jsonRequest(
+        'http://localhost/api/admin/promoters',
+        {
+          action: 'edit',
+          code: 'paul',
+          displayName: '  Paul  B. ',
+          links: { x: 'https://x.com/paulb', website: 'https://paul.example/' },
+        },
+        adminHeaders,
+      ),
+    );
+    expect(res.status).toBe(200);
+    const { promoter } = (await res.json()) as { promoter: Promoter };
+    expect(promoter.status).toBe('approved');
+    expect(promoter.displayName).toBe('Paul B.');
+    await expect((await publicGet()).json()).resolves.toEqual({
+      promoters: [
+        {
+          code: 'paul',
+          displayName: 'Paul B.',
+          links: { x: 'https://x.com/paulb', website: 'https://paul.example/' },
+          recruits: 0,
+        },
+      ],
+    });
+  });
+
+  it('refuses an edit that would leave a bad name or no links', async () => {
+    await join(jsonRequest('http://localhost/api/promoters', validBody));
+    const badName = await adminPost(
+      jsonRequest(
+        'http://localhost/api/admin/promoters',
+        { action: 'edit', code: 'paul', displayName: '<b>x</b>' },
+        adminHeaders,
+      ),
+    );
+    expect(badName.status).toBe(400);
+    const noLinks = await adminPost(
+      jsonRequest(
+        'http://localhost/api/admin/promoters',
+        { action: 'edit', code: 'paul', links: {} },
+        adminHeaders,
+      ),
+    );
+    expect(noLinks.status).toBe(400);
+    const badHost = await adminPost(
+      jsonRequest(
+        'http://localhost/api/admin/promoters',
+        { action: 'edit', code: 'paul', links: { x: 'https://evil.example/' } },
+        adminHeaders,
+      ),
+    );
+    expect(badHost.status).toBe(400);
+    // Nothing changed.
+    const listed = await adminGet(
+      new NextRequest('http://localhost/api/admin/promoters', {
+        headers: adminHeaders,
+      }),
+    );
+    const registry = (await listed.json()) as { pending: Promoter[] };
+    expect(registry.pending[0].displayName).toBe('Paul Biggar');
+  });
+
   it('takes an approved entry down again', async () => {
     await join(jsonRequest('http://localhost/api/promoters', validBody));
     await approve('paul');

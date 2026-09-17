@@ -13,7 +13,7 @@ import {
 
 export const runtime = 'edge';
 
-const ACTIONS = ['approve', 'reject', 'edit'] as const;
+const ACTIONS = ['approve', 'unapprove', 'reject', 'edit'] as const;
 type Action = (typeof ACTIONS)[number];
 
 interface AdminBody {
@@ -45,9 +45,12 @@ export async function GET(request: NextRequest) {
 /**
  * approve: publish the entry. Clears `referredBy` unless it points at an
  *   approved promoter, so recruits are only ever credited to real entries.
- * reject: hide the entry (also how an approved entry is taken down).
- * edit: fix the display name or links, e.g. to strip a bad link but keep
- *   the person.
+ * unapprove: pull a published entry back into the review queue, for example
+ *   while a question about it is sorted out. Nothing is lost.
+ * reject: hide the entry for good (also how an approved entry is taken down).
+ * edit: fix the display name or links on any entry, approved ones included,
+ *   e.g. to strip a bad link but keep the person. Approved entries stay
+ *   approved; the public board picks the change up within five minutes.
  */
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request.headers.get('authorization'))) {
@@ -90,6 +93,9 @@ export async function POST(request: NextRequest) {
       };
       break;
     }
+    case 'unapprove':
+      updated = { ...promoter, status: 'pending', reviewedAt: now };
+      break;
     case 'reject':
       updated = { ...promoter, status: 'rejected', reviewedAt: now };
       break;
