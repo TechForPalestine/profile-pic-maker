@@ -70,6 +70,90 @@ test.describe('Promoter approvals page', () => {
     });
   });
 
+  test('edits an approved entry in place and can send it back to review', async ({
+    page,
+  }) => {
+    let current: {
+      code: string;
+      displayName: string;
+      links: Record<string, string>;
+      status: string;
+      createdAt: string;
+    } = { ...pending, status: 'approved' };
+    const posts: unknown[] = [];
+    await page.route('**/api/admin/promoters', async (route) => {
+      const request = route.request();
+      if (request.method() === 'POST') {
+        const body = request.postDataJSON() as {
+          action: string;
+          displayName?: string;
+          links?: Record<string, string>;
+        };
+        posts.push(body);
+        if (body.action === 'edit') {
+          current = {
+            ...current,
+            displayName: body.displayName ?? current.displayName,
+            links: body.links ?? current.links,
+          };
+        }
+        if (body.action === 'unapprove')
+          current = { ...current, status: 'pending' };
+        return route.fulfill({ json: { promoter: current } });
+      }
+      return route.fulfill({
+        json:
+          current.status === 'approved'
+            ? { pending: [], approved: [current], rejected: [] }
+            : { pending: [current], approved: [], rejected: [] },
+      });
+    });
+
+    await page.addInitScript(() =>
+      sessionStorage.setItem(
+        'ppm-admin-token',
+        'a-very-long-admin-token-for-tests',
+      ),
+    );
+    await page.goto('/admin/promoters');
+    await expect(
+      page.getByRole('heading', { name: 'On the leaderboard (1)' }),
+    ).toBeVisible();
+
+    await page.getByRole('button', { name: 'Edit' }).click();
+    const form = page.getByRole('form', { name: 'Edit Paul Biggar' });
+    await form.getByLabel('Display name').fill('Paul B.');
+    await form.getByLabel('website').fill('https://paul.example/');
+    await form.getByRole('button', { name: 'Save changes' }).click();
+
+    await expect(page.getByText('Paul B.', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: /website: https:\/\/paul.example\// }),
+    ).toBeVisible();
+    // Still on the board: an edit never changes status.
+    await expect(
+      page.getByRole('heading', { name: 'On the leaderboard (1)' }),
+    ).toBeVisible();
+    expect(posts[0]).toEqual({
+      action: 'edit',
+      code: 'paul',
+      displayName: 'Paul B.',
+      links: {
+        x: 'https://x.com/paulbiggar',
+        website: 'https://paul.example/',
+      },
+    });
+
+    await page.getByRole('button', { name: 'Back to review' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Waiting for review (1)' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'On the leaderboard (0)' }),
+    ).toBeVisible();
+    expect(posts[1]).toEqual({ action: 'unapprove', code: 'paul' });
+  });
+
   test('reports a rejected token', async ({ page }) => {
     await page.route('**/api/admin/promoters', (route) =>
       route.fulfill({ status: 401, json: { error: 'Unauthorized' } }),

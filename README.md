@@ -131,8 +131,10 @@ properties so the prop is queryable.
 Moderation: approve only names that are not impersonating anyone and links
 that go to real public profiles with nothing abusive on them. The pages
 promise a review within a few hours and at most a day, so keep two approvers
-on rota. "Take down" removes an approved entry immediately; the board
-refreshes within five minutes.
+on rota. Every entry, approved ones included, can be edited in place (name
+and links) from `/admin/promoters`; "Back to review" pulls an approved entry
+into the queue without losing it, and "Take down" rejects it. The board
+refreshes within five minutes either way.
 
 ## Testing
 
