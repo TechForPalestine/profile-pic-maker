@@ -107,8 +107,9 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
   Without Cloudflare credentials an in-memory store is used, so the whole flow
   works in `npm run dev`.
 - **Counts.** `/api/leaderboard` queries the Plausible Stats API (v2) for
-  downloads grouped by `referrer` and by visit source, joins them onto the
-  approved registry, and caches for five minutes. Without a Plausible key it
+  unique downloaders and unique landings grouped by `referrer`, and downloads
+  by visit source, joins them onto the approved registry, and caches for five
+  minutes. Rows rank by unique downloads; visits are shown for context. Without a Plausible key it
   answers 503 and the page shows a "warming up" state. Counts for codes that
   are not approved travel as `pendingCounts`, keyed by a SHA-256 fingerprint
   of the code, so the browser that created a code can show its owner their
@@ -129,7 +130,13 @@ One-time Plausible step: add `referrer` under the site's allowed custom
 properties so the prop is queryable.
 
 Moderation: approve only names that are not impersonating anyone and links
-that go to real public profiles with nothing abusive on them. The pages
+that go to real public profiles with nothing abusive on them. Each entry on
+the approvals page shows its last-7-day downloads and visits, with a
+"suspicious" badge when downloads exceed visits: Plausible's Events API is
+open, so a script on a residential connection can inflate a code, and this
+ratio is the tell (a script fires downloads without landing). Plausible
+itself drops events from data-center IPs and known bot user agents, nothing
+more. The pages
 promise a review within a few hours and at most a day, so keep two approvers
 on rota. Every entry, approved ones included, can be edited in place (name
 and links) from `/admin/promoters`; "Back to review" pulls an approved entry

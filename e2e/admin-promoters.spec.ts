@@ -1,4 +1,9 @@
+import { createHash } from 'node:crypto';
+
 import { expect, test } from '@playwright/test';
+
+const fingerprint = (code: string) =>
+  createHash('sha256').update(code).digest('hex').slice(0, 12);
 
 // The approvals page against a mocked admin API: unlock with a token, see the
 // queue, approve with one click. Authorization itself is covered by the
@@ -152,6 +157,66 @@ test.describe('Promoter approvals page', () => {
       page.getByRole('heading', { name: 'On the leaderboard (0)' }),
     ).toBeVisible();
     expect(posts[1]).toEqual({ action: 'unapprove', code: 'paul' });
+  });
+
+  test('shows last-7-day numbers per entry and flags impossible ones', async ({
+    page,
+  }) => {
+    const shady = {
+      code: 'shady',
+      displayName: 'Shady',
+      links: { x: 'https://x.com/shady' },
+      status: 'pending',
+      createdAt: '2026-09-17T10:00:00.000Z',
+    };
+    await page.route('**/api/admin/promoters', (route) =>
+      route.fulfill({
+        json: {
+          pending: [shady],
+          approved: [{ ...pending, status: 'approved' }],
+          rejected: [],
+        },
+      }),
+    );
+    await page.route('**/api/leaderboard**', (route) =>
+      route.fulfill({
+        json: {
+          window: '7d',
+          generatedAt: '2026-09-17T12:00:00.000Z',
+          source: 'plausible',
+          promoters: [
+            {
+              code: 'paul',
+              displayName: 'Paul Biggar',
+              links: pending.links,
+              recruits: 0,
+              rank: 1,
+              downloads: 40,
+              visits: 90,
+            },
+          ],
+          channels: [],
+          pendingCounts: {
+            [fingerprint('shady')]: { downloads: 50, visits: 2 },
+          },
+        },
+      }),
+    );
+    await page.addInitScript(() =>
+      sessionStorage.setItem(
+        'ppm-admin-token',
+        'a-very-long-admin-token-for-tests',
+      ),
+    );
+    await page.goto('/admin/promoters');
+
+    const stats = page.getByTestId('entry-stats');
+    await expect(
+      stats.filter({ hasText: '50 downloads, 2 visits' }),
+    ).toContainText('suspicious');
+    await expect(
+      stats.filter({ hasText: '40 downloads, 90 visits' }),
+    ).not.toContainText('suspicious');
   });
 
   test('reports a rejected token', async ({ page }) => {

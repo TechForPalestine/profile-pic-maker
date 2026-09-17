@@ -23,6 +23,7 @@ const board = (window: string) => ({
       recruits: 2,
       rank: 1,
       downloads: window === 'day' ? 5 : 120,
+      visits: window === 'day' ? 9 : 300,
     },
     {
       code: 'zaher',
@@ -31,6 +32,7 @@ const board = (window: string) => ({
       recruits: 0,
       rank: 2,
       downloads: window === 'day' ? 1 : 80,
+      visits: window === 'day' ? 4 : 150,
     },
   ],
   channels: [
@@ -38,7 +40,7 @@ const board = (window: string) => ({
     { bucket: 'shared', label: 'Shared by users', downloads: 180 },
     { bucket: 'promoters', label: 'Promoter links', downloads: 200 },
   ],
-  pendingCounts: { [fingerprint('newbie-7k2q')]: 3 },
+  pendingCounts: { [fingerprint('newbie-7k2q')]: { downloads: 3, visits: 11 } },
 });
 
 const rememberMine = (
@@ -66,6 +68,7 @@ test.describe('The leaderboard page', () => {
     await expect(rows).toHaveCount(2);
     await expect(rows.first()).toContainText('Paul Biggar');
     await expect(rows.first()).toContainText('120');
+    await expect(rows.first().getByTestId('visits')).toHaveText('300 visits');
     await expect(rows.first()).toContainText('brought 2 promoters on board');
     await expect(
       rows.first().getByRole('link', { name: 'Paul Biggar on X' }),
@@ -102,6 +105,7 @@ test.describe('The leaderboard page', () => {
     await expect(own).toContainText('Newbie');
     await expect(own).toContainText('pending review');
     await expect(own).toContainText('3');
+    await expect(own.getByTestId('visits')).toHaveText('11 visits');
     await expect(own).toContainText('at most a day');
     // The public ranking is unchanged: the pending code is not in it.
     await expect(
