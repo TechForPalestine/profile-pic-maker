@@ -8,10 +8,12 @@ import {
   buildLeaderboard,
   buildPendingCounts,
   channelLabel,
+  isSuspicious,
   rankPromoters,
 } from '@/lib/leaderboard';
 import { hashReferralCode } from '@/lib/referral';
 import {
+  countQuery,
   createPlausibleClient,
   downloadsQuery,
   isLeaderboardWindow,
@@ -50,6 +52,14 @@ const BY_REFERRER = [
   { key: 'ch-newsletter', visitors: 12, events: 12 },
 ];
 
+const VISITS_BY_REFERRER = [
+  { key: 'none', visitors: 5000, events: 6000 },
+  { key: 'zaher', visitors: 400, events: 450 },
+  { key: 'paul', visitors: 60, events: 61 },
+  { key: 'stranger', visitors: 10, events: 10 },
+  { key: 'lurker', visitors: 8, events: 8 },
+];
+
 const BY_SOURCE = [
   { key: 'Direct / None', visitors: 700, events: 900 },
   { key: 'share-whatsapp', visitors: 120, events: 130 },
@@ -76,6 +86,16 @@ describe('rankPromoters', () => {
     expect(rows.find((r) => r.code === 'newbie')?.downloads).toBe(0);
   });
 
+  it('shows visits next to downloads without letting them change the rank', () => {
+    const rows = rankPromoters(BY_REFERRER, APPROVED, VISITS_BY_REFERRER);
+    // Zaher has ten times Paul's visits and the same downloads: still tied.
+    expect(rows.map((r) => [r.code, r.rank, r.downloads, r.visits])).toEqual([
+      ['paul', 1, 40, 60],
+      ['zaher', 1, 40, 400],
+      ['newbie', 3, 0, 0],
+    ]);
+  });
+
   it('carries recruit counts and public links only', () => {
     const zaher = rankPromoters(BY_REFERRER, APPROVED).find(
       (r) => r.code === 'zaher',
@@ -83,6 +103,25 @@ describe('rankPromoters', () => {
     expect(zaher.recruits).toBe(1);
     expect(zaher).not.toHaveProperty('status');
     expect(zaher).not.toHaveProperty('createdAt');
+  });
+});
+
+describe('isSuspicious', () => {
+  it('flags downloads that outnumber visits, with a small tolerance', () => {
+    expect(isSuspicious(40, 60)).toBe(false);
+    expect(isSuspicious(40, 40)).toBe(false);
+    // 10 downloads on 7 visits is inside the tolerance (7 * 1.2 + 2 = 10.4);
+    // on 6 visits it is not (9.2).
+    expect(isSuspicious(10, 7)).toBe(false);
+    expect(isSuspicious(10, 6)).toBe(true);
+    expect(isSuspicious(50, 10)).toBe(true);
+    expect(isSuspicious(30, 0)).toBe(true);
+  });
+
+  it('ignores tiny numbers', () => {
+    expect(isSuspicious(3, 0)).toBe(false);
+    expect(isSuspicious(4, 0)).toBe(false);
+    expect(isSuspicious(5, 0)).toBe(true);
   });
 });
 
@@ -125,13 +164,25 @@ describe('pending counts', () => {
     const counts = await buildPendingCounts(
       BY_REFERRER,
       new Set(['paul', 'zaher']),
+      VISITS_BY_REFERRER,
     );
     const keys = Object.keys(counts);
-    expect(keys).toHaveLength(2);
+    // stranger, ch-newsletter, and lurker (visits only, no download yet)
+    expect(keys).toHaveLength(3);
     for (const key of keys) expect(key).toMatch(/^[0-9a-f]{12}$/);
     expect(JSON.stringify(counts)).not.toContain('stranger');
-    expect(counts[await hashReferralCode('stranger')]).toBe(30);
-    expect(counts[await hashReferralCode('ch-newsletter')]).toBe(12);
+    expect(counts[await hashReferralCode('stranger')]).toEqual({
+      downloads: 30,
+      visits: 10,
+    });
+    expect(counts[await hashReferralCode('ch-newsletter')]).toEqual({
+      downloads: 12,
+      visits: 0,
+    });
+    expect(counts[await hashReferralCode('lurker')]).toEqual({
+      downloads: 0,
+      visits: 8,
+    });
     expect(counts[await hashReferralCode('none')]).toBeUndefined();
     expect(counts[await hashReferralCode('paul')]).toBeUndefined();
   });
@@ -158,6 +209,7 @@ describe('buildLeaderboard', () => {
     expect(board.promoters).toHaveLength(3);
     expect(board.channels[0].bucket).toBe('organic');
     expect(Object.keys(board.pendingCounts)).toHaveLength(2);
+    expect(board.promoters[0].visits).toBe(0);
   });
 });
 
@@ -173,6 +225,10 @@ describe('Plausible Stats client', () => {
   });
 
   it('pins the query body to the Stats API v2 shape', () => {
+    expect(
+      countQuery('ppm.test', FunnelEvent.Landed, 'event:props:referrer', 'day')
+        .filters,
+    ).toEqual([['is', 'event:name', [FunnelEvent.Landed]]]);
     expect(downloadsQuery('ppm.test', 'event:props:referrer', '7d')).toEqual({
       site_id: 'ppm.test',
       metrics: ['visitors', 'events'],
@@ -267,16 +323,22 @@ describe('GET /api/leaderboard', () => {
       'fetch',
       vi.fn(async (_url: string, init?: RequestInit) => {
         const body = JSON.parse(String(init?.body));
+        const event = body.filters[0][2][0];
         const results =
-          body.dimensions[0] === 'event:props:referrer'
+          body.dimensions[0] !== 'event:props:referrer'
             ? [
-                { dimensions: ['paul'], metrics: [40, 41] },
-                { dimensions: ['stranger'], metrics: [30, 30] },
-              ]
-            : [
                 { dimensions: ['share-whatsapp'], metrics: [120, 130] },
                 { dimensions: ['stranger'], metrics: [30, 30] },
-              ];
+              ]
+            : event === FunnelEvent.Landed
+              ? [
+                  { dimensions: ['paul'], metrics: [90, 95] },
+                  { dimensions: ['stranger'], metrics: [10, 10] },
+                ]
+              : [
+                  { dimensions: ['paul'], metrics: [40, 41] },
+                  { dimensions: ['stranger'], metrics: [30, 30] },
+                ];
         return Response.json({ results });
       }),
     );
@@ -296,6 +358,7 @@ describe('GET /api/leaderboard', () => {
         recruits: 0,
         rank: 1,
         downloads: 40,
+        visits: 90,
       },
     ]);
     expect(board.channels).toEqual([
@@ -305,7 +368,7 @@ describe('GET /api/leaderboard', () => {
     // The pending promoter's count is there for their own browser to find,
     // under a fingerprint rather than the code itself.
     expect(board.pendingCounts).toEqual({
-      [await hashReferralCode('stranger')]: 30,
+      [await hashReferralCode('stranger')]: { downloads: 30, visits: 10 },
     });
   });
 

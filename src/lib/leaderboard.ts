@@ -18,6 +18,11 @@ import type { CountRow, LeaderboardWindow } from '@/lib/plausible-stats';
  * - The ranking uses the `referrer` prop: the first referral link this
  *   browser opened in the last 30 days. That is the promise made to
  *   promoters ("people you bring count, even if they come back later").
+ *   Each row also shows visits (unique people who landed with that
+ *   referrer) next to downloads. Visits never affect the rank; they tell a
+ *   promoter whether their audience converts, and they are the cheapest
+ *   fraud signal there is: downloads without visits do not happen
+ *   organically (see `isSuspicious`).
  * - The channel mix uses Plausible's visit source: what led to the session in
  *   which the download happened. That is the question the growth team asks
  *   ("where are downloads coming from this week?").
@@ -39,7 +44,15 @@ export const WINDOW_LABELS: Record<LeaderboardWindow, string> = {
 
 export interface PromoterRow extends PublicPromoter {
   rank: number;
+  /** Unique people who downloaded. The ranking metric. */
   downloads: number;
+  /** Unique people who landed through the link. Context only. */
+  visits: number;
+}
+
+export interface PendingCount {
+  downloads: number;
+  visits: number;
 }
 
 export type ChannelBucket =
@@ -57,11 +70,11 @@ export interface LeaderboardResponse {
   promoters: PromoterRow[];
   channels: ChannelRow[];
   /**
-   * Unique downloads for codes that are not (yet) approved, keyed by
+   * Counts for codes that are not (yet) approved, keyed by
    * `hashReferralCode(code)`. A browser that created a code can look up its
-   * own count here; nobody else can tell which code a key belongs to.
+   * own numbers here; nobody else can tell which code a key belongs to.
    */
-  pendingCounts: Record<string, number>;
+  pendingCounts: Record<string, PendingCount>;
 }
 
 const BUCKET_LABELS: Record<
@@ -122,18 +135,35 @@ export function buildChannels(
     );
 }
 
+function countMap(rows: CountRow[]): Map<string, number> {
+  return new Map(
+    rows.map((row) => [row.key.trim().toLowerCase(), row.visitors]),
+  );
+}
+
+/**
+ * Numbers that cannot come from people: more unique downloaders than unique
+ * visitors means something fired the download event without ever landing.
+ * The board never hides a row for this; approvers see the flag and decide.
+ * A small tolerance absorbs the daily visitor-id rotation around midnight.
+ */
+export function isSuspicious(downloads: number, visits: number): boolean {
+  return downloads >= 5 && downloads > visits * 1.2 + 2;
+}
+
 export function rankPromoters(
   byReferrer: CountRow[],
   approved: Promoter[],
+  visitsByReferrer: CountRow[] = [],
 ): PromoterRow[] {
-  const downloads = new Map(
-    byReferrer.map((row) => [row.key.trim().toLowerCase(), row.visitors]),
-  );
+  const downloads = countMap(byReferrer);
+  const visits = countMap(visitsByReferrer);
   const rows = approved
     .map((promoter) => ({
       ...toPublicPromoter(promoter, approved),
       rank: 0,
       downloads: downloads.get(promoter.code) ?? 0,
+      visits: visits.get(promoter.code) ?? 0,
     }))
     .sort(
       (a, b) =>
@@ -152,24 +182,28 @@ export function rankPromoters(
 export async function buildPendingCounts(
   byReferrer: CountRow[],
   approvedCodes: Set<string>,
-): Promise<Record<string, number>> {
+  visitsByReferrer: CountRow[] = [],
+): Promise<Record<string, PendingCount>> {
+  const downloads = countMap(byReferrer);
+  const visits = countMap(visitsByReferrer);
+  const codes = [...new Set([...downloads.keys(), ...visits.keys()])].filter(
+    (code) =>
+      code !== REFERRER_NONE &&
+      code !== '' &&
+      !approvedCodes.has(code) &&
+      ((downloads.get(code) ?? 0) > 0 || (visits.get(code) ?? 0) > 0),
+  );
   const entries = await Promise.all(
-    byReferrer
-      .map((row) => ({
-        code: row.key.trim().toLowerCase(),
-        visitors: row.visitors,
-      }))
-      .filter(
-        (row) =>
-          row.code !== REFERRER_NONE &&
-          row.code !== '' &&
-          !approvedCodes.has(row.code) &&
-          row.visitors > 0,
-      )
-      .map(
-        async (row) =>
-          [await hashReferralCode(row.code), row.visitors] as const,
-      ),
+    codes.map(
+      async (code) =>
+        [
+          await hashReferralCode(code),
+          {
+            downloads: downloads.get(code) ?? 0,
+            visits: visits.get(code) ?? 0,
+          },
+        ] as const,
+    ),
   );
   return Object.fromEntries(entries);
 }
@@ -177,12 +211,16 @@ export async function buildPendingCounts(
 export async function buildLeaderboard({
   window,
   byReferrer,
+  visitsByReferrer = [],
   bySource,
   approved,
   now = new Date(),
 }: {
   window: LeaderboardWindow;
+  /** Unique downloaders per referrer code. */
   byReferrer: CountRow[];
+  /** Unique landings per referrer code. */
+  visitsByReferrer?: CountRow[];
   bySource: CountRow[];
   approved: Promoter[];
   now?: Date;
@@ -191,8 +229,12 @@ export async function buildLeaderboard({
   return {
     window,
     generatedAt: now.toISOString(),
-    promoters: rankPromoters(byReferrer, approved),
+    promoters: rankPromoters(byReferrer, approved, visitsByReferrer),
     channels: buildChannels(bySource, approvedCodes),
-    pendingCounts: await buildPendingCounts(byReferrer, approvedCodes),
+    pendingCounts: await buildPendingCounts(
+      byReferrer,
+      approvedCodes,
+      visitsByReferrer,
+    ),
   };
 }

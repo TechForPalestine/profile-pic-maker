@@ -3,10 +3,11 @@ import { FunnelEvent } from '@/lib/analytics';
 /**
  * Read side of Plausible: the Stats API v2 (`POST /api/v2/query`).
  *
- * The site sends every download as `Funnel: 6 Downloaded` with a `referrer`
- * prop (see `@/lib/referral`), and Plausible records the visit's source from
- * the `ref` query param. This client asks Plausible how many people
- * downloaded, grouped by either of those, for one of the leaderboard windows.
+ * The site sends every landing as `Funnel: 1 Landed` and every download as
+ * `Funnel: 6 Downloaded`, both with a `referrer` prop (see `@/lib/referral`),
+ * and Plausible records the visit's source from the `ref` query param. This
+ * client asks Plausible how many people did either, grouped by referrer or
+ * by source, for one of the leaderboard windows.
  *
  * Requirements on the Plausible side:
  * - Stats API access (a Business plan feature at the time of writing) and an
@@ -49,7 +50,17 @@ export interface CountRow {
   events: number;
 }
 
+export type CountedEvent =
+  typeof FunnelEvent.Landed | typeof FunnelEvent.Downloaded;
+
 export interface PlausibleStatsClient {
+  /** Unique visitors (and raw events) that fired `event`, grouped by `dimension`. */
+  countBy(
+    event: CountedEvent,
+    dimension: CountDimension,
+    window: LeaderboardWindow,
+  ): Promise<CountRow[]>;
+  /** Shorthand for `countBy(FunnelEvent.Downloaded, ...)`. */
   downloadsBy(
     dimension: CountDimension,
     window: LeaderboardWindow,
@@ -61,8 +72,9 @@ export function hasPlausibleEnv(env: PlausibleEnv): boolean {
 }
 
 /** The exact request body sent to Plausible, exported so tests can pin it. */
-export function downloadsQuery(
+export function countQuery(
   siteId: string,
+  event: CountedEvent,
   dimension: CountDimension,
   window: LeaderboardWindow,
 ) {
@@ -70,11 +82,19 @@ export function downloadsQuery(
     site_id: siteId,
     metrics: ['visitors', 'events'],
     date_range: window,
-    filters: [['is', 'event:name', [FunnelEvent.Downloaded]]],
+    filters: [['is', 'event:name', [event]]],
     dimensions: [dimension],
     order_by: [['visitors', 'desc']],
     pagination: { limit: 500 },
   };
+}
+
+export function downloadsQuery(
+  siteId: string,
+  dimension: CountDimension,
+  window: LeaderboardWindow,
+) {
+  return countQuery(siteId, FunnelEvent.Downloaded, dimension, window);
 }
 
 interface QueryResponse {
@@ -88,15 +108,17 @@ export function createPlausibleClient(env: PlausibleEnv): PlausibleStatsClient {
   );
   const siteId = env.PLAUSIBLE_SITE_ID || DEFAULT_SITE_ID;
 
-  return {
-    async downloadsBy(dimension, window) {
+  const client: PlausibleStatsClient = {
+    downloadsBy: (dimension, window) =>
+      client.countBy(FunnelEvent.Downloaded, dimension, window),
+    async countBy(event, dimension, window) {
       const res = await fetch(`${host}/api/v2/query`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${env.PLAUSIBLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(downloadsQuery(siteId, dimension, window)),
+        body: JSON.stringify(countQuery(siteId, event, dimension, window)),
       });
       if (!res.ok) {
         throw new Error(`Plausible query failed: ${res.status}`);
@@ -111,4 +133,5 @@ export function createPlausibleClient(env: PlausibleEnv): PlausibleStatsClient {
         }));
     },
   };
+  return client;
 }
