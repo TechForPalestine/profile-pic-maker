@@ -4,10 +4,12 @@ import { FaUserGroup } from 'react-icons/fa6';
 
 import { ReferralEvent, trackEvent } from '@/lib/analytics';
 import { WINDOW_LABELS, type LeaderboardResponse } from '@/lib/leaderboard';
+import { readMyPromoter, type MyPromoter } from '@/lib/my-promoter';
 import {
   LEADERBOARD_WINDOWS,
   type LeaderboardWindow,
 } from '@/lib/plausible-stats';
+import { hashReferralCode } from '@/lib/referral';
 
 import SocialLinks from './social-links';
 
@@ -17,9 +19,28 @@ type BoardState =
   | { status: 'unavailable' }
   | { status: 'error' };
 
+/** The link this browser created, with its fingerprint for `pendingCounts`. */
+interface Mine extends MyPromoter {
+  hash: string;
+}
+
 export default function Board() {
   const [window, setWindow] = useState<LeaderboardWindow>('7d');
   const [state, setState] = useState<BoardState>({ status: 'loading' });
+  const [mine, setMine] = useState<Mine>();
+
+  useEffect(() => {
+    // Browser-only: the promoter's own code lives in localStorage.
+    const own = readMyPromoter();
+    if (!own) return;
+    let cancelled = false;
+    hashReferralCode(own.code).then((hash) => {
+      if (!cancelled) setMine({ ...own, hash });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,17 +114,64 @@ export default function Board() {
           The leaderboard could not be loaded right now. Try again in a minute.
         </p>
       )}
-      {state.status === 'ready' && <BoardTable board={state.board} />}
+      {state.status === 'ready' && (
+        <BoardTable board={state.board} mine={mine} />
+      )}
     </div>
   );
 }
 
-function BoardTable({ board }: { board: LeaderboardResponse }) {
+function BoardTable({
+  board,
+  mine,
+}: {
+  board: LeaderboardResponse;
+  mine?: Mine;
+}) {
   const topDownloads = board.promoters[0]?.downloads ?? 0;
   const channelTotal = board.channels.reduce((sum, c) => sum + c.downloads, 0);
+  const mineIsListed = mine
+    ? board.promoters.some((row) => row.code === mine.code)
+    : false;
+  const pendingDownloads =
+    mine && !mineIsListed ? (board.pendingCounts[mine.hash] ?? 0) : undefined;
 
   return (
     <div className="text-left">
+      {mine && pendingDownloads !== undefined && (
+        <div
+          data-testid="my-pending-row"
+          className="mb-4 rounded-2xl border-2 border-dashed border-[#149954] bg-white px-4 py-3"
+        >
+          <div className="flex items-center gap-3">
+            <span
+              className="w-8 shrink-0 text-center text-lg"
+              aria-hidden="true"
+            >
+              👋
+            </span>
+            <div className="flex-1 min-w-0">
+              <span className="font-semibold">{mine.displayName}</span>{' '}
+              <span className="text-xs rounded-full bg-gray-100 px-2 py-0.5 text-gray-700">
+                {mine.submittedAt ? 'pending review' : 'only you can see this'}
+              </span>
+              <p className="text-xs text-gray-600 mt-0.5">
+                {mine.submittedAt
+                  ? 'Your name appears for everyone once a volunteer approves it, usually within a few hours and at most a day.'
+                  : 'Ask to be listed on the join page and your name appears here for everyone once approved.'}
+              </p>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="block text-xl font-bold">
+                {pendingDownloads.toLocaleString()}
+              </span>
+              <span className="block text-xs text-gray-500">
+                {pendingDownloads === 1 ? 'download' : 'downloads'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
       {board.promoters.length === 0 ? (
         <div className="rounded-2xl border border-gray-300 bg-gray-50 px-4 py-6 text-sm text-gray-600 text-center">
           <p className="font-semibold text-gray-900">Nobody is listed yet.</p>
@@ -114,7 +182,12 @@ function BoardTable({ board }: { board: LeaderboardResponse }) {
           {board.promoters.map((row) => (
             <li
               key={row.code}
-              className="rounded-2xl border border-gray-300 bg-white px-4 py-3"
+              data-mine={mine?.code === row.code || undefined}
+              className={`rounded-2xl border bg-white px-4 py-3 ${
+                mine?.code === row.code
+                  ? 'border-2 border-[#149954]'
+                  : 'border-gray-300'
+              }`}
             >
               <div className="flex items-center gap-3">
                 <span
@@ -136,6 +209,11 @@ function BoardTable({ board }: { board: LeaderboardResponse }) {
                     <span className="font-semibold truncate">
                       {row.displayName}
                     </span>
+                    {mine?.code === row.code && (
+                      <span className="text-xs rounded-full bg-[#149954] px-2 py-0.5 text-white">
+                        you
+                      </span>
+                    )}
                     <SocialLinks name={row.displayName} links={row.links} />
                   </div>
                   {row.recruits > 0 && (

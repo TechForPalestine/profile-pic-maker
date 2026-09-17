@@ -85,8 +85,9 @@ export type SurveyEventName = (typeof SurveyEvent)[keyof typeof SurveyEvent];
  * Referral links and the promoter leaderboard (see `@/lib/referral`).
  *
  * LeaderboardViewed: the board fetched a window; carries `window`.
- * LinkGenerated: a visitor copied a referral link or caption from the join
- *   page; carries `format` ('link' / 'caption'). Only ever fixed tokens: the
+ * LinkGenerated: a visitor created a referral link, or copied it or its
+ *   caption, on the join page; carries `format` ('created' / 'link' /
+ *   'caption'). Only ever fixed tokens: the
  *   code itself stays out of analytics props here (it reaches Plausible as
  *   `referrer` on downloads, where it is the point).
  * JoinRequested: the listing form was submitted; carries `outcome`

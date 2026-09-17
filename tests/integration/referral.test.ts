@@ -8,6 +8,7 @@ import {
   REFERRER_TTL_MS,
   RESERVED_CODES,
   currentReferrer,
+  generatePromoterCode,
   hashReferralCode,
   isChannelCode,
   isPromoterCode,
@@ -70,6 +71,40 @@ describe('referral code grammar', () => {
     for (const word of RESERVED_CODES) {
       expect(isPromoterCode(word)).toBe(false);
     }
+  });
+});
+
+describe('generatePromoterCode', () => {
+  const fixed = () => 0.5;
+
+  it('adds a short random tail to the slug of the name', () => {
+    const code = generatePromoterCode('Paul Biggar');
+    expect(code).toMatch(/^paul-biggar-[a-z0-9]{4}$/);
+    expect(isPromoterCode(code)).toBe(true);
+  });
+
+  it('falls back to a neutral prefix when the name has no Latin letters', () => {
+    const code = generatePromoterCode('فلسطين');
+    expect(code).toMatch(/^pal-[a-z0-9]{6}$/);
+    expect(isPromoterCode(code)).toBe(true);
+  });
+
+  it('never produces a reserved or over-long code', () => {
+    for (const name of ['admin', 'share', 'ch', 'x'.repeat(60), '   ', '!!!']) {
+      const code = generatePromoterCode(name, fixed);
+      expect(isPromoterCode(code)).toBe(true);
+      expect(code.length).toBeLessThanOrEqual(24);
+    }
+  });
+
+  it('is deterministic for a given random source and varies otherwise', () => {
+    expect(generatePromoterCode('Paul', fixed)).toBe(
+      generatePromoterCode('Paul', fixed),
+    );
+    const codes = new Set(
+      Array.from({ length: 20 }, () => generatePromoterCode('Paul')),
+    );
+    expect(codes.size).toBeGreaterThan(1);
   });
 });
 

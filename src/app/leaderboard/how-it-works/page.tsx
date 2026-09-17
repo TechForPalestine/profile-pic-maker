@@ -59,12 +59,14 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: 'Getting listed',
     body: (
       <>
-        Your link works the moment you create it. To appear on the board with
-        your name and profiles, ask to be listed and a Tech for Palestine
-        volunteer reviews the request, usually within two days. We check that
-        the name is not impersonating someone, that the links go to real public
-        profiles, and that nothing on them is hateful or abusive. Entries can be
-        taken down at any time for the same reasons.
+        Your link works the moment you create it, and the leaderboard shows you
+        your own count right away, marked as pending. To appear on the board for
+        everyone, with your name and profiles, ask to be listed and a Tech for
+        Palestine volunteer reviews the request, usually within a few hours and
+        at most a day. We check that the name is not impersonating someone, that
+        the links go to real public profiles, and that nothing on them is
+        hateful or abusive. Entries can be taken down at any time for the same
+        reasons.
       </>
     ),
   },

@@ -1,8 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { FaRegCopy } from 'react-icons/fa6';
+import { FaArrowsRotate, FaRegCopy } from 'react-icons/fa6';
 
 import { ReferralEvent, trackEvent } from '@/lib/analytics';
+import {
+  readMyPromoter,
+  saveMyPromoter,
+  type MyPromoter,
+} from '@/lib/my-promoter';
 import {
   LINK_PLATFORMS,
   type LinkPlatform,
@@ -10,9 +15,8 @@ import {
 } from '@/lib/promoters';
 import {
   currentReferrer,
-  isPromoterCode,
+  generatePromoterCode,
   referralLink,
-  slugifyDisplayName,
 } from '@/lib/referral';
 import { SHARE_MESSAGE } from '@/lib/share';
 import { TURNSTILE_SITE_KEY } from '@/lib/turnstile';
@@ -31,16 +35,24 @@ const PLACEHOLDERS: Record<LinkPlatform, string> = {
   website: 'https://yoursite.example',
 };
 
+export const REVIEW_TIME_COPY = 'usually within a few hours, and at most a day';
+
 type Submission =
   | { status: 'idle' }
   | { status: 'sending' }
-  | { status: 'pending'; code: string }
+  | { status: 'pending' }
   | { status: 'failed'; errors: string[] };
 
+/**
+ * Two steps. Step 1 makes a link and stores it in this browser only; nothing
+ * reaches a server, and the link counts from the first click. Step 2 asks
+ * for a public listing, which a volunteer reviews.
+ */
 export default function JoinForm() {
   const [displayName, setDisplayName] = useState('');
   const [code, setCode] = useState('');
-  const [codeTouched, setCodeTouched] = useState(false);
+  const [mine, setMine] = useState<MyPromoter>();
+  const [loaded, setLoaded] = useState(false);
   const [links, setLinks] = useState<PromoterLinks>({});
   const [referredBy, setReferredBy] = useState<string>();
   const [turnstileToken, setTurnstileToken] = useState<string>();
@@ -48,19 +60,41 @@ export default function JoinForm() {
   const [submission, setSubmission] = useState<Submission>({ status: 'idle' });
 
   useEffect(() => {
-    // Whoever's link brought this person here gets the recruit credit.
-    // localStorage is browser-only, so this can't be known during SSR.
+    // localStorage is browser-only: neither the remembered link nor the
+    // referrer can be known during SSR.
+    const existing = readMyPromoter();
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMine(existing);
+    if (existing) {
+      setDisplayName(existing.displayName);
+      setCode(existing.code);
+      if (existing.submittedAt) setSubmission({ status: 'pending' });
+    }
     setReferredBy(currentReferrer());
+    setLoaded(true);
   }, []);
 
   const onNameChange = (value: string) => {
     setDisplayName(value);
-    if (!codeTouched) setCode(slugifyDisplayName(value));
+    setCode(value.trim() ? generatePromoterCode(value) : '');
   };
 
-  const codeValid = isPromoterCode(code);
-  const link = codeValid ? referralLink(code) : undefined;
+  const shuffle = () => setCode(generatePromoterCode(displayName));
+
+  const createLink = () => {
+    const name = displayName.trim();
+    if (!name || !code) return;
+    const promoter: MyPromoter = {
+      code,
+      displayName: name,
+      createdAt: new Date().toISOString(),
+    };
+    saveMyPromoter(promoter);
+    setMine(promoter);
+    trackEvent(ReferralEvent.LinkGenerated, { format: 'created' });
+  };
+
+  const link = mine ? referralLink(mine.code) : undefined;
   const hasLink = Object.values(links).some(Boolean);
 
   const copy = async (format: 'link' | 'caption') => {
@@ -78,15 +112,15 @@ export default function JoinForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!codeValid) return;
+    if (!mine) return;
     setSubmission({ status: 'sending' });
     try {
       const res = await fetch('/api/promoters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code,
-          displayName,
+          code: mine.code,
+          displayName: mine.displayName,
           links,
           referredBy,
           turnstileToken,
@@ -98,7 +132,10 @@ export default function JoinForm() {
       };
       if (res.status === 201) {
         trackEvent(ReferralEvent.JoinRequested, { outcome: 'pending' });
-        setSubmission({ status: 'pending', code });
+        const submitted = { ...mine, submittedAt: new Date().toISOString() };
+        saveMyPromoter(submitted);
+        setMine(submitted);
+        setSubmission({ status: 'pending' });
         return;
       }
       const outcome =
@@ -129,66 +166,63 @@ export default function JoinForm() {
     }
   };
 
-  if (submission.status === 'pending') {
-    return (
-      <div
-        role="status"
-        className="rounded-2xl border border-gray-300 bg-gray-50 px-5 py-6 text-left"
-      >
-        <p className="font-semibold text-lg">Request received 🇵🇸</p>
-        <p className="text-sm text-gray-600 mt-1">
-          A Tech for Palestine volunteer will review it, usually within two
-          days. Your link is already counting, so start sharing:
-        </p>
-        <code className="block mt-3 rounded-lg bg-white border px-3 py-2 text-sm break-all">
-          {referralLink(submission.code)}
-        </code>
-      </div>
-    );
-  }
+  // Nothing renders until localStorage has been read, so the first paint
+  // never flashes an empty form at someone who already has a link.
+  if (!loaded) return null;
 
   return (
     <form onSubmit={submit} className="text-left space-y-6">
       <section className="rounded-2xl border border-gray-300 bg-gray-50 px-5 py-5">
-        <h2 className="font-semibold text-lg">1. Pick your name and code</h2>
-        <label className="block text-sm mt-3" htmlFor="displayName">
-          Display name
-        </label>
-        <input
-          id="displayName"
-          value={displayName}
-          onChange={(e) => onNameChange(e.target.value)}
-          maxLength={40}
-          autoComplete="nickname"
-          placeholder="How you want to appear"
-          className="mt-1 w-full rounded-lg border border-gray-400 bg-white px-3 py-2"
-        />
-        <label className="block text-sm mt-3" htmlFor="code">
-          Your code
-        </label>
-        <input
-          id="code"
-          value={code}
-          onChange={(e) => {
-            setCodeTouched(true);
-            setCode(e.target.value.toLowerCase().trim());
-          }}
-          maxLength={24}
-          autoComplete="off"
-          spellCheck={false}
-          placeholder="lowercase letters, digits, hyphens"
-          aria-invalid={code.length > 0 && !codeValid}
-          className="mt-1 w-full rounded-lg border border-gray-400 bg-white px-3 py-2 font-mono"
-        />
-        {code.length > 0 && !codeValid && (
-          <p className="text-xs text-red-700 mt-1">
-            3 to 24 lowercase letters, digits or hyphens, and not a reserved
-            word.
-          </p>
-        )}
-        {link && (
-          <div className="mt-4">
-            <p className="text-sm text-gray-600">Your link</p>
+        <h2 className="font-semibold text-lg">1. Create your link</h2>
+        {!mine ? (
+          <>
+            <label className="block text-sm mt-3" htmlFor="displayName">
+              Your name, as you want it to appear
+            </label>
+            <input
+              id="displayName"
+              value={displayName}
+              onChange={(e) => onNameChange(e.target.value)}
+              maxLength={40}
+              autoComplete="nickname"
+              placeholder="e.g. Paul Biggar"
+              className="mt-1 w-full rounded-lg border border-gray-400 bg-white px-3 py-2"
+            />
+            {code && (
+              <p className="text-sm text-gray-600 mt-3">
+                Your code will be{' '}
+                <code data-testid="suggested-code" className="font-semibold">
+                  {code}
+                </code>{' '}
+                <button
+                  type="button"
+                  onClick={shuffle}
+                  aria-label="Pick a different code"
+                  title="Pick a different code"
+                  className="align-middle rounded-full p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-900"
+                >
+                  <FaArrowsRotate />
+                </button>
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={createLink}
+              disabled={!displayName.trim() || !code}
+              className="mt-4 w-full rounded-full py-3 px-4 border border-gray-900 bg-gray-900 text-white text-lg disabled:opacity-50"
+            >
+              Create my link
+            </button>
+            <p className="text-xs text-gray-500 mt-2">
+              Nothing is sent anywhere. The link is made in your browser and
+              counts from the first click.
+            </p>
+          </>
+        ) : (
+          <div className="mt-3">
+            <p className="text-sm text-gray-600">
+              {mine.displayName}, your link
+            </p>
             <code
               data-testid="referral-link"
               className="block mt-1 rounded-lg bg-white border px-3 py-2 text-sm break-all"
@@ -214,80 +248,98 @@ export default function JoinForm() {
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              This link works right away. Nothing is saved until you ask to be
-              listed below.
+              Share it anywhere: post captions, your bio link, group chats. The
+              leaderboard already shows you your own count, marked as pending.
             </p>
           </div>
         )}
       </section>
 
-      <section className="rounded-2xl border border-gray-300 bg-gray-50 px-5 py-5">
-        <h2 className="font-semibold text-lg">
-          2. Appear on the leaderboard (optional)
-        </h2>
-        <p className="text-sm text-gray-600 mt-1">
-          Add at least one public profile so people can find you. A volunteer
-          checks every entry before it goes live.
-        </p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {LINK_PLATFORMS.map((platform) => {
-            const { label, Icon } = PLATFORM_META[platform];
-            return (
-              <label key={platform} className="block text-sm">
-                <span className="inline-flex items-center gap-1.5">
-                  <Icon /> {label}
-                </span>
-                <input
-                  type="url"
-                  inputMode="url"
-                  value={links[platform] ?? ''}
-                  onChange={(e) =>
-                    setLinks({ ...links, [platform]: e.target.value })
-                  }
-                  placeholder={PLACEHOLDERS[platform]}
-                  maxLength={200}
-                  className="mt-1 w-full rounded-lg border border-gray-400 bg-white px-3 py-2"
-                />
-              </label>
-            );
-          })}
-        </div>
-        {referredBy && (
-          <p className="text-xs text-gray-500 mt-3">
-            You arrived through <code>{referredBy}</code>&apos;s link, so they
-            get credit for bringing you on board.
-          </p>
-        )}
-        {TURNSTILE_SITE_KEY && (
-          <TurnstileWidget
-            siteKey={TURNSTILE_SITE_KEY}
-            onToken={setTurnstileToken}
-          />
-        )}
-        {submission.status === 'failed' && (
-          <ul
-            role="alert"
-            className="mt-3 rounded-lg bg-red-100 px-3 py-2 text-sm list-disc pl-6"
-          >
-            {submission.errors.map((error) => (
-              <li key={error}>{error}</li>
-            ))}
-          </ul>
-        )}
-        <button
-          type="submit"
-          disabled={
-            !codeValid ||
-            !displayName.trim() ||
-            !hasLink ||
-            submission.status === 'sending' ||
-            (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)
-          }
-          className="mt-4 w-full rounded-full py-3 px-4 border border-gray-900 bg-gray-900 text-white text-lg disabled:opacity-50"
+      {mine && submission.status === 'pending' ? (
+        <section
+          role="status"
+          className="rounded-2xl border border-gray-300 bg-gray-50 px-5 py-5"
         >
-          {submission.status === 'sending' ? 'Sending…' : 'Ask to be listed'}
-        </button>
-      </section>
+          <p className="font-semibold text-lg">Listing requested 🇵🇸</p>
+          <p className="text-sm text-gray-600 mt-1">
+            A Tech for Palestine volunteer will review it, {REVIEW_TIME_COPY}.
+            Until then only you can see your row on the leaderboard. Keep
+            sharing, every download already counts.
+          </p>
+        </section>
+      ) : (
+        <section
+          className={`rounded-2xl border border-gray-300 bg-gray-50 px-5 py-5 ${
+            mine ? '' : 'opacity-50'
+          }`}
+        >
+          <h2 className="font-semibold text-lg">
+            2. Appear on the leaderboard for everyone (optional)
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Add at least one public profile so people can find you. A volunteer
+            checks every entry before it goes live, {REVIEW_TIME_COPY}.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {LINK_PLATFORMS.map((platform) => {
+              const { label, Icon } = PLATFORM_META[platform];
+              return (
+                <label key={platform} className="block text-sm">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Icon /> {label}
+                  </span>
+                  <input
+                    type="url"
+                    inputMode="url"
+                    disabled={!mine}
+                    value={links[platform] ?? ''}
+                    onChange={(e) =>
+                      setLinks({ ...links, [platform]: e.target.value })
+                    }
+                    placeholder={PLACEHOLDERS[platform]}
+                    maxLength={200}
+                    className="mt-1 w-full rounded-lg border border-gray-400 bg-white px-3 py-2 disabled:bg-gray-100"
+                  />
+                </label>
+              );
+            })}
+          </div>
+          {referredBy && (
+            <p className="text-xs text-gray-500 mt-3">
+              You arrived through <code>{referredBy}</code>&apos;s link, so they
+              get credit for bringing you on board.
+            </p>
+          )}
+          {mine && TURNSTILE_SITE_KEY && (
+            <TurnstileWidget
+              siteKey={TURNSTILE_SITE_KEY}
+              onToken={setTurnstileToken}
+            />
+          )}
+          {submission.status === 'failed' && (
+            <ul
+              role="alert"
+              className="mt-3 rounded-lg bg-red-100 px-3 py-2 text-sm list-disc pl-6"
+            >
+              {submission.errors.map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="submit"
+            disabled={
+              !mine ||
+              !hasLink ||
+              submission.status === 'sending' ||
+              (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)
+            }
+            className="mt-4 w-full rounded-full py-3 px-4 border border-gray-900 bg-gray-900 text-white text-lg disabled:opacity-50"
+          >
+            {submission.status === 'sending' ? 'Sending…' : 'Ask to be listed'}
+          </button>
+        </section>
+      )}
     </form>
   );
 }

@@ -103,6 +103,35 @@ export function slugifyDisplayName(name: string): string {
     .replace(/-+$/g, '');
 }
 
+const CODE_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+function randomSuffix(length: number, random: () => number): string {
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    out += CODE_ALPHABET[Math.floor(random() * CODE_ALPHABET.length)];
+  }
+  return out;
+}
+
+/**
+ * Generate a promoter code from a display name: the slug of the name plus a
+ * short random tail (`paul-biggar-7k2q`). The tail makes collisions between
+ * two Pauls a non-issue without asking a server first, and keeps a
+ * hand-picked slur out of the URL: nobody types a code, it is made for them.
+ * Names with no Latin letters get a neutral prefix (`pal-x7k2qm`). The
+ * result always satisfies `isPromoterCode`.
+ */
+export function generatePromoterCode(
+  displayName: string,
+  random: () => number = Math.random,
+): string {
+  const slug = slugifyDisplayName(displayName).slice(0, 18).replace(/-+$/, '');
+  const code = slug
+    ? `${slug}-${randomSuffix(4, random)}`
+    : `pal-${randomSuffix(6, random)}`;
+  return isPromoterCode(code) ? code : `pal-${randomSuffix(6, random)}`;
+}
+
 /** The link a promoter shares. */
 export function referralLink(code: string): string {
   return `${APP_URL}?ref=${encodeURIComponent(code)}`;
