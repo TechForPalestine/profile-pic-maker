@@ -1,8 +1,9 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 
+import { isSuspicious, type LeaderboardResponse } from '@/lib/leaderboard';
 import type { Promoter } from '@/lib/promoters';
-import { referralLink } from '@/lib/referral';
+import { hashReferralCode, referralLink } from '@/lib/referral';
 
 const TOKEN_KEY = 'ppm-admin-token';
 
@@ -13,6 +14,32 @@ interface Registry {
   approved: Promoter[];
   rejected: Promoter[];
   storage?: 'kv' | 'memory';
+}
+
+/** Last-7-days numbers per code, from the public board. */
+type Stats = Record<string, { downloads: number; visits: number }>;
+
+/**
+ * Read the public board once and index it by code. Approved rows carry
+ * their code; pending and rejected ones are found through the fingerprint
+ * in `pendingCounts`, exactly as a promoter's own browser does.
+ */
+async function loadStats(registry: Registry): Promise<Stats | undefined> {
+  const res = await fetch('/api/leaderboard?window=7d');
+  if (!res.ok) return undefined;
+  const board = (await res.json()) as LeaderboardResponse;
+  const stats: Stats = {};
+  for (const row of board.promoters) {
+    stats[row.code] = { downloads: row.downloads, visits: row.visits };
+  }
+  const unlisted = [...registry.pending, ...registry.rejected];
+  await Promise.all(
+    unlisted.map(async (p) => {
+      const found = board.pendingCounts[await hashReferralCode(p.code)];
+      if (found) stats[p.code] = found;
+    }),
+  );
+  return stats;
 }
 
 function readToken(): string {
@@ -27,6 +54,7 @@ export default function AdminPanel() {
   const [token, setToken] = useState('');
   const [draftToken, setDraftToken] = useState('');
   const [registry, setRegistry] = useState<Registry>();
+  const [stats, setStats] = useState<Stats>();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState<string>();
 
@@ -53,7 +81,12 @@ export default function AdminPanel() {
       setError(`Could not load the registry (${res.status}).`);
       return;
     }
-    setRegistry((await res.json()) as Registry);
+    const loaded = (await res.json()) as Registry;
+    setRegistry(loaded);
+    // Numbers are context for the decision, never a blocker for the list.
+    loadStats(loaded)
+      .then(setStats)
+      .catch(() => setStats(undefined));
   }, []);
 
   useEffect(() => {
@@ -197,6 +230,7 @@ export default function AdminPanel() {
             title={`Waiting for review (${registry.pending.length})`}
             entries={registry.pending}
             empty="Nothing waiting. Nice."
+            stats={stats}
             busy={busy}
             onEdit={(code, edits) => act('edit', code, edits)}
             actions={(p) =>
@@ -210,6 +244,7 @@ export default function AdminPanel() {
             title={`On the leaderboard (${registry.approved.length})`}
             entries={registry.approved}
             empty="Nobody is approved yet."
+            stats={stats}
             busy={busy}
             onEdit={(code, edits) => act('edit', code, edits)}
             actions={(p) =>
@@ -223,6 +258,7 @@ export default function AdminPanel() {
             title={`Rejected (${registry.rejected.length})`}
             entries={registry.rejected}
             empty="No rejections."
+            stats={stats}
             busy={busy}
             onEdit={(code, edits) => act('edit', code, edits)}
             actions={(p) =>
@@ -239,6 +275,7 @@ function Section({
   title,
   entries,
   empty,
+  stats,
   busy,
   onEdit,
   actions,
@@ -246,6 +283,7 @@ function Section({
   title: string;
   entries: Promoter[];
   empty: string;
+  stats?: Stats;
   busy?: string;
   onEdit: (
     code: string,
@@ -264,6 +302,7 @@ function Section({
             <Entry
               key={p.code}
               promoter={p}
+              stats={stats?.[p.code]}
               busy={busy}
               onEdit={onEdit}
               actions={actions(p)}
@@ -277,11 +316,13 @@ function Section({
 
 function Entry({
   promoter: p,
+  stats,
   busy,
   onEdit,
   actions,
 }: {
   promoter: Promoter;
+  stats?: { downloads: number; visits: number };
   busy?: string;
   onEdit: (
     code: string,
@@ -317,6 +358,20 @@ function Entry({
         <span className="font-semibold text-base">{p.displayName}</span>
         <code className="text-xs text-gray-600">{referralLink(p.code)}</code>
       </div>
+      {stats && (
+        <p className="mt-1 text-xs text-gray-600" data-testid="entry-stats">
+          Last 7 days: {stats.downloads.toLocaleString()} downloads,{' '}
+          {stats.visits.toLocaleString()} visits
+          {isSuspicious(stats.downloads, stats.visits) && (
+            <span
+              className="ml-2 rounded-full bg-red-100 px-2 py-0.5 font-semibold text-red-800"
+              title="More people downloaded than opened the link. Real traffic never looks like this; a script that only fires the download event does."
+            >
+              suspicious: downloads exceed visits
+            </span>
+          )}
+        </p>
+      )}
       {editing ? (
         <form
           onSubmit={(e) => {

@@ -24,6 +24,16 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
+    title: 'Visits are shown, downloads are ranked',
+    body: (
+      <>
+        Each row also shows how many people opened your link. That number is for
+        you, to see how well your audience converts. It never changes the
+        ranking.
+      </>
+    ),
+  },
+  {
     title: 'How long your link follows someone',
     body: (
       <>

@@ -133,12 +133,14 @@ function BoardTable({
   const mineIsListed = mine
     ? board.promoters.some((row) => row.code === mine.code)
     : false;
-  const pendingDownloads =
-    mine && !mineIsListed ? (board.pendingCounts[mine.hash] ?? 0) : undefined;
+  const pending =
+    mine && !mineIsListed
+      ? (board.pendingCounts[mine.hash] ?? { downloads: 0, visits: 0 })
+      : undefined;
 
   return (
     <div className="text-left">
-      {mine && pendingDownloads !== undefined && (
+      {mine && pending && (
         <div
           data-testid="my-pending-row"
           className="mb-4 rounded-2xl border-2 border-dashed border-[#149954] bg-white px-4 py-3"
@@ -161,14 +163,7 @@ function BoardTable({
                   : 'Ask to be listed on the join page and your name appears here for everyone once approved.'}
               </p>
             </div>
-            <div className="text-right shrink-0">
-              <span className="block text-xl font-bold">
-                {pendingDownloads.toLocaleString()}
-              </span>
-              <span className="block text-xs text-gray-500">
-                {pendingDownloads === 1 ? 'download' : 'downloads'}
-              </span>
-            </div>
+            <Counts downloads={pending.downloads} visits={pending.visits} />
           </div>
         </div>
       )}
@@ -224,14 +219,7 @@ function BoardTable({
                     </span>
                   )}
                 </div>
-                <div className="text-right shrink-0">
-                  <span className="block text-xl font-bold">
-                    {row.downloads.toLocaleString()}
-                  </span>
-                  <span className="block text-xs text-gray-500">
-                    {row.downloads === 1 ? 'download' : 'downloads'}
-                  </span>
-                </div>
+                <Counts downloads={row.downloads} visits={row.visits} />
               </div>
               {topDownloads > 0 && (
                 <div
@@ -296,9 +284,27 @@ function BoardTable({
         </section>
       )}
       <p className="mt-6 text-xs text-gray-400 text-center">
+        Ranked by people who downloaded. Visits are people who opened the link.
         Updated {new Date(board.generatedAt).toLocaleString()} · refreshes every
         few minutes
       </p>
+    </div>
+  );
+}
+
+/** Downloads large (the rank), visits small underneath (the context). */
+function Counts({ downloads, visits }: { downloads: number; visits: number }) {
+  return (
+    <div className="text-right shrink-0">
+      <span className="block text-xl font-bold">
+        {downloads.toLocaleString()}
+      </span>
+      <span className="block text-xs text-gray-500">
+        {downloads === 1 ? 'download' : 'downloads'}
+      </span>
+      <span className="block text-xs text-gray-400" data-testid="visits">
+        {visits.toLocaleString()} {visits === 1 ? 'visit' : 'visits'}
+      </span>
     </div>
   );
 }
