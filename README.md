@@ -117,14 +117,20 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
 
 Environment variables (Cloudflare Pages → Settings → Environment variables):
 
-| Variable                                                                      | Purpose                                                                                  |
-| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `PLAUSIBLE_API_KEY`                                                           | Stats API key (Business plan feature). Without it the board shows the unavailable state. |
-| `PLAUSIBLE_SITE_ID`, `PLAUSIBLE_API_HOST`                                     | Optional overrides (default `ppm.techforpalestine.org`, `https://plausible.io`).         |
-| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_KV_NAMESPACE_ID`, `CLOUDFLARE_API_TOKEN` | KV namespace for the registry. Token scope: Workers KV Storage, Edit.                    |
-| `ADMIN_TOKEN`                                                                 | Shared secret for `/admin/promoters` (32+ random characters).                            |
-| `TURNSTILE_SECRET`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`                          | Cloudflare Turnstile on the listing form. Unset: no bot check, no widget.                |
-| `LEADERBOARD_JOIN_ENABLED`                                                    | Set to `false` to pause new listing requests (kill switch).                              |
+| Variable                                                                      | Purpose                                                                                                                                                |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PLAUSIBLE_API_KEY`                                                           | Stats API key (Business plan feature). Without it the board shows the unavailable state.                                                               |
+| `PLAUSIBLE_SITE_ID`, `PLAUSIBLE_API_HOST`                                     | Optional overrides (default `ppm.techforpalestine.org`, `https://plausible.io`).                                                                       |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_KV_NAMESPACE_ID`, `CLOUDFLARE_API_TOKEN` | KV namespace for the registry. Token scope: Workers KV Storage, Edit.                                                                                  |
+| `ADMIN_TOKEN`                                                                 | Shared secret for `/admin/promoters` (32+ random characters).                                                                                          |
+| `TURNSTILE_SECRET`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`                          | Cloudflare Turnstile on the listing form. Unset: no bot check, no widget.                                                                              |
+| `LEADERBOARD_JOIN_ENABLED`                                                    | Set to `false` to pause new listing requests (kill switch).                                                                                            |
+| `NEXT_PUBLIC_APP_URL`                                                         | Preview deploys only: this deploy's origin, so generated links stay on it (e.g. `https://${{RAILWAY_PUBLIC_DOMAIN}}` on Railway). Unset in production. |
+| `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC`                                            | Preview deploys only: a staging Plausible script URL, or `off` to send no analytics. Unset in production.                                              |
+
+The two `NEXT_PUBLIC_*` values are inlined at build time, so set them before
+the build. A preview whose `NEXT_PUBLIC_APP_URL` is not production also serves
+a robots.txt that blocks crawling.
 
 One-time Plausible step: add `referrer` under the site's allowed custom
 properties so the prop is queryable.
