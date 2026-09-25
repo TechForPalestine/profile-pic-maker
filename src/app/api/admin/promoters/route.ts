@@ -8,6 +8,7 @@ import {
   isValidDisplayName,
   normalizeDisplayName,
   normalizeLink,
+  promoterStorage,
   toAdminPromoter,
   type Promoter,
   type PromoterLinks,
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
       pending: all.filter((p) => p.status === 'pending').map(toAdminPromoter),
       approved: all.filter((p) => p.status === 'approved').map(toAdminPromoter),
       rejected: all.filter((p) => p.status === 'rejected').map(toAdminPromoter),
+      storage: promoterStorage(),
     },
     { headers: { 'Cache-Control': 'no-store' } },
   );

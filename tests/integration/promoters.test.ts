@@ -483,6 +483,17 @@ describe('join and approval flow (memory store)', () => {
     expect(bad.status).toBe(400);
   });
 
+  it('tells approvers which storage the deployment is using', async () => {
+    const listed = await adminGet(
+      new NextRequest('http://localhost/api/admin/promoters', {
+        headers: adminHeaders,
+      }),
+    );
+    expect(((await listed.json()) as { storage: string }).storage).toBe(
+      'memory',
+    );
+  });
+
   it('never shows the owner key hash to approvers or the public', async () => {
     await join(jsonRequest('http://localhost/api/promoters', validBody));
     const listed = await adminGet(

@@ -17,6 +17,7 @@ interface Registry {
   pending: Promoter[];
   approved: Promoter[];
   rejected: Promoter[];
+  storage?: 'kv' | 'memory';
 }
 
 function readToken(): string {
@@ -176,6 +177,17 @@ export default function AdminPanel() {
           Forget token
         </button>
       </div>
+      {registry?.storage === 'memory' && (
+        <p
+          role="alert"
+          data-testid="memory-storage-warning"
+          className="mb-4 rounded-lg bg-yellow-100 px-3 py-2 text-sm"
+        >
+          Listing requests on this deployment are kept in temporary memory and
+          disappear on the next restart or deploy. Set the Cloudflare KV
+          variables before inviting anyone to join.
+        </p>
+      )}
       {error && (
         <p
           role="alert"

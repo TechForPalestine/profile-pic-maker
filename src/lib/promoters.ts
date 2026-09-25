@@ -289,6 +289,17 @@ export function getPromoterStore(
   return memoryStore;
 }
 
+/**
+ * Where listing requests are kept on this deployment. `memory` means the
+ * Cloudflare variables are missing: requests work but vanish on the next
+ * restart or deploy. The admin page and the deploy check surface it.
+ */
+export function promoterStorage(
+  env: KvEnv = process.env as KvEnv,
+): 'kv' | 'memory' {
+  return hasKvEnv(env) ? 'kv' : 'memory';
+}
+
 /** Test hook: forget the process-wide memory store. */
 export function resetMemoryPromoterStore() {
   memoryStore = undefined;
