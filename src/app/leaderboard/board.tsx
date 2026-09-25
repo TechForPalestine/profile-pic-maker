@@ -4,7 +4,12 @@ import { FaUserGroup } from 'react-icons/fa6';
 
 import { ReferralEvent, trackEvent } from '@/lib/analytics';
 import { WINDOW_LABELS, type LeaderboardResponse } from '@/lib/leaderboard';
-import { readMyPromoter, type MyPromoter } from '@/lib/my-promoter';
+import {
+  fetchOwnListingStatus,
+  readMyPromoter,
+  type MyPromoter,
+  type OwnListingStatus,
+} from '@/lib/my-promoter';
 import {
   LEADERBOARD_WINDOWS,
   type LeaderboardWindow,
@@ -19,10 +24,47 @@ type BoardState =
   | { status: 'unavailable' }
   | { status: 'error' };
 
-/** The link this browser created, with its fingerprint for `pendingCounts`. */
+/**
+ * The link this browser created, with its fingerprint for `pendingCounts`
+ * and where its listing request stands according to the server.
+ */
 interface Mine extends MyPromoter {
   hash: string;
+  listing: OwnListingStatus;
 }
+
+/** Badge and one-line explanation for the promoter's own unlisted row. */
+const OWN_ROW_COPY: Record<
+  OwnListingStatus,
+  { badge: string; text: string; joinLink?: string }
+> = {
+  'not-sent': {
+    badge: 'only you can see this',
+    text: 'Ask to be listed and your name appears here for everyone once approved.',
+    joinLink: 'Ask to be listed',
+  },
+  none: {
+    badge: 'request not found',
+    text: 'Your listing request never reached a volunteer. Please send it again; your count is safe.',
+    joinLink: 'Send it again',
+  },
+  pending: {
+    badge: 'pending review',
+    text: 'Your name appears for everyone once a volunteer approves it, usually within a few hours and at most a day.',
+  },
+  unknown: {
+    badge: 'pending review',
+    text: 'Your name appears for everyone once a volunteer approves it, usually within a few hours and at most a day.',
+  },
+  approved: {
+    badge: 'approved',
+    text: 'Approved. Your name appears for everyone within a few minutes.',
+  },
+  rejected: {
+    badge: 'not approved',
+    text: 'The public listing was declined, but your link still works and every download still counts for you.',
+  },
+};
 
 export default function Board() {
   const [window, setWindow] = useState<LeaderboardWindow>('7d');
@@ -34,9 +76,11 @@ export default function Board() {
     const own = readMyPromoter();
     if (!own) return;
     let cancelled = false;
-    hashReferralCode(own.code).then((hash) => {
-      if (!cancelled) setMine({ ...own, hash });
-    });
+    Promise.all([hashReferralCode(own.code), fetchOwnListingStatus(own)]).then(
+      ([hash, listing]) => {
+        if (!cancelled) setMine({ ...own, hash, listing });
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -154,13 +198,19 @@ function BoardTable({
             </span>
             <div className="flex-1 min-w-0">
               <span className="font-semibold">{mine.displayName}</span>{' '}
-              <span className="text-xs rounded-full bg-gray-100 px-2 py-0.5 text-gray-700">
-                {mine.submittedAt ? 'pending review' : 'only you can see this'}
+              <span
+                data-testid="my-listing-badge"
+                className="text-xs rounded-full bg-gray-100 px-2 py-0.5 text-gray-700"
+              >
+                {OWN_ROW_COPY[mine.listing].badge}
               </span>
               <p className="text-xs text-gray-600 mt-0.5">
-                {mine.submittedAt
-                  ? 'Your name appears for everyone once a volunteer approves it, usually within a few hours and at most a day.'
-                  : 'Ask to be listed on the join page and your name appears here for everyone once approved.'}
+                {OWN_ROW_COPY[mine.listing].text}{' '}
+                {OWN_ROW_COPY[mine.listing].joinLink && (
+                  <a href="/leaderboard/join" className="underline">
+                    {OWN_ROW_COPY[mine.listing].joinLink}
+                  </a>
+                )}
               </p>
             </div>
             <Counts downloads={pending.downloads} visits={pending.visits} />
