@@ -128,7 +128,11 @@ test.describe('The join page', () => {
       posted = route.request().postDataJSON();
       await route.fulfill({
         status: 201,
-        json: { status: 'pending', code: 'paul-biggar-x' },
+        json: {
+          status: 'pending',
+          code: 'paul-biggar-x',
+          ownerKey: 'b2'.repeat(24),
+        },
       });
     });
     const link = await createLink(page);
@@ -144,6 +148,12 @@ test.describe('The join page', () => {
 
     await expect(page.getByRole('status')).toContainText('Listing requested');
     await expect(page.getByRole('status')).toContainText('at most a day');
+    // The private key is kept so this browser can check the status later.
+    const saved = await page.evaluate(
+      (key) => JSON.parse(localStorage.getItem(key) ?? '{}'),
+      MY_PROMOTER_STORAGE_KEY,
+    );
+    expect(saved.ownerKey).toBe('b2'.repeat(24));
     expect(posted).toMatchObject({
       code,
       displayName: 'Paul Biggar',
@@ -166,5 +176,76 @@ test.describe('The join page', () => {
     await expect(
       page.getByRole('alert').filter({ hasText: 'already taken' }),
     ).toBeVisible();
+  });
+
+  const remembered = {
+    code: 'paul-biggar-7k2q',
+    displayName: 'Paul Biggar',
+    createdAt: '2026-09-17T10:00:00.000Z',
+    submittedAt: '2026-09-17T10:05:00.000Z',
+    ownerKey: 'c3'.repeat(24),
+  };
+  const rememberJoin = (page: import('@playwright/test').Page) =>
+    page.addInitScript(([key, value]) => localStorage.setItem(key, value), [
+      MY_PROMOTER_STORAGE_KEY,
+      JSON.stringify(remembered),
+    ] as const);
+
+  test('asks to send again when the server has no record of the request', async ({
+    page,
+  }) => {
+    await page.route('**/api/promoters/status', (route) =>
+      route.fulfill({ json: { status: 'none' } }),
+    );
+    await rememberJoin(page);
+    await page.goto('/leaderboard/join');
+
+    await expect(
+      page.getByRole('alert').filter({ hasText: 'could not find' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Ask to be listed' }),
+    ).toBeVisible();
+    // Same link kept, lost request forgotten.
+    await expect(page.getByTestId('referral-link')).toContainText(
+      'paul-biggar-7k2q',
+    );
+    const saved = await page.evaluate(
+      (key) => JSON.parse(localStorage.getItem(key) ?? '{}'),
+      MY_PROMOTER_STORAGE_KEY,
+    );
+    expect(saved.submittedAt).toBeUndefined();
+    expect(saved.ownerKey).toBeUndefined();
+  });
+
+  test('says so when the listing was not approved', async ({ page }) => {
+    await page.route('**/api/promoters/status', (route) =>
+      route.fulfill({ json: { status: 'rejected' } }),
+    );
+    await rememberJoin(page);
+    await page.goto('/leaderboard/join');
+    await expect(page.getByRole('status')).toContainText(
+      'Your listing was not approved',
+    );
+  });
+
+  test('can start over with a new link', async ({ page }) => {
+    await page.route('**/api/promoters/status', (route) =>
+      route.fulfill({ json: { status: 'pending' } }),
+    );
+    await rememberJoin(page);
+    await page.goto('/leaderboard/join');
+    await expect(page.getByTestId('referral-link')).toBeVisible();
+
+    await page
+      .getByRole('button', { name: 'Start over with a new link' })
+      .click();
+    await expect(page.getByLabel(/Your name/)).toHaveValue('');
+    await expect(page.getByTestId('referral-link')).toHaveCount(0);
+    const saved = await page.evaluate(
+      (key) => localStorage.getItem(key),
+      MY_PROMOTER_STORAGE_KEY,
+    );
+    expect(saved).toBeNull();
   });
 });

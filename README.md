@@ -108,8 +108,10 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
   works in `npm run dev`.
 - **Counts.** `/api/leaderboard` queries the Plausible Stats API (v2) for
   unique downloaders and unique landings grouped by `referrer`, and downloads
-  by visit source, joins them onto the approved registry, and caches for five
-  minutes. Rows rank by unique downloads; visits are shown for context. Without a Plausible key it
+  by visit source, joins them onto the approved registry, and computes each
+  window at most once every five minutes on the server (`src/lib/board-cache.ts`),
+  so visitors can never spend the key's 600-per-hour budget. Rows rank by
+  unique downloads; visits are shown for context. Without a Plausible key it
   answers 503 and the page shows a "warming up" state. Counts for codes that
   are not approved travel as `pendingCounts`, keyed by a SHA-256 fingerprint
   of the code, so the browser that created a code can show its owner their
@@ -134,6 +136,26 @@ a robots.txt that blocks crawling.
 
 One-time Plausible step: add `referrer` under the site's allowed custom
 properties so the prop is queryable.
+
+Listing status: a listing request returns a private owner key that the
+browser keeps; the server stores only its SHA-256. The join page and the
+board send it to `POST /api/promoters/status` to learn whether the request is
+pending, approved, rejected or unknown to the server, so nobody sees "pending
+review" for a request that was declined or lost. Anyone without the key gets
+`none`, so the endpoint reveals nothing about other people's listings.
+
+Rate limits, per client IP and one-minute window (`src/lib/rate-limit.ts`):
+
+| Route                        | Limit |
+| ---------------------------- | ----- |
+| `POST /api/promoters` (join) | 5     |
+| `POST /api/promoters/status` | 30    |
+| `/api/admin/promoters`       | 30    |
+| `GET /api/leaderboard`       | 60    |
+
+They are exact on a single Node instance and best effort on Cloudflare,
+where each location counts on its own. In production, add a Cloudflare rate
+limiting rule on `/api/*` as the real guard.
 
 Moderation: approve only names that are not impersonating anyone and links
 that go to real public profiles with nothing abusive on them. Each entry on

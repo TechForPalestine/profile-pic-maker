@@ -43,6 +43,8 @@ const board = (window: string) => ({
   pendingCounts: { [fingerprint('newbie-7k2q')]: { downloads: 3, visits: 11 } },
 });
 
+const OWNER_KEY = 'a1'.repeat(24);
+
 const rememberMine = (
   page: import('@playwright/test').Page,
   record: Record<string, unknown>,
@@ -93,15 +95,26 @@ test.describe('The leaderboard page', () => {
     await page.route('**/api/leaderboard**', (route) =>
       route.fulfill({ json: board('7d') }),
     );
+    let asked: unknown;
+    await page.route('**/api/promoters/status', (route) => {
+      asked = route.request().postDataJSON();
+      return route.fulfill({ json: { status: 'pending' } });
+    });
     await rememberMine(page, {
       code: 'newbie-7k2q',
       displayName: 'Newbie',
       createdAt: '2026-09-17T10:00:00.000Z',
       submittedAt: '2026-09-17T10:05:00.000Z',
+      ownerKey: OWNER_KEY,
     });
     await page.goto('/leaderboard');
 
     const own = page.getByTestId('my-pending-row');
+    await expect(own.getByTestId('my-listing-badge')).toHaveText(
+      'pending review',
+    );
+    // The board asked the server, with the private key in the body.
+    expect(asked).toEqual({ code: 'newbie-7k2q', ownerKey: OWNER_KEY });
     await expect(own).toContainText('Newbie');
     await expect(own).toContainText('pending review');
     await expect(own).toContainText('3');
@@ -114,6 +127,59 @@ test.describe('The leaderboard page', () => {
     // And the API response never names the code.
     const res = await page.request.get('/api/leaderboard?window=7d');
     expect(await res.text()).not.toContain('newbie');
+  });
+
+  for (const [status, badge, joinLink] of [
+    ['none', 'request not found', 'Send it again'],
+    ['rejected', 'not approved', undefined],
+    ['approved', 'approved', undefined],
+  ] as const) {
+    test(`says "${badge}" when the server reports ${status}`, async ({
+      page,
+    }) => {
+      await page.route('**/api/leaderboard**', (route) =>
+        route.fulfill({ json: board('7d') }),
+      );
+      await page.route('**/api/promoters/status', (route) =>
+        route.fulfill({ json: { status } }),
+      );
+      await rememberMine(page, {
+        code: 'newbie-7k2q',
+        displayName: 'Newbie',
+        createdAt: '2026-09-17T10:00:00.000Z',
+        submittedAt: '2026-09-17T10:05:00.000Z',
+        ownerKey: OWNER_KEY,
+      });
+      await page.goto('/leaderboard');
+      const own = page.getByTestId('my-pending-row');
+      await expect(own.getByTestId('my-listing-badge')).toHaveText(badge);
+      if (joinLink) {
+        await expect(own.getByRole('link', { name: joinLink })).toHaveAttribute(
+          'href',
+          '/leaderboard/join',
+        );
+      }
+    });
+  }
+
+  test('does not trust a remembered request without its owner key', async ({
+    page,
+  }) => {
+    // What a browser that joined before the owner key existed looks like,
+    // and what the "Setup Probe" bug looked like: no call can vouch for it.
+    await page.route('**/api/leaderboard**', (route) =>
+      route.fulfill({ json: board('7d') }),
+    );
+    await rememberMine(page, {
+      code: 'newbie-7k2q',
+      displayName: 'Newbie',
+      createdAt: '2026-09-17T10:00:00.000Z',
+      submittedAt: '2026-09-17T10:05:00.000Z',
+    });
+    await page.goto('/leaderboard');
+    await expect(page.getByTestId('my-listing-badge')).toHaveText(
+      'request not found',
+    );
   });
 
   test('tags the approved promoter’s own row', async ({ page }) => {
