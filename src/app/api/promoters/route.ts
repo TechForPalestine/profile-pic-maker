@@ -3,12 +3,15 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import {
   MAX_PENDING,
+  generateOwnerKey,
   getPromoterStore,
+  hashOwnerKey,
   isJoinEnabled,
   toPublicPromoter,
   validateJoinRequest,
   type Promoter,
 } from '@/lib/promoters';
+import { LIMITS, rateLimit } from '@/lib/rate-limit';
 import { verifyTurnstile } from '@/lib/turnstile';
 
 export const runtime = 'edge';
@@ -30,6 +33,9 @@ export async function GET() {
 
 /** A request to be listed. Lands as `pending` until an approver reviews it. */
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, LIMITS.join);
+  if (limited) return limited;
+
   if (!isJoinEnabled()) {
     return NextResponse.json(
       { error: 'Joining the leaderboard is paused right now.' },
@@ -82,6 +88,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Handed to this browser only; the server keeps just its hash. It is what
+  // lets the promoter (and nobody else) check the request's status later.
+  const ownerKey = generateOwnerKey();
   const promoter: Promoter = {
     code,
     displayName,
@@ -89,8 +98,12 @@ export async function POST(request: NextRequest) {
     referredBy,
     status: 'pending',
     createdAt: new Date().toISOString(),
+    ownerKeyHash: await hashOwnerKey(ownerKey),
   };
   await store.put(promoter);
 
-  return NextResponse.json({ status: 'pending', code }, { status: 201 });
+  return NextResponse.json(
+    { status: 'pending', code, ownerKey },
+    { status: 201, headers: { 'Cache-Control': 'no-store' } },
+  );
 }

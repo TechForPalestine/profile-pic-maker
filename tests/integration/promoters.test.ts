@@ -22,6 +22,8 @@ import {
   POST as adminPost,
 } from '@/app/api/admin/promoters/route';
 import { GET as publicGet, POST as join } from '@/app/api/promoters/route';
+import { POST as statusPost } from '@/app/api/promoters/status/route';
+import { resetRateLimits } from '@/lib/rate-limit';
 
 const ADMIN_TOKEN = 'a-very-long-admin-token-for-tests';
 
@@ -248,6 +250,7 @@ describe('admin auth', () => {
 describe('join and approval flow (memory store)', () => {
   beforeEach(() => {
     resetMemoryPromoterStore();
+    resetRateLimits();
     vi.stubEnv('ADMIN_TOKEN', ADMIN_TOKEN);
     vi.stubEnv('TURNSTILE_SECRET', '');
     vi.stubEnv('LEADERBOARD_JOIN_ENABLED', '');
@@ -435,6 +438,84 @@ describe('join and approval flow (memory store)', () => {
     expect(registry.pending[0].displayName).toBe('Paul Biggar');
   });
 
+  it('tells only the browser that sent a request where it stands', async () => {
+    const status = async (code: string, ownerKey: string) => {
+      const res = await statusPost(
+        jsonRequest('http://localhost/api/promoters/status', {
+          code,
+          ownerKey,
+        }),
+      );
+      expect(res.headers.get('cache-control')).toBe('no-store');
+      return ((await res.json()) as { status: string }).status;
+    };
+    const stranger = 'f'.repeat(48);
+
+    expect(await status('paul', stranger)).toBe('none');
+
+    const created = await join(
+      jsonRequest('http://localhost/api/promoters', validBody),
+    );
+    const { ownerKey } = (await created.json()) as { ownerKey: string };
+    expect(ownerKey).toMatch(/^[0-9a-f]{48}$/);
+
+    expect(await status('paul', ownerKey)).toBe('pending');
+    // Someone who only knows the public code learns nothing.
+    expect(await status('paul', stranger)).toBe('none');
+
+    await approve('paul');
+    expect(await status('paul', ownerKey)).toBe('approved');
+    await adminPost(
+      jsonRequest(
+        'http://localhost/api/admin/promoters',
+        { action: 'reject', code: 'paul' },
+        adminHeaders,
+      ),
+    );
+    expect(await status('paul', ownerKey)).toBe('rejected');
+
+    const bad = await statusPost(
+      jsonRequest('http://localhost/api/promoters/status', {
+        code: '<b>',
+        ownerKey,
+      }),
+    );
+    expect(bad.status).toBe(400);
+  });
+
+  it('never shows the owner key hash to approvers or the public', async () => {
+    await join(jsonRequest('http://localhost/api/promoters', validBody));
+    const listed = await adminGet(
+      new NextRequest('http://localhost/api/admin/promoters', {
+        headers: adminHeaders,
+      }),
+    );
+    expect(JSON.stringify(await listed.json())).not.toContain('ownerKeyHash');
+    await approve('paul');
+    expect(JSON.stringify(await (await publicGet()).json())).not.toContain(
+      'ownerKeyHash',
+    );
+  });
+
+  it('rate limits join requests per IP', async () => {
+    const from = (ip: string, i: number) =>
+      join(
+        jsonRequest(
+          'http://localhost/api/promoters',
+          { ...validBody, code: `limit-${ip.split('.').join('')}-${i}` },
+          { 'cf-connecting-ip': ip },
+        ),
+      );
+    for (let i = 0; i < 5; i++) {
+      expect((await from('203.0.113.9', i)).status).toBe(201);
+    }
+    const sixth = await from('203.0.113.9', 5);
+    expect(sixth.status).toBe(429);
+    expect(Number(sixth.headers.get('retry-after'))).toBeGreaterThan(0);
+    // A different client is unaffected.
+    expect((await from('198.51.100.7', 0)).status).toBe(201);
+  });
+
   it('takes an approved entry down again', async () => {
     await join(jsonRequest('http://localhost/api/promoters', validBody));
     await approve('paul');
@@ -474,18 +555,26 @@ describe('join and approval flow (memory store)', () => {
   });
 
   it('stops accepting requests once the queue is full', async () => {
+    // One client per request, so the per-IP rate limit stays out of the way
+    // and this exercises the queue cap alone.
+    const ip = (i: number) =>
+      `10.${(i >> 16) & 255}.${(i >> 8) & 255}.${i & 255}`;
     for (let i = 0; i < MAX_PENDING; i++) {
       const res = await join(
-        jsonRequest('http://localhost/api/promoters', {
-          ...validBody,
-          code: `promoter-${i}`,
-        }),
+        jsonRequest(
+          'http://localhost/api/promoters',
+          { ...validBody, code: `promoter-${i}` },
+          { 'cf-connecting-ip': ip(i) },
+        ),
       );
       expect(res.status).toBe(201);
     }
     const res = await join(
-      jsonRequest('http://localhost/api/promoters', validBody),
+      jsonRequest('http://localhost/api/promoters', validBody, {
+        'cf-connecting-ip': ip(MAX_PENDING),
+      }),
     );
     expect(res.status).toBe(429);
+    expect(JSON.stringify(await res.json())).toContain('waiting for review');
   });
 });

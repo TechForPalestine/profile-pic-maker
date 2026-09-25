@@ -51,6 +51,12 @@ export interface Promoter {
   status: PromoterStatus;
   createdAt: string;
   reviewedAt?: string;
+  /**
+   * SHA-256 (hex) of the private key handed to the browser that sent the
+   * request. Only that browser can ask where its request stands. Never
+   * leaves the server.
+   */
+  ownerKeyHash?: string;
 }
 
 /** What the public API serves: nothing about status or timing. */
@@ -258,7 +264,9 @@ export function createPromoterStore(kv: KvClient): PromoterStore {
       const approved = (await store.list()).filter(
         (p) => p.status === 'approved',
       );
-      await kv.put(APPROVED_KEY, JSON.stringify(approved));
+      // The public read path only needs public fields; keep owner key hashes
+      // out of the shared document.
+      await kv.put(APPROVED_KEY, JSON.stringify(approved.map(toAdminPromoter)));
       return approved;
     },
   };
@@ -289,4 +297,29 @@ export function resetMemoryPromoterStore() {
 /** Whether the join form accepts requests. Flip to `false` as a kill switch. */
 export function isJoinEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.LEADERBOARD_JOIN_ENABLED !== 'false';
+}
+
+/** A fresh private key for the browser that sends a listing request. */
+export function generateOwnerKey(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function hashOwnerKey(key: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(key),
+  );
+  return Array.from(new Uint8Array(digest), (b) =>
+    b.toString(16).padStart(2, '0'),
+  ).join('');
+}
+
+/** A promoter as the admin page sees it: everything but the owner key hash. */
+export function toAdminPromoter(
+  promoter: Promoter,
+): Omit<Promoter, 'ownerKeyHash'> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { ownerKeyHash, ...rest } = promoter;
+  return rest;
 }

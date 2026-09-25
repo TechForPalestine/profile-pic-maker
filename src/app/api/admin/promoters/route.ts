@@ -1,12 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { isAuthorized } from '@/lib/admin-auth';
+import { LIMITS, rateLimit } from '@/lib/rate-limit';
 import {
   LINK_PLATFORMS,
   getPromoterStore,
   isValidDisplayName,
   normalizeDisplayName,
   normalizeLink,
+  toAdminPromoter,
   type Promoter,
   type PromoterLinks,
 } from '@/lib/promoters';
@@ -28,15 +30,17 @@ const unauthorized = () =>
 
 /** Everything in the registry, grouped by status, for the admin page. */
 export async function GET(request: NextRequest) {
+  const limited = rateLimit(request, LIMITS.admin);
+  if (limited) return limited;
   if (!isAuthorized(request.headers.get('authorization'))) {
     return unauthorized();
   }
   const all = await getPromoterStore().list();
   return NextResponse.json(
     {
-      pending: all.filter((p) => p.status === 'pending'),
-      approved: all.filter((p) => p.status === 'approved'),
-      rejected: all.filter((p) => p.status === 'rejected'),
+      pending: all.filter((p) => p.status === 'pending').map(toAdminPromoter),
+      approved: all.filter((p) => p.status === 'approved').map(toAdminPromoter),
+      rejected: all.filter((p) => p.status === 'rejected').map(toAdminPromoter),
     },
     { headers: { 'Cache-Control': 'no-store' } },
   );
@@ -53,6 +57,8 @@ export async function GET(request: NextRequest) {
  *   approved; the public board picks the change up within five minutes.
  */
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(request, LIMITS.admin);
+  if (limited) return limited;
   if (!isAuthorized(request.headers.get('authorization'))) {
     return unauthorized();
   }
@@ -143,5 +149,5 @@ export async function POST(request: NextRequest) {
   // document the public routes read.
   await store.rebuildApproved();
 
-  return NextResponse.json({ promoter: updated });
+  return NextResponse.json({ promoter: toAdminPromoter(updated) });
 }
