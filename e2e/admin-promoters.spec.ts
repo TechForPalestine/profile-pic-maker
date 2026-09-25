@@ -219,6 +219,37 @@ test.describe('Promoter approvals page', () => {
     ).not.toContainText('suspicious');
   });
 
+  test('warns when requests are only kept in memory', async ({ page }) => {
+    const registry = (storage: string) => ({
+      pending: [],
+      approved: [],
+      rejected: [],
+      storage,
+    });
+    await page.addInitScript(() =>
+      sessionStorage.setItem(
+        'ppm-admin-token',
+        'a-very-long-admin-token-for-tests',
+      ),
+    );
+
+    await page.route('**/api/admin/promoters', (route) =>
+      route.fulfill({ json: registry('memory') }),
+    );
+    await page.goto('/admin/promoters');
+    await expect(page.getByTestId('memory-storage-warning')).toBeVisible();
+
+    await page.unroute('**/api/admin/promoters');
+    await page.route('**/api/admin/promoters', (route) =>
+      route.fulfill({ json: registry('kv') }),
+    );
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: 'Waiting for review (0)' }),
+    ).toBeVisible();
+    await expect(page.getByTestId('memory-storage-warning')).toHaveCount(0);
+  });
+
   test('reports a rejected token', async ({ page }) => {
     await page.route('**/api/admin/promoters', (route) =>
       route.fulfill({ status: 401, json: { error: 'Unauthorized' } }),
