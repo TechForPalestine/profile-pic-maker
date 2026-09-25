@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { FunnelEvent } from '@/lib/analytics';
+import { cachedBoard } from '@/lib/board-cache';
 import { buildLeaderboard } from '@/lib/leaderboard';
 import {
   createPlausibleClient,
@@ -9,6 +10,7 @@ import {
   type PlausibleEnv,
 } from '@/lib/plausible-stats';
 import { getPromoterStore } from '@/lib/promoters';
+import { LIMITS, rateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'edge';
 
@@ -19,11 +21,14 @@ const SHORT_CACHE = 'public, s-maxage=60';
  * GET /api/leaderboard?window=day|7d|all
  *
  * Joins Plausible's download and visit counts onto the approved promoter
- * registry. Cached for five minutes at the edge: the board is a shared,
- * public view and Plausible's API key has an hourly budget (three queries
- * per window per five minutes stays far inside it).
+ * registry. Computed at most once per window every five minutes (see
+ * `@/lib/board-cache`): Plausible's API key has an hourly budget, and the
+ * board must not spend it per visitor.
  */
 export async function GET(request: NextRequest) {
+  const limited = rateLimit(request, LIMITS.leaderboard);
+  if (limited) return limited;
+
   const requested = request.nextUrl.searchParams.get('window') ?? '7d';
   if (!isLeaderboardWindow(requested)) {
     return NextResponse.json(
@@ -43,24 +48,26 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const plausible = createPlausibleClient(env);
-    const [approved, byReferrer, visitsByReferrer, bySource] =
-      await Promise.all([
-        getPromoterStore().listApproved(),
-        plausible.downloadsBy('event:props:referrer', requested),
-        plausible.countBy(
-          FunnelEvent.Landed,
-          'event:props:referrer',
-          requested,
-        ),
-        plausible.downloadsBy('visit:source', requested),
-      ]);
-    const board = await buildLeaderboard({
-      window: requested,
-      byReferrer,
-      visitsByReferrer,
-      bySource,
-      approved,
+    const board = await cachedBoard(requested, async () => {
+      const plausible = createPlausibleClient(env);
+      const [approved, byReferrer, visitsByReferrer, bySource] =
+        await Promise.all([
+          getPromoterStore().listApproved(),
+          plausible.downloadsBy('event:props:referrer', requested),
+          plausible.countBy(
+            FunnelEvent.Landed,
+            'event:props:referrer',
+            requested,
+          ),
+          plausible.downloadsBy('visit:source', requested),
+        ]);
+      return buildLeaderboard({
+        window: requested,
+        byReferrer,
+        visitsByReferrer,
+        bySource,
+        approved,
+      });
     });
     return NextResponse.json(board, { headers: { 'Cache-Control': CACHE } });
   } catch (error) {

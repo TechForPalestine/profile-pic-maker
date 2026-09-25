@@ -24,6 +24,8 @@ import {
   type Promoter,
 } from '@/lib/promoters';
 import { GET } from '@/app/api/leaderboard/route';
+import { cachedBoard, resetBoardCache } from '@/lib/board-cache';
+import { resetRateLimits } from '@/lib/rate-limit';
 
 const promoter = (
   code: string,
@@ -288,6 +290,8 @@ describe('Plausible Stats client', () => {
 describe('GET /api/leaderboard', () => {
   beforeEach(() => {
     resetMemoryPromoterStore();
+    resetBoardCache();
+    resetRateLimits();
     vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', '');
     vi.stubEnv('PLAUSIBLE_API_KEY', '');
   });
@@ -380,5 +384,118 @@ describe('GET /api/leaderboard', () => {
     );
     const res = await GET(new NextRequest('http://localhost/api/leaderboard'));
     expect(res.status).toBe(502);
+  });
+});
+
+describe('board cache', () => {
+  beforeEach(() => resetBoardCache());
+
+  const board = (window: 'day' | '7d' | 'all', at: string) => ({
+    window,
+    generatedAt: at,
+    promoters: [],
+    channels: [],
+    pendingCounts: {},
+  });
+
+  it('computes once per window within the TTL, however many callers', async () => {
+    let t = 0;
+    const compute = vi.fn(async () => board('day', new Date(t).toISOString()));
+    const opts = { ttlMs: 1000, now: () => t };
+
+    await Promise.all(
+      Array.from({ length: 20 }, () => cachedBoard('day', compute, opts)),
+    );
+    expect(compute).toHaveBeenCalledTimes(1);
+
+    t = 999;
+    await cachedBoard('day', compute, opts);
+    expect(compute).toHaveBeenCalledTimes(1);
+
+    t = 1000;
+    await cachedBoard('day', compute, opts);
+    expect(compute).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps windows apart and does not cache failures', async () => {
+    const compute = vi.fn(async () => board('7d', new Date().toISOString()));
+    await cachedBoard('7d', compute);
+    await cachedBoard('all', compute);
+    expect(compute).toHaveBeenCalledTimes(2);
+
+    const failing = vi.fn(async () => {
+      throw new Error('upstream down');
+    });
+    await expect(cachedBoard('day', failing)).rejects.toThrow();
+    await expect(cachedBoard('day', failing)).rejects.toThrow();
+    expect(failing).toHaveBeenCalledTimes(2);
+  });
+
+  it('shares entries through the Cloudflare edge cache when present', async () => {
+    const store = new Map<string, Response>();
+    vi.stubGlobal('caches', {
+      default: {
+        match: async (r: Request) => store.get(r.url)?.clone(),
+        put: async (r: Request, res: Response) => {
+          store.set(r.url, res);
+        },
+      },
+    });
+    try {
+      const compute = vi.fn(async () => board('day', new Date().toISOString()));
+      await cachedBoard('day', compute);
+      expect(store.size).toBe(1);
+      // A new isolate: empty memory, same edge cache.
+      resetBoardCache();
+      await cachedBoard('day', compute);
+      expect(compute).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('GET /api/leaderboard under load', () => {
+  beforeEach(() => {
+    resetMemoryPromoterStore();
+    resetBoardCache();
+    resetRateLimits();
+    vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', '');
+    vi.stubEnv('PLAUSIBLE_API_KEY', 'key');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it('spends three Plausible calls per window, not three per visitor', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ results: [] }));
+    vi.stubGlobal('fetch', fetchMock);
+    for (let i = 0; i < 25; i++) {
+      const res = await GET(
+        new NextRequest(
+          `http://localhost/api/leaderboard?window=day&bust=${i}`,
+          { headers: { 'cf-connecting-ip': `10.0.0.${i}` } },
+        ),
+      );
+      expect(res.status).toBe(200);
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('rate limits one client hammering the board', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ results: [] })),
+    );
+    const hit = () =>
+      GET(
+        new NextRequest('http://localhost/api/leaderboard?window=day', {
+          headers: { 'cf-connecting-ip': '203.0.113.5' },
+        }),
+      );
+    for (let i = 0; i < 60; i++) expect((await hit()).status).toBe(200);
+    expect((await hit()).status).toBe(429);
   });
 });
