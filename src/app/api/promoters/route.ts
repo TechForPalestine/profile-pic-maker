@@ -11,6 +11,7 @@ import {
   validateJoinRequest,
   type Promoter,
 } from '@/lib/promoters';
+import { notifyPendingPromoter } from '@/lib/mattermost';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { leaderboardEnabled } from '@/lib/referral';
@@ -104,6 +105,7 @@ export async function POST(request: NextRequest) {
     ownerKeyHash: await hashOwnerKey(ownerKey),
   };
   await store.put(promoter);
+  await notifyPendingPromoter(promoter, pending.length + 1);
 
   return NextResponse.json(
     { status: 'pending', code, ownerKey },

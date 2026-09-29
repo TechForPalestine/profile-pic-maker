@@ -1,5 +1,5 @@
 // Cloudflare Pages configuration: the single source of truth for this
-// project on Cloudflare. Everything except three secrets lives here.
+// project on Cloudflare. Everything except the secrets below lives here.
 //
 // Set in the dashboard (Settings -> Variables and Secrets, type Secret,
 // Production), then Deployments -> Retry deployment:
@@ -9,6 +9,7 @@
 //   TURNSTILE_SECRET                the Turnstile widget's secret key
 //   ADMIN_TOKEN                     40+ random characters, for /admin/promoters
 //   PLAUSIBLE_API_KEY               Plausible Stats API key
+//   MATTERMOST_WEBHOOK_URL          incoming webhook for new listing requests
 // Do not add these to "vars" in this file: a file variable and a dashboard Secret
 // with the same name conflict.
 //

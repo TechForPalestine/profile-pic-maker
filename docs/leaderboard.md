@@ -44,6 +44,7 @@ latest deployment) or with `wrangler pages secret put`:
 | -------------------------------- | ---------------------------------------------------------------------------------------- |
 | `ADMIN_TOKEN`                    | Shared secret for `/admin/promoters` (32+ random characters).                            |
 | `TURNSTILE_SECRET`               | Cloudflare Turnstile on the listing form. Unset: no bot check.                           |
+| `MATTERMOST_WEBHOOK_URL`         | Incoming webhook; each new listing request posts an alert there. Unset: no alerts.       |
 | `PLAUSIBLE_API_KEY`              | Stats API key (Business plan feature). Without it the board shows the unavailable state. |
 | `NEXT_PUBLIC_LEADERBOARD`        | `on` shows the leaderboard (see below).                                                  |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Turnstile site key, public but set here so launching needs no code change.               |
