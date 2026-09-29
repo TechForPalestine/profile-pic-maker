@@ -34,7 +34,7 @@ const promoter = (
 ): Promoter => ({
   code,
   displayName,
-  links: { x: `https://x.com/${code}` },
+  link: `https://x.com/${code}`,
   status: 'approved',
   createdAt: '2026-01-01T00:00:00.000Z',
   ...extra,
@@ -292,7 +292,6 @@ describe('GET /api/leaderboard', () => {
     resetMemoryPromoterStore();
     resetBoardCache();
     resetRateLimits();
-    vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', '');
     vi.stubEnv('PLAUSIBLE_API_KEY', '');
   });
 
@@ -358,7 +357,7 @@ describe('GET /api/leaderboard', () => {
       {
         code: 'paul',
         displayName: 'Paul',
-        links: { x: 'https://x.com/paul' },
+        link: 'https://x.com/paul',
         recruits: 0,
         rank: 1,
         downloads: 40,
@@ -460,7 +459,6 @@ describe('GET /api/leaderboard under load', () => {
     resetMemoryPromoterStore();
     resetBoardCache();
     resetRateLimits();
-    vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', '');
     vi.stubEnv('PLAUSIBLE_API_KEY', 'key');
   });
 
