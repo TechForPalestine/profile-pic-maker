@@ -171,6 +171,47 @@ and links) from `/admin/promoters`; "Back to review" pulls an approved entry
 into the queue without losing it, and "Take down" rejects it. The board
 refreshes within five minutes either way.
 
+## Deploying to Cloudflare Pages
+
+The app runs on Cloudflare Pages through
+[next-on-pages](https://github.com/cloudflare/next-on-pages), with every API
+route on the edge runtime. Use Cloudflare's Git integration: every push to the
+production branch deploys, and every other branch and pull request gets its
+own preview URL.
+
+In the Cloudflare dashboard: **Workers & Pages → Create application →
+Continue to Pages → Import an existing Git repository**, pick this
+repository, then set:
+
+| Setting | Value |
+| --- | --- |
+| Project name | `palestine-pfp` (must match `name` in `wrangler.jsonc`) |
+| Production branch | `main` |
+| Framework preset | Next.js |
+| Build command | `npx @cloudflare/next-on-pages@1` |
+| Build output directory | `.vercel/output/static` |
+| Root directory | `/` |
+
+If the repository is not listed, give the Cloudflare Pages GitHub app access
+to it (GitHub → Settings → Applications → Cloudflare Pages → Configure).
+
+Node is pinned to 22 by `.nvmrc`, which the build image reads. `wrangler.jsonc`
+is the source of truth for the project's name, output directory,
+compatibility date and the `nodejs_compat` flag, so the dashboard shows those
+read-only.
+
+Then, under **Settings → Variables and Secrets**, add the variables from the
+table in [Referral links and the promoter leaderboard](#referral-links-and-the-promoter-leaderboard)
+for both Production and Preview. Pages exposes them to the build and to the
+running app. `CLOUDFLARE_API_TOKEN`, `TURNSTILE_SECRET`, `ADMIN_TOKEN` and
+`PLAUSIBLE_API_KEY` go in as **Secret**; the rest as Text. Production must
+leave `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` and
+`NEXT_PUBLIC_REFERRAL_COUNTER` unset. Redeploy after changing a
+`NEXT_PUBLIC_*` value, since it is baked in at build time.
+
+Finally add the site's hostname to the Turnstile widget, and a rate limiting
+rule on `/api/*` (Security → WAF → Rate limiting rules).
+
 ## Testing
 
 | Command                 | What it runs                                                                                        |
