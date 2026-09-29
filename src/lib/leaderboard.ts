@@ -20,9 +20,8 @@ import type { CountRow, LeaderboardWindow } from '@/lib/plausible-stats';
  *   promoters ("people you bring count, even if they come back later").
  *   Each row also shows visits (unique people who landed with that
  *   referrer) next to downloads. Visits never affect the rank; they tell a
- *   promoter whether their audience converts, and they are the cheapest
- *   fraud signal there is: downloads without visits do not happen
- *   organically (see `isSuspicious`).
+ *   promoter whether their audience converts, and help approvers review
+ *   entries (see `isSuspicious`).
  * - The channel mix uses Plausible's visit source: what led to the session in
  *   which the download happened. That is the question the growth team asks
  *   ("where are downloads coming from this week?").
@@ -142,10 +141,8 @@ function countMap(rows: CountRow[]): Map<string, number> {
 }
 
 /**
- * Numbers that cannot come from people: more unique downloaders than unique
- * visitors means something fired the download event without ever landing.
- * The board never hides a row for this; approvers see the flag and decide.
- * A small tolerance absorbs the daily visitor-id rotation around midnight.
+ * Flags counts an approver should look at before trusting them. The board
+ * never hides a row for this; approvers see the flag and decide.
  */
 export function isSuspicious(downloads: number, visits: number): boolean {
   return downloads >= 5 && downloads > visits * 1.2 + 2;
