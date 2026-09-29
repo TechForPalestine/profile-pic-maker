@@ -1,8 +1,8 @@
 import type { IconType } from 'react-icons';
 import {
+  FaArrowUpRightFromSquare,
   FaBluesky,
   FaFacebookF,
-  FaGlobe,
   FaInstagram,
   FaLinkedinIn,
   FaTiktok,
@@ -23,12 +23,12 @@ export const PLATFORM_META: Record<
   bluesky: { label: 'Bluesky', Icon: FaBluesky },
   facebook: { label: 'Facebook', Icon: FaFacebookF },
   youtube: { label: 'YouTube', Icon: FaYoutube },
-  website: { label: 'Website', Icon: FaGlobe },
+  website: { label: 'Website', Icon: FaArrowUpRightFromSquare },
 };
 
 /**
  * A promoter's one link as an icon button, the icon picked from the link's
- * host (a globe for any other website). Every link was reviewed by an
+ * host (an outbound arrow for any other website, since it opens in a new tab). Every link was reviewed by an
  * approver, but it still leads off-site to an account we do not control, so
  * it carries nofollow and opens in a new tab.
  */

@@ -365,9 +365,9 @@ function Entry({
           {isSuspicious(stats.downloads, stats.visits) && (
             <span
               className="ml-2 rounded-full bg-red-100 px-2 py-0.5 font-semibold text-red-800"
-              title="More people downloaded than opened the link. Real traffic never looks like this; a script that only fires the download event does."
+              title="These numbers look unusual. Check the entry before approving it."
             >
-              suspicious: downloads exceed visits
+              check these numbers
             </span>
           )}
         </p>
