@@ -1,5 +1,5 @@
 'use client';
-import { ShareEvent, trackEvent } from '@/lib/analytics';
+import { ReferralEvent, ShareEvent, trackEvent } from '@/lib/analytics';
 import {
   SHORT_URL_LABEL,
   buildShareLinks,
@@ -7,10 +7,12 @@ import {
   dataUrlToFile,
   shareCaption,
 } from '@/lib/share';
+import { leaderboardEnabled } from '@/lib/referral';
 import { ShareChannel, ShareFormat } from '@/types';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import {
   FaDownload,
@@ -276,6 +278,20 @@ export default function SharePanel({
             : 'Save a story-sized image (9:16)'}{' '}
           <FaDownload className="inline mb-0.5" />
         </button>
+      )}
+      {/* The person just made something they are about to post: the moment
+          to offer credit for everyone that post brings in. */}
+      {leaderboardEnabled() && (
+        <p className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
+          Bringing friends along?{' '}
+          <Link
+            href="/leaderboard/join"
+            onClick={() => trackEvent(ReferralEvent.CtaClicked, { method })}
+            className="underline font-semibold text-gray-900"
+          >
+            Get your own link and join the leaderboard
+          </Link>
+        </p>
       )}
 
       {/* Off-screen 9:16 story card, rasterised at 3x into a 1080x1920 PNG.

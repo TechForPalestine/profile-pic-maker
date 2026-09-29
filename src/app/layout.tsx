@@ -9,6 +9,16 @@ import DomSafety from './dom-safety';
 
 const inter = Inter({ subsets: ['latin'] });
 
+// Plausible's per-site script. Previews point this at a staging site, or set
+// it to `off` so test traffic never lands in the production dashboard (every
+// `trackEvent` then no-ops, since `window.plausible` is never defined).
+const DEFAULT_PLAUSIBLE_SCRIPT_SRC =
+  'https://plausible.io/js/pa-jox6Nfcg5lE6Iifkj-HHE.js';
+const PLAUSIBLE_SCRIPT_SRC =
+  process.env.NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC?.trim() ||
+  DEFAULT_PLAUSIBLE_SCRIPT_SRC;
+const PLAUSIBLE_ENABLED = PLAUSIBLE_SCRIPT_SRC !== 'off';
+
 export const metadata: Metadata = {
   title: 'Palestine Profile Pic Maker 🇵🇸',
   description:
@@ -53,13 +63,14 @@ export default function RootLayout({
         />
         {children}
         {/* Privacy-friendly analytics by Plausible */}
-        <Script
-          src="https://plausible.io/js/pa-jox6Nfcg5lE6Iifkj-HHE.js"
-          strategy="afterInteractive"
-        />
-        <Script id="plausible-init" strategy="afterInteractive">
-          {`window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()`}
-        </Script>
+        {PLAUSIBLE_ENABLED && (
+          <>
+            <Script src={PLAUSIBLE_SCRIPT_SRC} strategy="afterInteractive" />
+            <Script id="plausible-init" strategy="afterInteractive">
+              {`window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()`}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );

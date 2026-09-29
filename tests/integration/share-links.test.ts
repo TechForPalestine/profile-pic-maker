@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   APP_URL,
+  PRODUCTION_APP_URL,
+  normalizeAppUrl,
   buildShareLinks,
   shareCaption,
   shareLandingUrl,
@@ -99,5 +101,48 @@ describe('buildShareLinks', () => {
       expect(label.toLowerCase()).toContain(channel === 'x' ? 'x' : channel);
       expect(href).toContain(`ref%3Dshare-${channel}`);
     }
+  });
+});
+
+describe('APP_URL', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it('defaults to production', () => {
+    expect(APP_URL).toBe(PRODUCTION_APP_URL);
+  });
+
+  it('normalises an override to an origin with a trailing slash', () => {
+    expect(normalizeAppUrl('https://pr-16.up.railway.app')).toBe(
+      'https://pr-16.up.railway.app/',
+    );
+    expect(normalizeAppUrl(' https://pr-16.up.railway.app/some/path ')).toBe(
+      'https://pr-16.up.railway.app/',
+    );
+  });
+
+  it('ignores empty or malformed overrides', () => {
+    for (const value of [
+      undefined,
+      '',
+      '  ',
+      'pr-16.up.railway.app',
+      'javascript:alert(1)',
+    ]) {
+      expect(normalizeAppUrl(value)).toBeUndefined();
+    }
+  });
+
+  it('points links at the preview when NEXT_PUBLIC_APP_URL is set', async () => {
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://pr-16.up.railway.app');
+    vi.resetModules();
+    const share = await import('@/lib/share');
+    expect(share.APP_URL).toBe('https://pr-16.up.railway.app/');
+    expect(share.IS_PRODUCTION_URL).toBe(false);
+    expect(share.shareLandingUrl('whatsapp')).toBe(
+      'https://pr-16.up.railway.app/?ref=share-whatsapp',
+    );
   });
 });

@@ -1,9 +1,10 @@
 import type { MetadataRoute } from 'next';
 
 import { APP_URL } from '@/lib/share';
+import { leaderboardEnabled } from '@/lib/referral';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
+  const pages: MetadataRoute.Sitemap = [
     {
       url: APP_URL,
       lastModified: new Date(),
@@ -16,5 +17,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.5,
     },
+    {
+      url: `${APP_URL}leaderboard`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.7,
+    },
+    {
+      url: `${APP_URL}leaderboard/join`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${APP_URL}leaderboard/how-it-works`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.4,
+    },
   ];
+  return leaderboardEnabled()
+    ? pages
+    : pages.filter((page) => !page.url.includes('leaderboard'));
 }

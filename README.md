@@ -82,6 +82,14 @@ next to it. Leave it unset and the link is simply hidden.
 Tally's free plan covers unlimited responses; no third-party script is loaded on
 the page either way.
 
+## Promoter leaderboard
+
+Personal referral links (`?ref=<code>`) and a moderated leaderboard of the
+people who bring the most others. It ships switched off; see
+[docs/leaderboard.md](docs/leaderboard.md) for how it works, its
+configuration and how to launch it, and
+[docs/cloudflare-pages.md](docs/cloudflare-pages.md) for deploying.
+
 ## Testing
 
 | Command | What it runs |

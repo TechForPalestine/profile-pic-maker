@@ -1,8 +1,33 @@
 import { ShareChannel, ShareFormat } from '@/types';
 
+export const PRODUCTION_APP_URL = 'https://ppm.techforpalestine.org/';
+
+/**
+ * Normalise an origin to `https://host/` (trailing slash, no path). Returns
+ * undefined for anything that is not an absolute http(s) URL, so a typo in
+ * an environment variable falls back to production instead of breaking links.
+ */
+export function normalizeAppUrl(value: string | undefined): string | undefined {
+  if (!value?.trim()) return undefined;
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return undefined;
+    return `${url.origin}/`;
+  } catch {
+    return undefined;
+  }
+}
+
 // Full canonical URL, used on every shared/copied link so previews and
-// redirects behave predictably.
-export const APP_URL = 'https://ppm.techforpalestine.org/';
+// redirects behave predictably. Preview deploys (Railway PR environments,
+// staging) set NEXT_PUBLIC_APP_URL to their own origin so the referral links
+// they hand out land back on the preview, not on production. Inlined at build
+// time, so it must be set before the build runs.
+export const APP_URL =
+  normalizeAppUrl(process.env.NEXT_PUBLIC_APP_URL) ?? PRODUCTION_APP_URL;
+
+/** True on the real site; previews keep search engines out. */
+export const IS_PRODUCTION_URL = APP_URL === PRODUCTION_APP_URL;
 
 // Short human-readable address shown on the story card and on the picture's
 // ring, where people retype what they see. Must redirect to the app.

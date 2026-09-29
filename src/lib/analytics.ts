@@ -13,13 +13,15 @@ declare global {
  * Funnel events tracked end to end in Plausible, in firing order. The
  * numeric prefix keeps them ordered in the Plausible dashboard.
  *
- * Landed: visitor opens the page.
+ * Landed: visitor opens the page. Carries `referrer`: the referral code this
+ *   browser is crediting (see `@/lib/referral`), or `none`.
  * SourceSelected: clicks a "pick a photo" button (upload or a social platform).
  * PhotoProvided: commits input (chooses a file / submits a username).
  * PhotoFetched: a usable source is obtained (data URL / social profile URL).
  * PreviewShown: that photo actually renders on screen.
  * Downloaded: the final framed image is downloaded (carries `branding`:
- *   whether the short URL was baked into the ring).
+ *   whether the short URL was baked into the ring, and `referrer` as above,
+ *   which is what the promoter leaderboard counts).
  */
 export const FunnelEvent = {
   Landed: 'Funnel: 1 Landed',
@@ -80,11 +82,39 @@ export const SurveyEvent = {
 export type SurveyEventName = (typeof SurveyEvent)[keyof typeof SurveyEvent];
 
 /**
+ * Promoter leaderboard funnel, in firing order (the numeric prefix keeps them
+ * ordered in Plausible). Props are fixed tokens only; a promoter's code
+ * reaches Plausible solely as `referrer` on the creation funnel above.
+ *
+ * CtaClicked: followed the post-download prompt to get a link; `method`.
+ * LinkCreated: created a referral link on the join page.
+ * LinkCopied: copied the link or the ready caption; `format` ('link' /
+ *   'caption'). Sharing happens off-site, so this is the last step we see
+ *   before people arrive through the link (Landed with `referrer`).
+ * ListingRequested: sent the listing form; `outcome` ('pending' or the error
+ *   class: 'invalid', 'taken', 'bot', 'full', 'paused', 'error').
+ * BoardViewed: not a funnel step; the board loaded a window; `window`.
+ * ProfileClicked: not a funnel step; a promoter's link on the board was
+ *   followed; `platform` (x, instagram, …, website).
+ */
+export const ReferralEvent = {
+  CtaClicked: 'Leaderboard: 1 CTA Clicked',
+  LinkCreated: 'Leaderboard: 2 Link Created',
+  LinkCopied: 'Leaderboard: 3 Link Copied',
+  ListingRequested: 'Leaderboard: 4 Listing Requested',
+  BoardViewed: 'Leaderboard: Board Viewed',
+  ProfileClicked: 'Leaderboard: Profile Clicked',
+} as const;
+
+export type ReferralEventName =
+  (typeof ReferralEvent)[keyof typeof ReferralEvent];
+
+/**
  * Safely fire a Plausible custom event. No-ops during SSR or if the
  * Plausible script hasn't loaded yet.
  */
 export function trackEvent(
-  event: FunnelEventName | ShareEventName | SurveyEventName,
+  event: FunnelEventName | ShareEventName | SurveyEventName | ReferralEventName,
   props?: PlausibleProps,
 ) {
   if (typeof window === 'undefined' || typeof window.plausible !== 'function') {
