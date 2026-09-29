@@ -201,13 +201,17 @@ compatibility date and the `nodejs_compat` flag, so the dashboard shows those
 read-only.
 
 Then, under **Settings → Variables and Secrets**, add the variables from the
-table in [Referral links and the promoter leaderboard](#referral-links-and-the-promoter-leaderboard)
-for both Production and Preview. Pages exposes them to the build and to the
-running app. `CLOUDFLARE_API_TOKEN`, `TURNSTILE_SECRET`, `ADMIN_TOKEN` and
-`PLAUSIBLE_API_KEY` go in as **Secret**; the rest as Text. Production must
-leave `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` and
-`NEXT_PUBLIC_REFERRAL_COUNTER` unset. Redeploy after changing a
-`NEXT_PUBLIC_*` value, since it is baked in at build time.
+table in [Referral links and the promoter leaderboard](#referral-links-and-the-promoter-leaderboard).
+Add **every one of them as type Secret**, including the non-secret IDs and the
+`NEXT_PUBLIC_*` values. Because `wrangler.jsonc` exists, Cloudflare treats it
+as the source of truth for plain-text variables and the dashboard only
+accepts Secrets; Pages still passes Secrets to the build and to the running
+app, so `NEXT_PUBLIC_*` values are baked in as usual. Variables typed into the
+project-creation form are discarded for the same reason, so add them after
+the project exists. Production must leave `NEXT_PUBLIC_APP_URL`,
+`NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` and `NEXT_PUBLIC_REFERRAL_COUNTER` unset.
+After changing any variable, retry the latest deployment: a deployment keeps
+the values it was built with.
 
 Finally add the site's hostname to the Turnstile widget, and a rate limiting
 rule on `/api/*` (Security → WAF → Rate limiting rules).
