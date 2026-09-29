@@ -161,6 +161,66 @@ test.describe('The join page', () => {
     });
   });
 
+  const captureListing = async (page: import('@playwright/test').Page) => {
+    const posted: { body?: Record<string, unknown> } = {};
+    await page.route('**/api/promoters', async (route) => {
+      posted.body = route.request().postDataJSON();
+      await route.fulfill({
+        status: 201,
+        json: { status: 'pending', code: 'x', ownerKey: 'd4'.repeat(24) },
+      });
+    });
+    return posted;
+  };
+
+  test('accepts a link typed without https://', async ({ page }) => {
+    const posted = await captureListing(page);
+    await createLink(page);
+    await page.getByLabel('Website').fill('mostafazh.me');
+    await page.getByRole('button', { name: 'Ask to be listed' }).click();
+    await expect(page.getByRole('status')).toContainText('Listing requested');
+    // The browser no longer blocks it; the server fills in the scheme.
+    expect(posted.body?.links).toEqual({ website: 'mostafazh.me' });
+  });
+
+  test('does not credit you for your own link', async ({ page }) => {
+    const posted = await captureListing(page);
+    const link = await createLink(page);
+    const code = new URL(link).searchParams.get('ref');
+    // Testing your own link in the same browser remembers you as referrer.
+    await page.goto(`/?ref=${code}`);
+    await page.goto('/leaderboard/join');
+    await expect(page.getByText(/arrived through/)).toHaveCount(0);
+    await page.getByLabel('X', { exact: true }).fill('x.com/paulbiggar');
+    await page.getByRole('button', { name: 'Ask to be listed' }).click();
+    await expect(page.getByRole('status')).toContainText('Listing requested');
+    expect(posted.body?.referredBy).toBeUndefined();
+  });
+
+  test('does not send a channel link as the recruiter', async ({ page }) => {
+    const posted = await captureListing(page);
+    await page.goto('/?ref=ch-mighty-missions');
+    await createLink(page);
+    await expect(page.getByText(/arrived through/)).toHaveCount(0);
+    await page.getByLabel('X', { exact: true }).fill('x.com/paulbiggar');
+    await page.getByRole('button', { name: 'Ask to be listed' }).click();
+    await expect(page.getByRole('status')).toContainText('Listing requested');
+    expect(posted.body?.referredBy).toBeUndefined();
+  });
+
+  test('credits the promoter whose link you arrived through', async ({
+    page,
+  }) => {
+    const posted = await captureListing(page);
+    await page.goto('/?ref=zaher-7k2q');
+    await createLink(page);
+    await expect(page.getByText(/arrived through/)).toContainText('zaher-7k2q');
+    await page.getByLabel('X', { exact: true }).fill('x.com/paulbiggar');
+    await page.getByRole('button', { name: 'Ask to be listed' }).click();
+    await expect(page.getByRole('status')).toContainText('Listing requested');
+    expect(posted.body?.referredBy).toBe('zaher-7k2q');
+  });
+
   test('shows the server’s reason when a request is refused', async ({
     page,
   }) => {
