@@ -348,12 +348,15 @@ function Entry({
                   {platform}
                 </span>
                 <input
-                  type="url"
+                  type="text"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   value={links[platform] ?? ''}
                   onChange={(e) =>
                     setLinks({ ...links, [platform]: e.target.value })
                   }
-                  placeholder="https://"
+                  placeholder="x.com/name"
                   maxLength={200}
                   className="mt-0.5 w-full rounded-lg border border-gray-400 px-3 py-1.5"
                 />

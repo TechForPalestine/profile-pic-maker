@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * approve: publish the entry. Clears `referredBy` unless it points at an
- *   approved promoter, so recruits are only ever credited to real entries.
+ * approve: publish the entry. `referredBy` is kept; the public recruit
+ *   count only includes approved entries, so it never credits a stranger.
  * unapprove: pull a published entry back into the review queue, for example
  *   while a question about it is sorted out. Nothing is lost.
  * reject: hide the entry for good (also how an approved entry is taken down).
@@ -88,19 +88,12 @@ export async function POST(request: NextRequest) {
   let updated: Promoter = promoter;
 
   switch (body.action) {
-    case 'approve': {
-      const referrer = promoter.referredBy
-        ? await store.get(promoter.referredBy)
-        : undefined;
-      updated = {
-        ...promoter,
-        status: 'approved',
-        reviewedAt: now,
-        referredBy:
-          referrer?.status === 'approved' ? promoter.referredBy : undefined,
-      };
+    case 'approve':
+      // referredBy is kept as sent: recruits are counted only among approved
+      // entries, for approved promoters, so the order in which two people are
+      // approved does not matter and credit is never lost.
+      updated = { ...promoter, status: 'approved', reviewedAt: now };
       break;
-    }
     case 'unapprove':
       updated = { ...promoter, status: 'pending', reviewedAt: now };
       break;

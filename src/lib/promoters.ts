@@ -118,14 +118,28 @@ function hostMatches(host: string, allowed: string): boolean {
   return host === allowed || host.endsWith(`.${allowed}`);
 }
 
-/** The normalized https URL, or undefined if the link is not acceptable. */
+/**
+ * The normalized https URL, or undefined if the link is not acceptable.
+ *
+ * People type links the way they read them, so the scheme is optional:
+ * `x.com/paul` and `www.paul.example` become `https://...`, and an explicit
+ * `http://` is upgraded to `https://`. Anything else with a scheme
+ * (`javascript:`, `ftp:`, `data:`) is rejected.
+ */
 export function normalizeLink(
   platform: LinkPlatform,
   value: unknown,
 ): string | undefined {
   if (typeof value !== 'string') return undefined;
-  const raw = value.trim();
+  let raw = value.trim();
   if (!raw || raw.length > LINK_MAX_LENGTH) return undefined;
+  if (/^http:\/\//i.test(raw)) {
+    raw = `https://${raw.slice('http://'.length)}`;
+  } else if (raw.startsWith('//')) {
+    raw = `https:${raw}`;
+  } else if (!/^[a-z][a-z0-9+.-]*:/i.test(raw)) {
+    raw = `https://${raw}`;
+  }
   let url: URL;
   try {
     url = new URL(raw);

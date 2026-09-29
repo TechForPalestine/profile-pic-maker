@@ -103,7 +103,7 @@ describe('validateJoinRequest', () => {
     expect(
       validateJoinRequest({
         ...validBody,
-        links: { x: 'http://x.com/paul' },
+        links: { x: 'ftp://x.com/paul' },
       }).ok,
     ).toBe(false);
     expect(
@@ -132,6 +132,27 @@ describe('normalizeLink', () => {
     expect(normalizeLink('website', 'https://paulbiggar.com/')).toBe(
       'https://paulbiggar.com/',
     );
+  });
+
+  it('fills in https:// when it is left out, and upgrades http://', () => {
+    expect(normalizeLink('website', 'mostafazh.me')).toBe(
+      'https://mostafazh.me/',
+    );
+    expect(normalizeLink('x', 'x.com/paul')).toBe('https://x.com/paul');
+    expect(normalizeLink('x', 'www.x.com/paul')).toBe('https://www.x.com/paul');
+    expect(normalizeLink('instagram', '//instagram.com/paul')).toBe(
+      'https://instagram.com/paul',
+    );
+    expect(normalizeLink('x', 'http://x.com/paul')).toBe('https://x.com/paul');
+    expect(normalizeLink('x', 'HTTP://x.com/paul')).toBe('https://x.com/paul');
+  });
+
+  it('still rejects other schemes and hosts off the list once filled in', () => {
+    expect(normalizeLink('website', 'javascript:alert(1)')).toBeUndefined();
+    expect(normalizeLink('website', 'data:text/html,hi')).toBeUndefined();
+    expect(normalizeLink('x', 'evil.example/paul')).toBeUndefined();
+    expect(normalizeLink('website', 'localhost')).toBeUndefined();
+    expect(normalizeLink('website', 'not a url')).toBeUndefined();
   });
 
   it('rejects lookalike hosts, credentials and oversized values', () => {
@@ -295,7 +316,7 @@ describe('join and approval flow (memory store)', () => {
     });
   });
 
-  it('credits recruits only to approved referrers', async () => {
+  it('credits a recruit whatever order the two are approved in', async () => {
     await join(jsonRequest('http://localhost/api/promoters', validBody));
     await join(
       jsonRequest('http://localhost/api/promoters', {
@@ -305,14 +326,19 @@ describe('join and approval flow (memory store)', () => {
         referredBy: 'paul',
       }),
     );
-    // Zaher approved while Paul is still pending: no credit.
+    // Zaher is approved while Paul is still pending: nothing public yet.
     await approve('zaher');
-    await approve('paul');
-    const res = await publicGet();
-    const { promoters } = (await res.json()) as {
+    const before = (await (await publicGet()).json()) as {
       promoters: { code: string; recruits: number }[];
     };
-    expect(promoters.find((p) => p.code === 'paul')?.recruits).toBe(0);
+    expect(before.promoters.map((p) => p.code)).toEqual(['zaher']);
+
+    // Once Paul is approved too, the credit shows up.
+    await approve('paul');
+    const after = (await (await publicGet()).json()) as {
+      promoters: { code: string; recruits: number }[];
+    };
+    expect(after.promoters.find((p) => p.code === 'paul')?.recruits).toBe(1);
   });
 
   it('rejects duplicates, bad bodies, and unauthorized admin calls', async () => {
