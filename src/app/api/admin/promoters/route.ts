@@ -3,7 +3,6 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { isAuthorized } from '@/lib/admin-auth';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
 import {
-  LINK_PLATFORMS,
   getPromoterStore,
   isValidDisplayName,
   normalizeDisplayName,
@@ -11,7 +10,6 @@ import {
   promoterStorage,
   toAdminPromoter,
   type Promoter,
-  type PromoterLinks,
 } from '@/lib/promoters';
 
 export const runtime = 'edge';
@@ -23,7 +21,8 @@ interface AdminBody {
   action?: Action;
   code?: string;
   displayName?: unknown;
-  links?: unknown;
+  /** The one optional link; an empty string removes it. */
+  link?: unknown;
 }
 
 const unauthorized = () =>
@@ -54,8 +53,8 @@ export async function GET(request: NextRequest) {
  * unapprove: pull a published entry back into the review queue, for example
  *   while a question about it is sorted out. Nothing is lost.
  * reject: hide the entry for good (also how an approved entry is taken down).
- * edit: fix the display name or links on any entry, approved ones included,
- *   e.g. to strip a bad link but keep the person. Approved entries stay
+ * edit: fix the display name or the link on any entry, approved ones
+ *   included, e.g. to remove a bad link but keep the person. Approved entries stay
  *   approved; the public board picks the change up within five minutes.
  */
 export async function POST(request: NextRequest) {
@@ -112,29 +111,24 @@ export async function POST(request: NextRequest) {
         }
         edits.displayName = displayName;
       }
-      if (body.links !== undefined) {
-        const links: PromoterLinks = {};
-        const raw = (body.links ?? {}) as Record<string, unknown>;
-        for (const platform of LINK_PLATFORMS) {
-          if (!raw[platform]) continue;
-          const normalized = normalizeLink(platform, raw[platform]);
-          if (!normalized) {
+      let removeLink = false;
+      if (body.link !== undefined) {
+        const raw = typeof body.link === 'string' ? body.link.trim() : '';
+        if (!raw) {
+          removeLink = true;
+        } else {
+          const link = normalizeLink(raw);
+          if (!link) {
             return NextResponse.json(
-              { error: `Invalid ${platform} link.` },
+              { error: 'Invalid link: use a web address like yoursite.com.' },
               { status: 400 },
             );
           }
-          links[platform] = normalized;
+          edits.link = link;
         }
-        if (Object.keys(links).length === 0) {
-          return NextResponse.json(
-            { error: 'Keep at least one link.' },
-            { status: 400 },
-          );
-        }
-        edits.links = links;
       }
       updated = { ...promoter, ...edits };
+      if (removeLink) delete updated.link;
       break;
     }
   }

@@ -1,12 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 
-import {
-  LINK_PLATFORMS,
-  type LinkPlatform,
-  type Promoter,
-  type PromoterLinks,
-} from '@/lib/promoters';
+import type { Promoter } from '@/lib/promoters';
 import { referralLink } from '@/lib/referral';
 
 const TOKEN_KEY = 'ppm-admin-token';
@@ -92,7 +87,7 @@ export default function AdminPanel() {
   const act = async (
     action: Action,
     code: string,
-    edits: { displayName?: string; links?: PromoterLinks } = {},
+    edits: { displayName?: string; link?: string } = {},
   ): Promise<boolean> => {
     setBusy(`${action}:${code}`);
     setError(undefined);
@@ -254,7 +249,7 @@ function Section({
   busy?: string;
   onEdit: (
     code: string,
-    edits: { displayName: string; links: PromoterLinks },
+    edits: { displayName: string; link: string },
   ) => Promise<boolean>;
   actions: (promoter: Promoter) => React.ReactNode;
 }) {
@@ -290,28 +285,27 @@ function Entry({
   busy?: string;
   onEdit: (
     code: string,
-    edits: { displayName: string; links: PromoterLinks },
+    edits: { displayName: string; link: string },
   ) => Promise<boolean>;
   actions: React.ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(p.displayName);
-  const [links, setLinks] = useState<PromoterLinks>(p.links);
+  const [link, setLink] = useState(p.link ?? '');
 
   const startEditing = () => {
     setDisplayName(p.displayName);
-    setLinks(p.links);
+    setLink(p.link ?? '');
     setEditing(true);
   };
 
   const save = async () => {
-    const cleaned: PromoterLinks = {};
-    for (const platform of LINK_PLATFORMS) {
-      const value = links[platform]?.trim();
-      if (value) cleaned[platform] = value;
-    }
+    // An empty link removes it; the server fills in https:// if missing.
     if (
-      await onEdit(p.code, { displayName: displayName.trim(), links: cleaned })
+      await onEdit(p.code, {
+        displayName: displayName.trim(),
+        link: link.trim(),
+      })
     ) {
       setEditing(false);
     }
@@ -341,28 +335,20 @@ function Entry({
               className="mt-0.5 w-full rounded-lg border border-gray-400 px-3 py-1.5"
             />
           </label>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {LINK_PLATFORMS.map((platform: LinkPlatform) => (
-              <label key={platform} className="block">
-                <span className="text-xs text-gray-600 capitalize">
-                  {platform}
-                </span>
-                <input
-                  type="text"
-                  inputMode="url"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  value={links[platform] ?? ''}
-                  onChange={(e) =>
-                    setLinks({ ...links, [platform]: e.target.value })
-                  }
-                  placeholder="x.com/name"
-                  maxLength={200}
-                  className="mt-0.5 w-full rounded-lg border border-gray-400 px-3 py-1.5"
-                />
-              </label>
-            ))}
-          </div>
+          <label className="block">
+            <span className="text-xs text-gray-600">Link (optional)</span>
+            <input
+              type="text"
+              inputMode="url"
+              autoCapitalize="none"
+              spellCheck={false}
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              placeholder="instagram.com/name or yoursite.com"
+              maxLength={200}
+              className="mt-0.5 w-full rounded-lg border border-gray-400 px-3 py-1.5"
+            />
+          </label>
           <div className="flex gap-2 pt-1">
             <ActionButton
               label="Save changes"
@@ -381,20 +367,20 @@ function Entry({
         </form>
       ) : (
         <>
-          <ul className="my-2 flex flex-wrap gap-x-4 gap-y-1">
-            {Object.entries(p.links).map(([platform, href]) => (
-              <li key={platform}>
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="underline break-all"
-                >
-                  {platform}: {href}
-                </a>
-              </li>
-            ))}
-          </ul>
+          <p className="my-2">
+            {p.link ? (
+              <a
+                href={p.link}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="underline break-all"
+              >
+                {p.link}
+              </a>
+            ) : (
+              <span className="text-gray-500">No link</span>
+            )}
+          </p>
           <p className="text-xs text-gray-500">
             Requested {new Date(p.createdAt).toLocaleString()}
             {p.reviewedAt && (

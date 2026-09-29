@@ -3,15 +3,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { constantTimeEqual, isAuthorized } from '@/lib/admin-auth';
 import {
-  KV_API_BASE,
-  createKvClient,
+  createBindingKvClient,
   createMemoryKvClient,
-} from '@/lib/cloudflare-kv';
+  kvBinding,
+  type KvNamespaceBinding,
+} from '@/lib/cloudflare-bindings';
 import {
   MAX_PENDING,
   createPromoterStore,
+  getPromoterStore,
   isValidDisplayName,
+  linkPlatform,
   normalizeLink,
+  promoterStorage,
   resetMemoryPromoterStore,
   toPublicPromoter,
   validateJoinRequest,
@@ -30,7 +34,7 @@ const ADMIN_TOKEN = 'a-very-long-admin-token-for-tests';
 const validBody = {
   code: 'paul',
   displayName: 'Paul Biggar',
-  links: { x: 'https://x.com/paulbiggar' },
+  link: 'x.com/paulbiggar',
 };
 
 const jsonRequest = (
@@ -62,7 +66,7 @@ describe('validateJoinRequest', () => {
     const result = validateJoinRequest({
       ...validBody,
       displayName: '  Paul   Biggar ',
-      links: { x: ' https://x.com/paulbiggar#top ', instagram: '' },
+      link: ' x.com/paulbiggar#top ',
       referredBy: 'zaher',
     });
     expect(result).toEqual({
@@ -70,10 +74,29 @@ describe('validateJoinRequest', () => {
       value: {
         code: 'paul',
         displayName: 'Paul Biggar',
-        links: { x: 'https://x.com/paulbiggar' },
+        link: 'https://x.com/paulbiggar',
         referredBy: 'zaher',
       },
     });
+  });
+
+  it('treats the link as optional', () => {
+    for (const link of [undefined, '', '   ', null]) {
+      const result = validateJoinRequest({ ...validBody, link });
+      expect(result).toMatchObject({ ok: true });
+      expect(result.ok && result.value.link).toBeUndefined();
+    }
+  });
+
+  it('rejects a link that is not a web address', () => {
+    for (const link of [
+      'javascript:alert(1)',
+      'ftp://x.com/paul',
+      'not a url',
+      'localhost',
+    ]) {
+      expect(validateJoinRequest({ ...validBody, link }).ok).toBe(false);
+    }
   });
 
   it('rejects reserved and malformed codes', () => {
@@ -92,28 +115,6 @@ describe('validateJoinRequest', () => {
     expect(isValidDisplayName('x'.repeat(41))).toBe(false);
   });
 
-  it('requires at least one link and rejects links off the allowlist', () => {
-    expect(validateJoinRequest({ ...validBody, links: {} }).ok).toBe(false);
-    expect(
-      validateJoinRequest({
-        ...validBody,
-        links: { x: 'https://evil.example/paul' },
-      }).ok,
-    ).toBe(false);
-    expect(
-      validateJoinRequest({
-        ...validBody,
-        links: { x: 'ftp://x.com/paul' },
-      }).ok,
-    ).toBe(false);
-    expect(
-      validateJoinRequest({
-        ...validBody,
-        links: { x: 'javascript:alert(1)' },
-      }).ok,
-    ).toBe(false);
-  });
-
   it('will not let a person refer themselves', () => {
     expect(validateJoinRequest({ ...validBody, referredBy: 'paul' }).ok).toBe(
       false,
@@ -122,48 +123,44 @@ describe('validateJoinRequest', () => {
 });
 
 describe('normalizeLink', () => {
-  it('allows subdomains of allowlisted hosts and any https website', () => {
-    expect(normalizeLink('x', 'https://www.twitter.com/paul')).toBe(
+  it('accepts any https website', () => {
+    expect(normalizeLink('https://www.twitter.com/paul')).toBe(
       'https://www.twitter.com/paul',
     );
-    expect(normalizeLink('youtube', 'https://youtu.be/abc')).toBe(
-      'https://youtu.be/abc',
-    );
-    expect(normalizeLink('website', 'https://paulbiggar.com/')).toBe(
+    expect(normalizeLink('https://paulbiggar.com/')).toBe(
       'https://paulbiggar.com/',
     );
   });
 
   it('fills in https:// when it is left out, and upgrades http://', () => {
-    expect(normalizeLink('website', 'mostafazh.me')).toBe(
-      'https://mostafazh.me/',
-    );
-    expect(normalizeLink('x', 'x.com/paul')).toBe('https://x.com/paul');
-    expect(normalizeLink('x', 'www.x.com/paul')).toBe('https://www.x.com/paul');
-    expect(normalizeLink('instagram', '//instagram.com/paul')).toBe(
+    expect(normalizeLink('mostafazh.me')).toBe('https://mostafazh.me/');
+    expect(normalizeLink('x.com/paul')).toBe('https://x.com/paul');
+    expect(normalizeLink('//instagram.com/paul')).toBe(
       'https://instagram.com/paul',
     );
-    expect(normalizeLink('x', 'http://x.com/paul')).toBe('https://x.com/paul');
-    expect(normalizeLink('x', 'HTTP://x.com/paul')).toBe('https://x.com/paul');
+    expect(normalizeLink('http://x.com/paul')).toBe('https://x.com/paul');
+    expect(normalizeLink('HTTP://x.com/paul')).toBe('https://x.com/paul');
   });
 
-  it('still rejects other schemes and hosts off the list once filled in', () => {
-    expect(normalizeLink('website', 'javascript:alert(1)')).toBeUndefined();
-    expect(normalizeLink('website', 'data:text/html,hi')).toBeUndefined();
-    expect(normalizeLink('x', 'evil.example/paul')).toBeUndefined();
-    expect(normalizeLink('website', 'localhost')).toBeUndefined();
-    expect(normalizeLink('website', 'not a url')).toBeUndefined();
+  it('rejects other schemes, credentials, bare hosts and oversized values', () => {
+    expect(normalizeLink('javascript:alert(1)')).toBeUndefined();
+    expect(normalizeLink('data:text/html,hi')).toBeUndefined();
+    expect(normalizeLink('https://user:pw@x.com/paul')).toBeUndefined();
+    expect(normalizeLink('localhost')).toBeUndefined();
+    expect(normalizeLink('https://localhost/')).toBeUndefined();
+    expect(normalizeLink(`https://a.com/${'x'.repeat(300)}`)).toBeUndefined();
   });
+});
 
-  it('rejects lookalike hosts, credentials and oversized values', () => {
-    expect(
-      normalizeLink('x', 'https://x.com.evil.example/paul'),
-    ).toBeUndefined();
-    expect(normalizeLink('x', 'https://user:pw@x.com/paul')).toBeUndefined();
-    expect(normalizeLink('website', 'https://localhost/')).toBeUndefined();
-    expect(
-      normalizeLink('website', `https://a.com/${'x'.repeat(300)}`),
-    ).toBeUndefined();
+describe('linkPlatform', () => {
+  it('recognises platforms by host, subdomains included, for the icon', () => {
+    expect(linkPlatform('https://x.com/paul')).toBe('x');
+    expect(linkPlatform('https://twitter.com/paul')).toBe('x');
+    expect(linkPlatform('https://www.instagram.com/paul')).toBe('instagram');
+    expect(linkPlatform('https://youtu.be/abc')).toBe('youtube');
+    expect(linkPlatform('https://mostafazh.me/')).toBe('website');
+    // A lookalike host is just a website.
+    expect(linkPlatform('https://x.com.evil.example/paul')).toBe('website');
   });
 });
 
@@ -171,7 +168,7 @@ describe('promoter store', () => {
   it('serves approved entries from one document and rebuilds it', async () => {
     const kv = createMemoryKvClient();
     const store = createPromoterStore(kv);
-    const base = { links: {}, createdAt: '2026-01-01T00:00:00.000Z' };
+    const base = { createdAt: '2026-01-01T00:00:00.000Z' };
     await store.put({
       ...base,
       code: 'a',
@@ -196,14 +193,13 @@ describe('promoter store', () => {
       {
         code: 'a',
         displayName: 'A',
-        links: {},
+        link: 'https://a.example/',
         status: 'approved',
         createdAt: '',
       },
       {
         code: 'b',
         displayName: 'B',
-        links: {},
         status: 'approved',
         createdAt: '',
         referredBy: 'a',
@@ -212,46 +208,101 @@ describe('promoter store', () => {
     expect(toPublicPromoter(approved[0], approved)).toEqual({
       code: 'a',
       displayName: 'A',
-      links: {},
+      link: 'https://a.example/',
       recruits: 1,
     });
   });
+
+  it('reads entries saved with per-platform links as a single link', async () => {
+    const kv = createMemoryKvClient({
+      'promoter:old': JSON.stringify({
+        code: 'old',
+        displayName: 'Old',
+        links: { instagram: 'https://instagram.com/old' },
+        status: 'approved',
+        createdAt: '',
+      }),
+    });
+    const entry = await createPromoterStore(kv).get('old');
+    expect(entry?.link).toBe('https://instagram.com/old');
+    expect(entry).not.toHaveProperty('links');
+  });
 });
 
-describe('KV REST client', () => {
-  afterEach(() => vi.unstubAllGlobals());
+describe('KV binding', () => {
+  /** A fake of the Workers KV binding with paginated list(). */
+  const fakeNamespace = (): KvNamespaceBinding & {
+    data: Map<string, string>;
+  } => {
+    const data = new Map<string, string>();
+    return {
+      data,
+      get: async (key) => data.get(key) ?? null,
+      put: async (key, value) => {
+        data.set(key, value);
+      },
+      delete: async (key) => {
+        data.delete(key);
+      },
+      list: async ({ prefix = '', cursor, limit = 1000 }) => {
+        const keys = [...data.keys()]
+          .filter((k) => k.startsWith(prefix))
+          .sort();
+        const start = cursor ? Number(cursor) : 0;
+        const page = keys.slice(start, start + Math.min(limit, 2));
+        const next = start + page.length;
+        return {
+          keys: page.map((name) => ({ name })),
+          list_complete: next >= keys.length,
+          cursor: next >= keys.length ? undefined : String(next),
+        };
+      },
+    };
+  };
 
-  it('talks to the namespace with the bearer token', async () => {
-    const fetchMock = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      const address = String(url);
-      if (address.endsWith('/values/missing')) {
-        return new Response('', { status: 404 });
-      }
-      if (init?.method === 'PUT') return new Response('{}', { status: 200 });
-      if (address.includes('/keys?')) {
-        return Response.json({ result: [{ name: 'promoter:a' }] });
-      }
-      return new Response('value', { status: 200 });
+  afterEach(() => {
+    delete (globalThis as Record<symbol, unknown>)[
+      Symbol.for('__cloudflare-request-context__')
+    ];
+  });
+
+  it('reads and writes through the binding, following list pagination', async () => {
+    const ns = fakeNamespace();
+    const kv = createBindingKvClient(ns);
+    for (const code of ['a', 'b', 'c', 'd', 'e']) {
+      await kv.put(`promoter:${code}`, code);
+    }
+    await kv.put('approved', '[]');
+    expect(await kv.get('promoter:c')).toBe('c');
+    expect(await kv.listKeys('promoter:')).toEqual([
+      'promoter:a',
+      'promoter:b',
+      'promoter:c',
+      'promoter:d',
+      'promoter:e',
+    ]);
+    await kv.delete('promoter:a');
+    expect(await kv.get('promoter:a')).toBeNull();
+  });
+
+  it('uses the PROMOTERS binding from the Pages request context', async () => {
+    expect(kvBinding()).toBeUndefined();
+    expect(promoterStorage()).toBe('memory');
+
+    const ns = fakeNamespace();
+    (globalThis as Record<symbol, unknown>)[
+      Symbol.for('__cloudflare-request-context__')
+    ] = { env: { PROMOTERS: ns } };
+    expect(kvBinding()).toBe(ns);
+    expect(promoterStorage()).toBe('kv');
+
+    await getPromoterStore().put({
+      code: 'paul',
+      displayName: 'Paul',
+      status: 'pending',
+      createdAt: '',
     });
-    vi.stubGlobal('fetch', fetchMock);
-    const kv = createKvClient({
-      CLOUDFLARE_ACCOUNT_ID: 'acct',
-      CLOUDFLARE_KV_NAMESPACE_ID: 'ns',
-      CLOUDFLARE_API_TOKEN: 'tok',
-    });
-
-    expect(await kv.get('missing')).toBeNull();
-    expect(await kv.get('promoter:a')).toBe('value');
-    await kv.put('promoter:a', 'x');
-    expect(await kv.listKeys('promoter:')).toEqual(['promoter:a']);
-
-    const [url, init] = fetchMock.mock.calls[1];
-    expect(String(url)).toBe(
-      `${KV_API_BASE}/accounts/acct/storage/kv/namespaces/ns/values/promoter%3Aa`,
-    );
-    expect((init?.headers as Record<string, string>).Authorization).toBe(
-      'Bearer tok',
-    );
+    expect(ns.data.has('promoter:paul')).toBe(true);
   });
 });
 
@@ -275,7 +326,6 @@ describe('join and approval flow (memory store)', () => {
     vi.stubEnv('ADMIN_TOKEN', ADMIN_TOKEN);
     vi.stubEnv('TURNSTILE_SECRET', '');
     vi.stubEnv('LEADERBOARD_JOIN_ENABLED', '');
-    vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', '');
   });
 
   afterEach(() => {
@@ -309,7 +359,7 @@ describe('join and approval flow (memory store)', () => {
         {
           code: 'paul',
           displayName: 'Paul Biggar',
-          links: { x: 'https://x.com/paulbiggar' },
+          link: 'https://x.com/paulbiggar',
           recruits: 0,
         },
       ],
@@ -322,7 +372,7 @@ describe('join and approval flow (memory store)', () => {
       jsonRequest('http://localhost/api/promoters', {
         code: 'zaher',
         displayName: 'Zaher',
-        links: { instagram: 'https://instagram.com/zaher' },
+        link: 'instagram.com/zaher',
         referredBy: 'paul',
       }),
     );
@@ -407,7 +457,7 @@ describe('join and approval flow (memory store)', () => {
           action: 'edit',
           code: 'paul',
           displayName: '  Paul  B. ',
-          links: { x: 'https://x.com/paulb', website: 'https://paul.example/' },
+          link: 'paul.example',
         },
         adminHeaders,
       ),
@@ -421,14 +471,28 @@ describe('join and approval flow (memory store)', () => {
         {
           code: 'paul',
           displayName: 'Paul B.',
-          links: { x: 'https://x.com/paulb', website: 'https://paul.example/' },
+          link: 'https://paul.example/',
           recruits: 0,
         },
       ],
     });
   });
 
-  it('refuses an edit that would leave a bad name or no links', async () => {
+  it('removes the link when an approver clears it', async () => {
+    await join(jsonRequest('http://localhost/api/promoters', validBody));
+    const res = await adminPost(
+      jsonRequest(
+        'http://localhost/api/admin/promoters',
+        { action: 'edit', code: 'paul', link: '' },
+        adminHeaders,
+      ),
+    );
+    expect(res.status).toBe(200);
+    const { promoter } = (await res.json()) as { promoter: Promoter };
+    expect(promoter).not.toHaveProperty('link');
+  });
+
+  it('refuses an edit with a bad name or a link that is not a web address', async () => {
     await join(jsonRequest('http://localhost/api/promoters', validBody));
     const badName = await adminPost(
       jsonRequest(
@@ -438,22 +502,14 @@ describe('join and approval flow (memory store)', () => {
       ),
     );
     expect(badName.status).toBe(400);
-    const noLinks = await adminPost(
+    const badLink = await adminPost(
       jsonRequest(
         'http://localhost/api/admin/promoters',
-        { action: 'edit', code: 'paul', links: {} },
+        { action: 'edit', code: 'paul', link: 'javascript:alert(1)' },
         adminHeaders,
       ),
     );
-    expect(noLinks.status).toBe(400);
-    const badHost = await adminPost(
-      jsonRequest(
-        'http://localhost/api/admin/promoters',
-        { action: 'edit', code: 'paul', links: { x: 'https://evil.example/' } },
-        adminHeaders,
-      ),
-    );
-    expect(badHost.status).toBe(400);
+    expect(badLink.status).toBe(400);
     // Nothing changed.
     const listed = await adminGet(
       new NextRequest('http://localhost/api/admin/promoters', {

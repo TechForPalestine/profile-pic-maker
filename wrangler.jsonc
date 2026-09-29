@@ -1,6 +1,49 @@
+// Cloudflare Pages configuration: the single source of truth for this
+// project on Cloudflare. Everything except three secrets lives here.
+//
+// Secrets (Settings -> Variables and Secrets, type Secret, per environment):
+//   ADMIN_TOKEN        40+ random characters, for /admin/promoters
+//   TURNSTILE_SECRET   the Turnstile widget's secret key
+//   PLAUSIBLE_API_KEY  Plausible Stats API key (production only)
+//
+// Values marked REPLACE_ME belong to the Cloudflare account that hosts the
+// site. Fill them in before this reaches the production branch; a deploy
+// with a placeholder id fails, which is the point.
+//
+// Pages has two environments: the production branch uses the top level,
+// every other branch and pull request uses env.preview. Bindings and vars
+// are not inherited, so env.preview lists all of its own.
+// Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
 {
   "name": "palestine-pfp",
   "compatibility_date": "2024-09-23",
   "compatibility_flags": ["nodejs_compat"],
-  "pages_build_output_dir": ".vercel/output/static"
+  "pages_build_output_dir": ".vercel/output/static",
+
+  // ---- production ----------------------------------------------------------
+  "vars": {
+    // Public: built into the join page.
+    "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "REPLACE_ME_turnstile_site_key",
+  },
+  "kv_namespaces": [
+    // Listing requests and the approved list (src/lib/promoters.ts).
+    { "binding": "PROMOTERS", "id": "REPLACE_ME_production_kv_namespace_id" },
+  ],
+
+  // ---- preview: every non-production branch and pull request ---------------
+  "env": {
+    "preview": {
+      "vars": {
+        "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "REPLACE_ME_turnstile_site_key",
+        // No analytics from previews, so test traffic never reaches the
+        // production Plausible site.
+        "NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC": "off",
+        // Links and robots.txt use the preview's own address (next.config.js).
+        "PAGES_PREVIEW": "1",
+      },
+      "kv_namespaces": [
+        { "binding": "PROMOTERS", "id": "REPLACE_ME_preview_kv_namespace_id" },
+      ],
+    },
+  },
 }

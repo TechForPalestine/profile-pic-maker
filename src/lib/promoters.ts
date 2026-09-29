@@ -1,30 +1,35 @@
 import {
-  createKvClient,
+  createBindingKvClient,
   createMemoryKvClient,
-  hasKvEnv,
+  kvBinding,
   type KvClient,
-  type KvEnv,
-} from '@/lib/cloudflare-kv';
+  type KvNamespaceBinding,
+} from '@/lib/cloudflare-bindings';
 import { isPromoterCode } from '@/lib/referral';
 
 /**
  * The promoter registry: who may appear on the public leaderboard.
  *
  * Anyone can generate a referral link and it is counted from the first click.
- * Appearing on the board with a display name and social links is a separate,
+ * Appearing on the board with a display name and an optional link is a separate,
  * moderated step: the board renders on a Tech For Palestine domain, so every
  * name and link on it has been looked at by a person first. Requests land as
  * `pending`; an approver flips them to `approved` (or `rejected`) from the
  * admin page, and only approved entries are ever served publicly.
  *
- * Storage is Workers KV over the REST API (see `@/lib/cloudflare-kv`):
+ * Storage is the Workers KV namespace bound as `PROMOTERS` in
+ * `wrangler.jsonc` (see `@/lib/cloudflare-bindings`):
  *   promoter:<code>  one JSON `Promoter` per code, the source of truth
  *   approved         the approved entries as one JSON array, rewritten by
  *                    admin actions, so the public read is a single `get`
- * Without Cloudflare credentials an in-memory store is used, which is what
- * `next dev` and the tests run against.
+ * Off Cloudflare an in-memory store is used, which is what `next dev` and the
+ * tests run against.
  */
 
+/**
+ * Platforms recognised from a link's host, only to pick an icon. Any https
+ * website is accepted; one that is not listed here shows a globe.
+ */
 export const LINK_PLATFORMS = [
   'x',
   'instagram',
@@ -38,14 +43,13 @@ export const LINK_PLATFORMS = [
 
 export type LinkPlatform = (typeof LINK_PLATFORMS)[number];
 
-export type PromoterLinks = Partial<Record<LinkPlatform, string>>;
-
 export type PromoterStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Promoter {
   code: string;
   displayName: string;
-  links: PromoterLinks;
+  /** One optional public link (a profile or a website), always https. */
+  link?: string;
   /** Code of the approved promoter whose link brought this person here. */
   referredBy?: string;
   status: PromoterStatus;
@@ -63,7 +67,7 @@ export interface Promoter {
 export interface PublicPromoter {
   code: string;
   displayName: string;
-  links: PromoterLinks;
+  link?: string;
   /** Approved promoters who joined through this person's link. */
   recruits: number;
 }
@@ -71,15 +75,11 @@ export interface PublicPromoter {
 export interface JoinRequest {
   code: string;
   displayName: string;
-  links: PromoterLinks;
+  link?: string;
   referredBy?: string;
 }
 
-/**
- * Hosts each social link may point at. A link is accepted when its host is
- * one of these or a subdomain of one, over https only. `website` is any https
- * host and is rendered with rel="nofollow".
- */
+/** Hosts that identify a platform (for the icon), subdomains included. */
 export const LINK_HOSTS: Record<Exclude<LinkPlatform, 'website'>, string[]> = {
   x: ['x.com', 'twitter.com'],
   instagram: ['instagram.com'],
@@ -122,14 +122,12 @@ function hostMatches(host: string, allowed: string): boolean {
  * The normalized https URL, or undefined if the link is not acceptable.
  *
  * People type links the way they read them, so the scheme is optional:
- * `x.com/paul` and `www.paul.example` become `https://...`, and an explicit
+ * `x.com/paul` and `mostafazh.me` become `https://...`, and an explicit
  * `http://` is upgraded to `https://`. Anything else with a scheme
- * (`javascript:`, `ftp:`, `data:`) is rejected.
+ * (`javascript:`, `ftp:`, `data:`), credentials, and hosts without a dot
+ * (`localhost`) are rejected.
  */
-export function normalizeLink(
-  platform: LinkPlatform,
-  value: unknown,
-): string | undefined {
+export function normalizeLink(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   let raw = value.trim();
   if (!raw || raw.length > LINK_MAX_LENGTH) return undefined;
@@ -150,14 +148,26 @@ export function normalizeLink(
     return undefined;
   }
   const host = url.hostname.toLowerCase();
-  if (platform !== 'website') {
-    const allowed = LINK_HOSTS[platform].some((h) => hostMatches(host, h));
-    if (!allowed) return undefined;
-  } else if (!host.includes('.')) {
+  if (!host.includes('.') || host.startsWith('.') || host.endsWith('.')) {
     return undefined;
   }
   url.hash = '';
   return url.toString();
+}
+
+/** Which platform a link belongs to, for its icon; `website` otherwise. */
+export function linkPlatform(link: string): LinkPlatform {
+  let host: string;
+  try {
+    host = new URL(link).hostname.toLowerCase();
+  } catch {
+    return 'website';
+  }
+  for (const [platform, hosts] of Object.entries(LINK_HOSTS)) {
+    if (hosts.some((h) => hostMatches(host, h)))
+      return platform as LinkPlatform;
+  }
+  return 'website';
 }
 
 export type ValidationResult =
@@ -182,23 +192,16 @@ export function validateJoinRequest(input: unknown): ValidationResult {
     );
   }
 
-  const links: PromoterLinks = {};
-  const rawLinks =
-    body.links && typeof body.links === 'object'
-      ? (body.links as Record<string, unknown>)
-      : {};
-  for (const platform of LINK_PLATFORMS) {
-    const raw = rawLinks[platform];
-    if (raw === undefined || raw === null || raw === '') continue;
-    const normalized = normalizeLink(platform, raw);
-    if (normalized) {
-      links[platform] = normalized;
-    } else {
-      errors.push(`The ${platform} link must be an https link on ${platform}.`);
+  // Optional: empty means no link. Anything else must be a web address.
+  let link: string | undefined;
+  const rawLink = typeof body.link === 'string' ? body.link.trim() : body.link;
+  if (rawLink !== undefined && rawLink !== null && rawLink !== '') {
+    link = normalizeLink(rawLink);
+    if (!link) {
+      errors.push(
+        'The link must be a web address, like instagram.com/yourname or yoursite.com.',
+      );
     }
-  }
-  if (Object.keys(links).length === 0) {
-    errors.push('Add at least one social link so people can find you.');
   }
 
   let referredBy: string | undefined;
@@ -211,7 +214,7 @@ export function validateJoinRequest(input: unknown): ValidationResult {
   }
 
   if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, value: { code, displayName, links, referredBy } };
+  return { ok: true, value: { code, displayName, link, referredBy } };
 }
 
 export function toPublicPromoter(
@@ -221,7 +224,7 @@ export function toPublicPromoter(
   return {
     code: promoter.code,
     displayName: promoter.displayName,
-    links: promoter.links,
+    link: promoter.link,
     recruits: approved.filter((p) => p.referredBy === promoter.code).length,
   };
 }
@@ -244,7 +247,7 @@ export function createPromoterStore(kv: KvClient): PromoterStore {
   const parse = (raw: string | null): Promoter | undefined => {
     if (!raw) return undefined;
     try {
-      return JSON.parse(raw) as Promoter;
+      return withSingleLink(JSON.parse(raw) as Promoter);
     } catch {
       return undefined;
     }
@@ -269,7 +272,7 @@ export function createPromoterStore(kv: KvClient): PromoterStore {
       const raw = await kv.get(APPROVED_KEY);
       if (!raw) return [];
       try {
-        return JSON.parse(raw) as Promoter[];
+        return (JSON.parse(raw) as Promoter[]).map(withSingleLink);
       } catch {
         return [];
       }
@@ -287,31 +290,44 @@ export function createPromoterStore(kv: KvClient): PromoterStore {
   return store;
 }
 
+/**
+ * Entries written before one link replaced per-platform links kept a
+ * `links` map; show its first value so nothing already approved goes blank.
+ */
+function withSingleLink(promoter: Promoter): Promoter {
+  const legacy = (promoter as { links?: Record<string, string> }).links;
+  if (promoter.link || !legacy) return promoter;
+  const first = Object.values(legacy).find(Boolean);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { links, ...rest } = promoter as Promoter & { links?: unknown };
+  return first ? { ...rest, link: first } : rest;
+}
+
 // One memory store per server process, so `next dev` keeps entries between
 // requests and a join followed by an admin approval works locally.
 let memoryStore: PromoterStore | undefined;
 
 /**
- * The store for this deployment: KV when the Cloudflare credentials are set,
+ * The store for this deployment: the `PROMOTERS` KV binding on Cloudflare,
  * otherwise the in-memory store.
  */
 export function getPromoterStore(
-  env: KvEnv = process.env as KvEnv,
+  binding: KvNamespaceBinding | undefined = kvBinding(),
 ): PromoterStore {
-  if (hasKvEnv(env)) return createPromoterStore(createKvClient(env));
+  if (binding) return createPromoterStore(createBindingKvClient(binding));
   memoryStore ??= createPromoterStore(createMemoryKvClient());
   return memoryStore;
 }
 
 /**
  * Where listing requests are kept on this deployment. `memory` means the
- * Cloudflare variables are missing: requests work but vanish on the next
+ * `PROMOTERS` binding is missing: requests work but vanish on the next
  * restart or deploy. The admin page and the deploy check surface it.
  */
 export function promoterStorage(
-  env: KvEnv = process.env as KvEnv,
+  binding: KvNamespaceBinding | undefined = kvBinding(),
 ): 'kv' | 'memory' {
-  return hasKvEnv(env) ? 'kv' : 'memory';
+  return binding ? 'kv' : 'memory';
 }
 
 /** Test hook: forget the process-wide memory store. */

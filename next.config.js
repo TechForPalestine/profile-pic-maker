@@ -1,5 +1,17 @@
 const { withSentryConfig } = require('@sentry/nextjs');
 
+// Cloudflare Pages previews (env.preview in wrangler.jsonc sets
+// PAGES_PREVIEW) hand out links to themselves: CF_PAGES_URL is the address of
+// the deployment being built. Set before Next.js inlines NEXT_PUBLIC_* values.
+// An explicit NEXT_PUBLIC_APP_URL always wins.
+if (
+  process.env.PAGES_PREVIEW === '1' &&
+  process.env.CF_PAGES_URL &&
+  !process.env.NEXT_PUBLIC_APP_URL
+) {
+  process.env.NEXT_PUBLIC_APP_URL = process.env.CF_PAGES_URL;
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Required on Next.js 14 so `src/instrumentation.ts` is loaded (stable in Next 15).

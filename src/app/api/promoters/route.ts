@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   }
 
   const store = getPromoterStore();
-  const { code, displayName, links, referredBy } = validation.value;
+  const { code, displayName, link, referredBy } = validation.value;
 
   if (await store.get(code)) {
     return NextResponse.json(
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
   const promoter: Promoter = {
     code,
     displayName,
-    links,
+    link,
     referredBy,
     status: 'pending',
     createdAt: new Date().toISOString(),

@@ -17,8 +17,9 @@ export default function AdminPromotersPage() {
     <main className="min-h-screen px-6 py-10 max-w-3xl mx-auto w-full">
       <h1 className="text-2xl font-bold mb-1">Promoter approvals</h1>
       <p className="text-sm text-gray-600 mb-6">
-        Approve only people you can vouch for or whose links check out. Anything
-        approved here appears on the public leaderboard within five minutes.
+        Approve only people you can vouch for, or whose link checks out.
+        Anything approved here appears on the public leaderboard within five
+        minutes.
       </p>
       <AdminPanel />
     </main>
