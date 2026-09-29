@@ -156,7 +156,7 @@ test.describe('Promoter approvals page', () => {
     expect(posts[1]).toEqual({ action: 'unapprove', code: 'paul' });
   });
 
-  test('shows last-7-day numbers per entry and flags impossible ones', async ({
+  test('shows last-7-day numbers per entry and flags unusual ones', async ({
     page,
   }) => {
     const shady = {
@@ -210,10 +210,10 @@ test.describe('Promoter approvals page', () => {
     const stats = page.getByTestId('entry-stats');
     await expect(
       stats.filter({ hasText: '50 downloads, 2 visits' }),
-    ).toContainText('suspicious');
+    ).toContainText('check these numbers');
     await expect(
       stats.filter({ hasText: '40 downloads, 90 visits' }),
-    ).not.toContainText('suspicious');
+    ).not.toContainText('check these numbers');
   });
 
   test('warns when requests are only kept in memory', async ({ page }) => {

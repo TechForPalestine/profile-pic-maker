@@ -109,8 +109,8 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
 - **Counts.** `/api/leaderboard` queries the Plausible Stats API (v2) for
   unique downloaders and unique landings grouped by `referrer`, and downloads
   by visit source, joins them onto the approved registry, and computes each
-  window at most once every five minutes on the server (`src/lib/board-cache.ts`),
-  so visitors can never spend the key's 600-per-hour budget. Rows rank by
+  window at most once every ten minutes and shares the result through KV
+  (`src/lib/board-cache.ts`), so visitors never reach the Stats API directly. Rows rank by
   unique downloads; visits are shown for context. Without a Plausible key it
   answers 503 and the page shows a "warming up" state. Counts for codes that
   are not approved travel as `pendingCounts`, keyed by a SHA-256 fingerprint
@@ -119,7 +119,8 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
 
 Configuration lives in `wrangler.jsonc`: the `PROMOTERS` KV binding and the
 plain variables, with a separate block under `env.preview` for preview
-deploys (Pages does not inherit top-level values there). Replace the
+deploys (Pages does not inherit top-level values there). Previews have no KV
+binding, so they never touch production listings. Replace the
 `REPLACE_ME_*` placeholders with real IDs before deploying. Only three
 values are secret and are set in the dashboard (Settings → Variables and
 Secrets, type Secret) or with `wrangler pages secret put`:
@@ -154,32 +155,17 @@ pending, approved, rejected or unknown to the server, so nobody sees "pending
 review" for a request that was declined or lost. Anyone without the key gets
 `none`, so the endpoint reveals nothing about other people's listings.
 
-Rate limits, per client IP and one-minute window (`src/lib/rate-limit.ts`):
-
-| Route                        | Limit |
-| ---------------------------- | ----- |
-| `POST /api/promoters` (join) | 5     |
-| `POST /api/promoters/status` | 30    |
-| `/api/admin/promoters`       | 30    |
-| `GET /api/leaderboard`       | 60    |
-
-They are exact on a single Node instance and best effort on Cloudflare,
-where each location counts on its own. In production, add a Cloudflare rate
-limiting rule on `/api/*` as the real guard.
+The API routes are rate limited per client IP (`src/lib/rate-limit.ts`). In
+production, also add a Cloudflare rate limiting rule on `/api/*`.
 
 Moderation: approve only names that are not impersonating anyone and a link
 (optional, one per entry) that goes to real public profiles with nothing abusive on them. Each entry on
-the approvals page shows its last-7-day downloads and visits, with a
-"suspicious" badge when downloads exceed visits: Plausible's Events API is
-open, so a script on a residential connection can inflate a code, and this
-ratio is the tell (a script fires downloads without landing). Plausible
-itself drops events from data-center IPs and known bot user agents, nothing
-more. The pages
-promise a review within a few hours and at most a day, so keep two approvers
+the approvals page shows its last-7-day downloads and visits, and flags
+numbers worth a second look. The pages promise a review within a few hours and at most a day, so keep two approvers
 on rota. Every entry, approved ones included, can be edited in place (name
 and link) from `/admin/promoters`; "Back to review" pulls an approved entry
 into the queue without losing it, and "Take down" rejects it. The board
-refreshes within five minutes either way.
+refreshes within ten minutes either way.
 
 ## Deploying to Cloudflare Pages
 
