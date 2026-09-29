@@ -1,9 +1,10 @@
 import type { MetadataRoute } from 'next';
 
 import { APP_URL } from '@/lib/share';
+import { leaderboardEnabled } from '@/lib/referral';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
+  const pages: MetadataRoute.Sitemap = [
     {
       url: APP_URL,
       lastModified: new Date(),
@@ -35,4 +36,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.4,
     },
   ];
+  return leaderboardEnabled()
+    ? pages
+    : pages.filter((page) => !page.url.includes('leaderboard'));
 }

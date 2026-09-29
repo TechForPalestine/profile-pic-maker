@@ -120,9 +120,8 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
 Configuration lives in `wrangler.jsonc`: the `PROMOTERS` KV binding and the
 plain variables, with a separate block under `env.preview` for preview
 deploys (Pages does not inherit top-level values there). Previews have no KV
-binding, so they never touch production listings. Replace the
-`REPLACE_ME_*` placeholders with real IDs before deploying. Only three
-values are secret and are set in the dashboard (Settings → Variables and
+binding, so they never touch production listings. Only three values are
+secret and are set in the dashboard (Settings → Variables and
 Secrets, type Secret) or with `wrangler pages secret put`:
 
 | Secret              | Purpose                                                                                  |
@@ -133,20 +132,30 @@ Secrets, type Secret) or with `wrangler pages secret put`:
 
 Variables in `wrangler.jsonc` (`vars`):
 
-| Variable                                  | Purpose                                                                                                                                            |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`          | Turnstile site key. Unset: no widget.                                                                                                              |
-| `PLAUSIBLE_SITE_ID`, `PLAUSIBLE_API_HOST` | Optional overrides (default `ppm.techforpalestine.org`, `https://plausible.io`).                                                                   |
-| `LEADERBOARD_JOIN_ENABLED`                | Set to `false` to pause new listing requests (kill switch).                                                                                        |
-| `NEXT_PUBLIC_APP_URL`                     | Preview deploys only: this deploy's origin, so generated links stay on it. Filled from `CF_PAGES_URL` when `PAGES_PREVIEW=1`. Unset in production. |
-| `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC`        | Preview deploys only: a staging Plausible script URL, or `off` to send no analytics. Unset in production.                                          |
+| Variable                                  | Purpose                                                                                                                                             |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_LEADERBOARD`                 | `off` hides the leaderboard: its pages and APIs answer 404 and nothing links to them. Referral attribution runs either way. Production ships `off`. |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`          | Turnstile site key. Unset: no widget.                                                                                                               |
+| `PLAUSIBLE_SITE_ID`, `PLAUSIBLE_API_HOST` | Optional overrides (default `ppm.techforpalestine.org`, `https://plausible.io`).                                                                    |
+| `LEADERBOARD_JOIN_ENABLED`                | Set to `false` to pause new listing requests (kill switch).                                                                                         |
+| `NEXT_PUBLIC_APP_URL`                     | Preview deploys only: this deploy's origin, so generated links stay on it. Filled from `CF_PAGES_URL` when `PAGES_PREVIEW=1`. Unset in production.  |
+| `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC`        | Preview deploys only: a staging Plausible script URL, or `off` to send no analytics. Unset in production.                                           |
 
-The two `NEXT_PUBLIC_*` values are inlined at build time, so set them before
+The `NEXT_PUBLIC_*` values are inlined at build time, so set them before
 the build. A preview whose `NEXT_PUBLIC_APP_URL` is not production also serves
 a robots.txt that blocks crawling.
 
-One-time Plausible step: add `referrer` under the site's allowed custom
-properties so the prop is queryable.
+To launch the leaderboard in production: create the KV namespace and a
+Turnstile widget, add the three secrets, then in one change to
+`wrangler.jsonc` uncomment `kv_namespaces` with the namespace id, set
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY`, and set `NEXT_PUBLIC_LEADERBOARD` to `on`.
+
+Plausible: the site's allowed custom properties must include `referrer`,
+`window`, `outcome` and `platform`. The leaderboard events are
+`Leaderboard: 1 CTA Clicked`, `2 Link Created`, `3 Link Copied`
+(`format`), `4 Listing Requested` (`outcome`), plus `Leaderboard: Board
+Viewed` (`window`) and `Leaderboard: Profile Clicked` (`platform`); add them
+as goals to see them in the dashboard.
 
 Listing status: a listing request returns a private owner key that the
 browser keeps; the server stores only its SHA-256. The join page and the

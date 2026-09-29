@@ -1,3 +1,5 @@
+'use client';
+
 import type { IconType } from 'react-icons';
 import {
   FaArrowUpRightFromSquare,
@@ -10,6 +12,7 @@ import {
   FaYoutube,
 } from 'react-icons/fa6';
 
+import { ReferralEvent, trackEvent } from '@/lib/analytics';
 import { linkPlatform, type LinkPlatform } from '@/lib/promoters';
 
 export const PLATFORM_META: Record<
@@ -40,13 +43,15 @@ export default function ProfileLink({
   link?: string;
 }) {
   if (!link) return null;
-  const { label, Icon } = PLATFORM_META[linkPlatform(link)];
+  const platform = linkPlatform(link);
+  const { label, Icon } = PLATFORM_META[platform];
   const what = label === 'Website' ? 'website' : `on ${label}`;
   return (
     <a
       href={link}
       target="_blank"
       rel="noopener noreferrer nofollow"
+      onClick={() => trackEvent(ReferralEvent.ProfileClicked, { platform })}
       aria-label={`${name} ${what}`}
       title={`${name} ${what}`}
       className="inline-flex rounded-full p-1.5 align-middle text-gray-700 hover:bg-gray-900 hover:text-white transition-colors"

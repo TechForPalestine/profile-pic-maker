@@ -112,7 +112,7 @@ export default function JoinForm() {
     };
     saveMyPromoter(promoter);
     setMine(promoter);
-    trackEvent(ReferralEvent.LinkGenerated, { format: 'created' });
+    trackEvent(ReferralEvent.LinkCreated);
   };
 
   const link = mine ? referralLink(mine.code) : undefined;
@@ -134,7 +134,7 @@ export default function JoinForm() {
       await navigator.clipboard.writeText(text);
       setCopied(format);
       setTimeout(() => setCopied(undefined), 2000);
-      trackEvent(ReferralEvent.LinkGenerated, { format });
+      trackEvent(ReferralEvent.LinkCopied, { format });
     } catch (error) {
       console.error('Error copying', error);
     }
@@ -162,7 +162,7 @@ export default function JoinForm() {
         ownerKey?: string;
       };
       if (res.status === 201) {
-        trackEvent(ReferralEvent.JoinRequested, { outcome: 'pending' });
+        trackEvent(ReferralEvent.ListingRequested, { outcome: 'pending' });
         setLostRequest(false);
         const submitted = {
           ...mine,
@@ -186,7 +186,7 @@ export default function JoinForm() {
                 : res.status === 503
                   ? 'paused'
                   : 'error';
-      trackEvent(ReferralEvent.JoinRequested, { outcome });
+      trackEvent(ReferralEvent.ListingRequested, { outcome });
       setSubmission({
         status: 'failed',
         errors: body.errors ?? [
@@ -194,7 +194,7 @@ export default function JoinForm() {
         ],
       });
     } catch {
-      trackEvent(ReferralEvent.JoinRequested, { outcome: 'error' });
+      trackEvent(ReferralEvent.ListingRequested, { outcome: 'error' });
       setSubmission({
         status: 'failed',
         errors: ['Could not reach the server. Please try again.'],

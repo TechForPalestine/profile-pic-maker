@@ -3,6 +3,9 @@ import Link from 'next/link';
 
 import SiteFooter from '../site-footer';
 import Board from './board';
+import { notFound } from 'next/navigation';
+
+import { leaderboardEnabled } from '@/lib/referral';
 
 export const metadata: Metadata = {
   title: 'Promoter Leaderboard - Palestine Profile Pic Maker 🇵🇸',
@@ -14,6 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default function LeaderboardPage() {
+  if (!leaderboardEnabled()) notFound();
   return (
     <main className="min-h-screen flex flex-col text-center">
       <div className="flex-1 flex flex-col px-6 py-12 max-w-xl mx-auto w-full">

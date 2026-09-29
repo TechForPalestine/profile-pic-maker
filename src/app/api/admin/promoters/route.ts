@@ -11,6 +11,7 @@ import {
   toAdminPromoter,
   type Promoter,
 } from '@/lib/promoters';
+import { leaderboardEnabled } from '@/lib/referral';
 
 export const runtime = 'edge';
 
@@ -30,6 +31,7 @@ const unauthorized = () =>
 
 /** Everything in the registry, grouped by status, for the admin page. */
 export async function GET(request: NextRequest) {
+  if (!leaderboardEnabled()) return new NextResponse(null, { status: 404 });
   const limited = rateLimit(request, LIMITS.admin);
   if (limited) return limited;
   if (!isAuthorized(request.headers.get('authorization'))) {
@@ -58,6 +60,7 @@ export async function GET(request: NextRequest) {
  *   approved; the public board picks the change up within ten minutes.
  */
 export async function POST(request: NextRequest) {
+  if (!leaderboardEnabled()) return new NextResponse(null, { status: 404 });
   const limited = rateLimit(request, LIMITS.admin);
   if (limited) return limited;
   if (!isAuthorized(request.headers.get('authorization'))) {

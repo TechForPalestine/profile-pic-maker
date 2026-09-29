@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 
 import AdminPanel from './admin-panel';
+import { notFound } from 'next/navigation';
+
+import { leaderboardEnabled } from '@/lib/referral';
 
 export const metadata: Metadata = {
   title: 'Promoter approvals - Palestine Profile Pic Maker',
@@ -13,6 +16,7 @@ export const metadata: Metadata = {
  * /api/admin/promoters, which needs the admin token.
  */
 export default function AdminPromotersPage() {
+  if (!leaderboardEnabled()) notFound();
   return (
     <main className="min-h-screen px-6 py-10 max-w-3xl mx-auto w-full">
       <h1 className="text-2xl font-bold mb-1">Promoter approvals</h1>

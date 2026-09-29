@@ -7,6 +7,7 @@ import {
   dataUrlToFile,
   shareCaption,
 } from '@/lib/share';
+import { leaderboardEnabled } from '@/lib/referral';
 import { ShareChannel, ShareFormat } from '@/types';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
@@ -280,16 +281,18 @@ export default function SharePanel({
       )}
       {/* The person just made something they are about to post: the moment
           to offer credit for everyone that post brings in. */}
-      <p className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
-        Bringing friends along?{' '}
-        <Link
-          href="/leaderboard/join"
-          onClick={() => trackEvent(ReferralEvent.CtaClicked, { method })}
-          className="underline font-semibold text-gray-900"
-        >
-          Get your own link and join the leaderboard
-        </Link>
-      </p>
+      {leaderboardEnabled() && (
+        <p className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
+          Bringing friends along?{' '}
+          <Link
+            href="/leaderboard/join"
+            onClick={() => trackEvent(ReferralEvent.CtaClicked, { method })}
+            className="underline font-semibold text-gray-900"
+          >
+            Get your own link and join the leaderboard
+          </Link>
+        </p>
+      )}
 
       {/* Off-screen 9:16 story card, rasterised at 3x into a 1080x1920 PNG.
           Kept rendered (not display:none) so html-to-image can lay it out. */}

@@ -160,6 +160,39 @@ test.describe('The join page', () => {
     });
   });
 
+  test('reports the join funnel to analytics with fixed props only', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const events: [string, unknown][] = [];
+      (window as unknown as { __events: typeof events }).__events = events;
+      Object.defineProperty(window, 'plausible', {
+        value: (name: string, options?: { props?: unknown }) =>
+          events.push([name, options?.props]),
+      });
+    });
+    await page.context().grantPermissions(['clipboard-write']);
+    await page.route('**/api/promoters', (route) =>
+      route.fulfill({
+        status: 201,
+        json: { status: 'pending', code: 'x', ownerKey: 'e5'.repeat(24) },
+      }),
+    );
+    await createLink(page);
+    await page.getByRole('button', { name: 'Copy link' }).click();
+    await page.getByRole('button', { name: 'Ask to be listed' }).click();
+    await expect(page.getByRole('status')).toContainText('Listing requested');
+
+    const events = await page.evaluate(
+      () => (window as unknown as { __events: [string, unknown][] }).__events,
+    );
+    expect(events.filter(([name]) => name.startsWith('Leaderboard:'))).toEqual([
+      ['Leaderboard: 2 Link Created', undefined],
+      ['Leaderboard: 3 Link Copied', { format: 'link' }],
+      ['Leaderboard: 4 Listing Requested', { outcome: 'pending' }],
+    ]);
+  });
+
   const captureListing = async (page: import('@playwright/test').Page) => {
     const posted: { body?: Record<string, unknown> } = {};
     await page.route('**/api/promoters', async (route) => {

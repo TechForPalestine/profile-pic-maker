@@ -11,6 +11,7 @@ import {
 } from '@/lib/plausible-stats';
 import { getPromoterStore } from '@/lib/promoters';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
+import { leaderboardEnabled } from '@/lib/referral';
 
 export const runtime = 'edge';
 
@@ -26,6 +27,7 @@ const SHORT_CACHE = 'public, s-maxage=60';
  * board must not spend it per visitor.
  */
 export async function GET(request: NextRequest) {
+  if (!leaderboardEnabled()) return new NextResponse(null, { status: 404 });
   const limited = rateLimit(request, LIMITS.leaderboard);
   if (limited) return limited;
 

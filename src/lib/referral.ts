@@ -223,3 +223,12 @@ export async function hashReferralCode(code: string): Promise<string> {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
+
+/**
+ * The leaderboard (pages, links to it and its APIs) is on unless
+ * `NEXT_PUBLIC_LEADERBOARD` is `off`. Production ships it off until its
+ * storage and keys exist; referral attribution runs either way.
+ */
+export function leaderboardEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_LEADERBOARD !== 'off';
+}

@@ -90,7 +90,7 @@ export default function Board() {
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setState({ status: 'loading' });
-    trackEvent(ReferralEvent.LeaderboardViewed, { window });
+    trackEvent(ReferralEvent.BoardViewed, { window });
     fetch(`/api/leaderboard?window=${window}`)
       .then(async (res) => {
         if (cancelled) return;

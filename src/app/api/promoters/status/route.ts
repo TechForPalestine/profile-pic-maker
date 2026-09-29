@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { constantTimeEqual } from '@/lib/admin-auth';
 import { getPromoterStore, hashOwnerKey } from '@/lib/promoters';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
-import { isPromoterCode } from '@/lib/referral';
+import { isPromoterCode, leaderboardEnabled } from '@/lib/referral';
 
 export const runtime = 'edge';
 
@@ -26,6 +26,7 @@ const answer = (status: ListingStatus) =>
   NextResponse.json({ status }, { headers: { 'Cache-Control': 'no-store' } });
 
 export async function POST(request: NextRequest) {
+  if (!leaderboardEnabled()) return new NextResponse(null, { status: 404 });
   const limited = rateLimit(request, LIMITS.status);
   if (limited) return limited;
 

@@ -24,6 +24,9 @@ import {
   type Promoter,
 } from '@/lib/promoters';
 import { GET } from '@/app/api/leaderboard/route';
+import { GET as listPromoters, POST as join } from '@/app/api/promoters/route';
+import { POST as status } from '@/app/api/promoters/status/route';
+import { GET as adminList } from '@/app/api/admin/promoters/route';
 import { cachedBoard, resetBoardCache } from '@/lib/board-cache';
 import { resetRateLimits } from '@/lib/rate-limit';
 
@@ -558,5 +561,23 @@ describe('GET /api/leaderboard under load', () => {
       );
     for (let i = 0; i < 60; i++) expect((await hit()).status).toBe(200);
     expect((await hit()).status).toBe(429);
+  });
+});
+
+describe('leaderboard switched off', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('answers 404 on every leaderboard API, before any other check', async () => {
+    vi.stubEnv('NEXT_PUBLIC_LEADERBOARD', 'off');
+    const post = (url: string) =>
+      new NextRequest(url, { method: 'POST', body: '{}' });
+    const responses = await Promise.all([
+      GET(new NextRequest('http://localhost/api/leaderboard?window=day')),
+      listPromoters(),
+      join(post('http://localhost/api/promoters')),
+      status(post('http://localhost/api/promoters/status')),
+      adminList(new NextRequest('http://localhost/api/admin/promoters')),
+    ]);
+    expect(responses.map((r) => r.status)).toEqual([404, 404, 404, 404, 404]);
   });
 });

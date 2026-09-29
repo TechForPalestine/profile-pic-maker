@@ -1,6 +1,7 @@
 'use client';
 import { FunnelEvent, trackEvent } from '@/lib/analytics';
 import {
+  leaderboardEnabled,
   readReferralCode,
   referrerProp,
   rememberReferrer,
@@ -402,9 +403,11 @@ export default function Home() {
             <Link href="/faq" className="underline text-gray-600">
               Read all FAQs
             </Link>
-            <Link href="/leaderboard" className="underline text-gray-600">
-              See the promoter leaderboard
-            </Link>
+            {leaderboardEnabled() && (
+              <Link href="/leaderboard" className="underline text-gray-600">
+                See the promoter leaderboard
+              </Link>
+            )}
           </p>
         </section>
       </div>

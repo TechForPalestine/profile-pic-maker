@@ -82,24 +82,28 @@ export const SurveyEvent = {
 export type SurveyEventName = (typeof SurveyEvent)[keyof typeof SurveyEvent];
 
 /**
- * Referral links and the promoter leaderboard (see `@/lib/referral`).
+ * Promoter leaderboard funnel, in firing order (the numeric prefix keeps them
+ * ordered in Plausible). Props are fixed tokens only; a promoter's code
+ * reaches Plausible solely as `referrer` on the creation funnel above.
  *
- * LeaderboardViewed: the board fetched a window; carries `window`.
- * LinkGenerated: a visitor created a referral link, or copied it or its
- *   caption, on the join page; carries `format` ('created' / 'link' /
- *   'caption'). Only ever fixed tokens: the
- *   code itself stays out of analytics props here (it reaches Plausible as
- *   `referrer` on downloads, where it is the point).
- * JoinRequested: the listing form was submitted; carries `outcome`
- *   ('pending' or the error class: 'invalid', 'taken', 'bot', 'full',
- *   'paused', 'error').
- * CtaClicked: the post-download prompt to join was followed; carries `method`.
+ * CtaClicked: followed the post-download prompt to get a link; `method`.
+ * LinkCreated: created a referral link on the join page.
+ * LinkCopied: copied the link or the ready caption; `format` ('link' /
+ *   'caption'). Sharing happens off-site, so this is the last step we see
+ *   before people arrive through the link (Landed with `referrer`).
+ * ListingRequested: sent the listing form; `outcome` ('pending' or the error
+ *   class: 'invalid', 'taken', 'bot', 'full', 'paused', 'error').
+ * BoardViewed: not a funnel step; the board loaded a window; `window`.
+ * ProfileClicked: not a funnel step; a promoter's link on the board was
+ *   followed; `platform` (x, instagram, …, website).
  */
 export const ReferralEvent = {
-  LeaderboardViewed: 'Referral: Leaderboard Viewed',
-  LinkGenerated: 'Referral: Link Generated',
-  JoinRequested: 'Referral: Join Requested',
-  CtaClicked: 'Referral: CTA Clicked',
+  CtaClicked: 'Leaderboard: 1 CTA Clicked',
+  LinkCreated: 'Leaderboard: 2 Link Created',
+  LinkCopied: 'Leaderboard: 3 Link Copied',
+  ListingRequested: 'Leaderboard: 4 Listing Requested',
+  BoardViewed: 'Leaderboard: Board Viewed',
+  ProfileClicked: 'Leaderboard: Profile Clicked',
 } as const;
 
 export type ReferralEventName =

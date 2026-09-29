@@ -13,11 +13,13 @@ import {
 } from '@/lib/promoters';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
 import { verifyTurnstile } from '@/lib/turnstile';
+import { leaderboardEnabled } from '@/lib/referral';
 
 export const runtime = 'edge';
 
 /** Approved promoters only: the leaderboard joins these onto its counts. */
 export async function GET() {
+  if (!leaderboardEnabled()) return new NextResponse(null, { status: 404 });
   const store = getPromoterStore();
   const approved = await store.listApproved();
   return NextResponse.json(
@@ -33,6 +35,7 @@ export async function GET() {
 
 /** A request to be listed. Lands as `pending` until an approver reviews it. */
 export async function POST(request: NextRequest) {
+  if (!leaderboardEnabled()) return new NextResponse(null, { status: 404 });
   const limited = rateLimit(request, LIMITS.join);
   if (limited) return limited;
 
