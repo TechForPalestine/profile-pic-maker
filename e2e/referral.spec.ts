@@ -166,12 +166,16 @@ test.describe('The join page', () => {
     await page.addInitScript(() => {
       const events: [string, unknown][] = [];
       (window as unknown as { __events: typeof events }).__events = events;
+      // Clipboard permissions differ per engine; the copy itself is not
+      // what this test is about.
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: async () => {} },
+      });
       Object.defineProperty(window, 'plausible', {
         value: (name: string, options?: { props?: unknown }) =>
           events.push([name, options?.props]),
       });
     });
-    await page.context().grantPermissions(['clipboard-write']);
     await page.route('**/api/promoters', (route) =>
       route.fulfill({
         status: 201,
