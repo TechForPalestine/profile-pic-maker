@@ -11,11 +11,7 @@ import {
   saveMyPromoter,
   type MyPromoter,
 } from '@/lib/my-promoter';
-import {
-  LINK_PLATFORMS,
-  type LinkPlatform,
-  type PromoterLinks,
-} from '@/lib/promoters';
+import { normalizeLink } from '@/lib/promoters';
 import {
   currentReferrer,
   generatePromoterCode,
@@ -25,21 +21,7 @@ import {
 import { SHARE_MESSAGE } from '@/lib/share';
 import { TURNSTILE_SITE_KEY } from '@/lib/turnstile';
 
-import { PLATFORM_META } from '../social-links';
 import TurnstileWidget from '../turnstile-widget';
-
-// No https:// in the hints: the server fills it in, so people can type a
-// link the way they read it.
-const PLACEHOLDERS: Record<LinkPlatform, string> = {
-  x: 'x.com/yourname',
-  instagram: 'instagram.com/yourname',
-  tiktok: 'tiktok.com/@yourname',
-  linkedin: 'linkedin.com/in/yourname',
-  bluesky: 'bsky.app/profile/yourname',
-  facebook: 'facebook.com/yourname',
-  youtube: 'youtube.com/@yourname',
-  website: 'yoursite.com',
-};
 
 export const REVIEW_TIME_COPY = 'usually within a few hours, and at most a day';
 
@@ -62,7 +44,8 @@ export default function JoinForm() {
   const [code, setCode] = useState('');
   const [mine, setMine] = useState<MyPromoter>();
   const [loaded, setLoaded] = useState(false);
-  const [links, setLinks] = useState<PromoterLinks>({});
+  // One optional link, typed the way people read it (no https:// needed).
+  const [profileLink, setProfileLink] = useState('');
   const [referredBy, setReferredBy] = useState<string>();
   const [turnstileToken, setTurnstileToken] = useState<string>();
   const [copied, setCopied] = useState<'link' | 'caption'>();
@@ -107,7 +90,7 @@ export default function JoinForm() {
     setMine(undefined);
     setDisplayName('');
     setCode('');
-    setLinks({});
+    setProfileLink('');
     setLostRequest(false);
     setSubmission({ status: 'idle' });
   };
@@ -140,7 +123,9 @@ export default function JoinForm() {
     referredBy && isPromoterCode(referredBy) && referredBy !== mine?.code
       ? referredBy
       : undefined;
-  const hasLink = Object.values(links).some(Boolean);
+  // Empty is fine; anything else must be a web address. Same check as the
+  // server, so a bad link is flagged before sending.
+  const linkInvalid = profileLink.trim() !== '' && !normalizeLink(profileLink);
 
   const copy = async (format: 'link' | 'caption') => {
     if (!link) return;
@@ -166,7 +151,7 @@ export default function JoinForm() {
         body: JSON.stringify({
           code: mine.code,
           displayName: mine.displayName,
-          links,
+          link: profileLink.trim() || undefined,
           referredBy: recruiter,
           turnstileToken,
         }),
@@ -355,10 +340,10 @@ export default function JoinForm() {
           <p className="font-semibold text-lg">Your listing was not approved</p>
           <p className="text-sm text-gray-600 mt-1">
             Your link still works and every download through it still counts for
-            you. Only the public listing was declined, usually because a profile
-            link did not open or the name looked like someone else. If you think
-            it was a mistake, start over with a new link and check the profile
-            links before sending.
+            you. Only the public listing was declined, usually because the link
+            did not open or the name looked like someone else. If you think it
+            was a mistake, start over with a new link and check the link before
+            sending.
           </p>
         </section>
       ) : (
@@ -381,36 +366,34 @@ export default function JoinForm() {
             2. Appear on the leaderboard for everyone (optional)
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            Add at least one public profile so people can find you. A volunteer
-            checks every entry before it goes live, {REVIEW_TIME_COPY}.
+            Add a link so people can find you, if you like: a profile or your
+            website. A volunteer checks every entry before it goes live,{' '}
+            {REVIEW_TIME_COPY}.
           </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {LINK_PLATFORMS.map((platform) => {
-              const { label, Icon } = PLATFORM_META[platform];
-              return (
-                <label key={platform} className="block text-sm">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Icon /> {label}
-                  </span>
-                  <input
-                    type="text"
-                    inputMode="url"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    disabled={!mine}
-                    value={links[platform] ?? ''}
-                    onChange={(e) =>
-                      setLinks({ ...links, [platform]: e.target.value })
-                    }
-                    placeholder={PLACEHOLDERS[platform]}
-                    maxLength={200}
-                    className="mt-1 w-full rounded-lg border border-gray-400 bg-white px-3 py-2 disabled:bg-gray-100"
-                  />
-                </label>
-              );
-            })}
-          </div>
+          <label className="mt-3 block text-sm" htmlFor="profileLink">
+            Your link (optional)
+          </label>
+          <input
+            id="profileLink"
+            type="text"
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            disabled={!mine}
+            value={profileLink}
+            onChange={(e) => setProfileLink(e.target.value)}
+            placeholder="instagram.com/yourname or yoursite.com"
+            maxLength={200}
+            aria-invalid={linkInvalid}
+            className="mt-1 w-full rounded-lg border border-gray-400 bg-white px-3 py-2 disabled:bg-gray-100"
+          />
+          {linkInvalid && (
+            <p className="text-xs text-red-700 mt-1">
+              That does not look like a web address. Try something like
+              instagram.com/yourname, or leave it empty.
+            </p>
+          )}
           {recruiter && (
             <p className="text-xs text-gray-500 mt-3">
               You arrived through <code>{recruiter}</code>&apos;s link, so they
@@ -437,7 +420,7 @@ export default function JoinForm() {
             type="submit"
             disabled={
               !mine ||
-              !hasLink ||
+              linkInvalid ||
               submission.status === 'sending' ||
               (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)
             }

@@ -16,7 +16,7 @@ import {
 } from '@/lib/plausible-stats';
 import { hashReferralCode } from '@/lib/referral';
 
-import SocialLinks from './social-links';
+import ProfileLink from './social-links';
 
 type BoardState =
   | { status: 'loading' }
@@ -259,7 +259,7 @@ function BoardTable({
                         you
                       </span>
                     )}
-                    <SocialLinks name={row.displayName} links={row.links} />
+                    <ProfileLink name={row.displayName} link={row.link} />
                   </div>
                   {row.recruits > 0 && (
                     <span className="inline-flex items-center gap-1 text-xs text-gray-600">
