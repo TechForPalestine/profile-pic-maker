@@ -59,9 +59,10 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: 'Bringing other promoters on board',
     body: (
       <>
-        When someone who arrived through your link creates their own link and
-        gets listed, you are shown as having brought them on board. It is a
-        badge, not points: the ranking is downloads only.
+        When someone opens your link, then creates their own link within 30 days
+        in the same browser and asks to be listed, your row shows that you
+        brought them on board once you are both listed. It is a badge, not
+        points: the ranking is downloads only.
       </>
     ),
   },

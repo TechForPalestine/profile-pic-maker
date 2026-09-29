@@ -19,6 +19,7 @@ import {
 import {
   currentReferrer,
   generatePromoterCode,
+  isPromoterCode,
   referralLink,
 } from '@/lib/referral';
 import { SHARE_MESSAGE } from '@/lib/share';
@@ -27,15 +28,17 @@ import { TURNSTILE_SITE_KEY } from '@/lib/turnstile';
 import { PLATFORM_META } from '../social-links';
 import TurnstileWidget from '../turnstile-widget';
 
+// No https:// in the hints: the server fills it in, so people can type a
+// link the way they read it.
 const PLACEHOLDERS: Record<LinkPlatform, string> = {
-  x: 'https://x.com/yourname',
-  instagram: 'https://instagram.com/yourname',
-  tiktok: 'https://tiktok.com/@yourname',
-  linkedin: 'https://linkedin.com/in/yourname',
-  bluesky: 'https://bsky.app/profile/yourname',
-  facebook: 'https://facebook.com/yourname',
-  youtube: 'https://youtube.com/@yourname',
-  website: 'https://yoursite.example',
+  x: 'x.com/yourname',
+  instagram: 'instagram.com/yourname',
+  tiktok: 'tiktok.com/@yourname',
+  linkedin: 'linkedin.com/in/yourname',
+  bluesky: 'bsky.app/profile/yourname',
+  facebook: 'facebook.com/yourname',
+  youtube: 'youtube.com/@yourname',
+  website: 'yoursite.com',
 };
 
 export const REVIEW_TIME_COPY = 'usually within a few hours, and at most a day';
@@ -130,6 +133,13 @@ export default function JoinForm() {
   };
 
   const link = mine ? referralLink(mine.code) : undefined;
+  // Who gets the recruit credit. Only another promoter's code counts: not
+  // your own (people test their link in the same browser), and not a
+  // channel link like ?ref=ch-newsletter, which the server would refuse.
+  const recruiter =
+    referredBy && isPromoterCode(referredBy) && referredBy !== mine?.code
+      ? referredBy
+      : undefined;
   const hasLink = Object.values(links).some(Boolean);
 
   const copy = async (format: 'link' | 'caption') => {
@@ -157,7 +167,7 @@ export default function JoinForm() {
           code: mine.code,
           displayName: mine.displayName,
           links,
-          referredBy,
+          referredBy: recruiter,
           turnstileToken,
         }),
       });
@@ -383,8 +393,11 @@ export default function JoinForm() {
                     <Icon /> {label}
                   </span>
                   <input
-                    type="url"
+                    type="text"
                     inputMode="url"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     disabled={!mine}
                     value={links[platform] ?? ''}
                     onChange={(e) =>
@@ -398,9 +411,9 @@ export default function JoinForm() {
               );
             })}
           </div>
-          {referredBy && (
+          {recruiter && (
             <p className="text-xs text-gray-500 mt-3">
-              You arrived through <code>{referredBy}</code>&apos;s link, so they
+              You arrived through <code>{recruiter}</code>&apos;s link, so they
               get credit for bringing you on board.
             </p>
           )}
