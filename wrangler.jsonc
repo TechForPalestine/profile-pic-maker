@@ -7,9 +7,9 @@
 //   PLAUSIBLE_API_KEY  Plausible Stats API key
 //
 // The promoter leaderboard ships switched off (NEXT_PUBLIC_LEADERBOARD).
-// To launch it: create the KV namespace and the Turnstile widget, add the
-// secrets, then in one change uncomment kv_namespaces with the namespace id,
-// set NEXT_PUBLIC_TURNSTILE_SITE_KEY, and set NEXT_PUBLIC_LEADERBOARD to "on".
+// The KV namespace is already bound. To launch it: create the Turnstile
+// widget, add the secrets, then set NEXT_PUBLIC_TURNSTILE_SITE_KEY and set
+// NEXT_PUBLIC_LEADERBOARD to "on".
 //
 // Pages has two environments: the production branch uses the top level,
 // every other branch and pull request uses env.preview. Nothing is
@@ -29,7 +29,9 @@
     // "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "<site key>",
   },
   // Listing requests, the approved list and the shared board cache.
-  // "kv_namespaces": [{ "binding": "PROMOTERS", "id": "<namespace id>" }],
+  "kv_namespaces": [
+    { "binding": "PROMOTERS", "id": "745f5367965f418fb39e3594665d4ae4" },
+  ],
 
   // ---- preview: every non-production branch and pull request ---------------
   "env": {

@@ -61,10 +61,10 @@ The `NEXT_PUBLIC_*` values are inlined at build time, so set them before
 the build. A preview whose `NEXT_PUBLIC_APP_URL` is not production also serves
 a robots.txt that blocks crawling.
 
-To launch the leaderboard in production: create the KV namespace and a
-Turnstile widget, add the three secrets, then in one change to
-`wrangler.jsonc` uncomment `kv_namespaces` with the namespace id, set
-`NEXT_PUBLIC_TURNSTILE_SITE_KEY`, and set `NEXT_PUBLIC_LEADERBOARD` to `on`.
+To launch the leaderboard in production (the `PROMOTERS` KV namespace is
+already bound): create a Turnstile widget, add the three secrets, then in one
+change to `wrangler.jsonc` set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and set
+`NEXT_PUBLIC_LEADERBOARD` to `on`.
 
 Plausible: the site's allowed custom properties must include `referrer`,
 `window`, `outcome` and `platform`. The leaderboard events are
