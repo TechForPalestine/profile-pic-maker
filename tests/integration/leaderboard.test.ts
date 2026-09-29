@@ -452,6 +452,69 @@ describe('board cache', () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it('shares entries across locations through KV, and refreshes stale ones', async () => {
+    const kv = new Map<string, string>();
+    const ttls: (number | undefined)[] = [];
+    const context = Symbol.for('__cloudflare-request-context__');
+    (globalThis as Record<symbol, unknown>)[context] = {
+      env: {
+        PROMOTERS: {
+          get: async (k: string) => kv.get(k) ?? null,
+          put: async (k: string, v: string, o?: { expirationTtl?: number }) => {
+            kv.set(k, v);
+            ttls.push(o?.expirationTtl);
+          },
+          delete: async () => {},
+          list: async () => ({ keys: [], list_complete: true }),
+        },
+      },
+    };
+    try {
+      let t = Date.parse('2026-09-14T12:00:00Z');
+      const opts = { ttlMs: 60_000, now: () => t };
+      const compute = vi.fn(async () =>
+        board('day', new Date(t).toISOString()),
+      );
+      await cachedBoard('day', compute, opts);
+      expect(kv.size).toBe(1);
+      expect(ttls[0]).toBeGreaterThanOrEqual(60);
+
+      // Another location: empty memory and no edge cache, same KV.
+      resetBoardCache();
+      t += 30_000;
+      await cachedBoard('day', compute, opts);
+      expect(compute).toHaveBeenCalledTimes(1);
+
+      // Past the TTL the KV copy is stale and the board is recomputed.
+      resetBoardCache();
+      t += 31_000;
+      await cachedBoard('day', compute, opts);
+      expect(compute).toHaveBeenCalledTimes(2);
+    } finally {
+      delete (globalThis as Record<symbol, unknown>)[context];
+    }
+  });
+
+  it('still answers when KV fails', async () => {
+    const context = Symbol.for('__cloudflare-request-context__');
+    const broken = async () => {
+      throw new Error('KV down');
+    };
+    (globalThis as Record<symbol, unknown>)[context] = {
+      env: {
+        PROMOTERS: { get: broken, put: broken, delete: broken, list: broken },
+      },
+    };
+    try {
+      const compute = vi.fn(async () => board('7d', new Date().toISOString()));
+      await expect(cachedBoard('7d', compute)).resolves.toMatchObject({
+        window: '7d',
+      });
+    } finally {
+      delete (globalThis as Record<symbol, unknown>)[context];
+    }
+  });
 });
 
 describe('GET /api/leaderboard under load', () => {

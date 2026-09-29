@@ -14,7 +14,7 @@ import { FunnelEvent } from '@/lib/analytics';
  *   API key, kept in `PLAUSIBLE_API_KEY` as a server-side secret.
  * - `referrer` listed under the site's allowed custom properties.
  * Rate limit is 600 requests per hour per key; the leaderboard route caches
- * for five minutes, so it uses a few dozen at most.
+ * for ten minutes, so it uses a few dozen at most.
  */
 
 export const DEFAULT_PLAUSIBLE_HOST = 'https://plausible.io';

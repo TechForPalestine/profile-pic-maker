@@ -24,7 +24,11 @@ export function cloudflareEnv(): Record<string, unknown> | undefined {
 /** The subset of a Workers KV namespace binding the app uses. */
 export interface KvNamespaceBinding {
   get(key: string): Promise<string | null>;
-  put(key: string, value: string): Promise<void>;
+  put(
+    key: string,
+    value: string,
+    options?: { expirationTtl?: number },
+  ): Promise<void>;
   delete(key: string): Promise<void>;
   list(options: { prefix?: string; cursor?: string; limit?: number }): Promise<{
     keys: { name: string }[];

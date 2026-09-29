@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
  * reject: hide the entry for good (also how an approved entry is taken down).
  * edit: fix the display name or the link on any entry, approved ones
  *   included, e.g. to remove a bad link but keep the person. Approved entries stay
- *   approved; the public board picks the change up within five minutes.
+ *   approved; the public board picks the change up within ten minutes.
  */
 export async function POST(request: NextRequest) {
   const limited = rateLimit(request, LIMITS.admin);

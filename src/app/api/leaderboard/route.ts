@@ -21,7 +21,7 @@ const SHORT_CACHE = 'public, s-maxage=60';
  * GET /api/leaderboard?window=day|7d|all
  *
  * Joins Plausible's download and visit counts onto the approved promoter
- * registry. Computed at most once per window every five minutes (see
+ * registry. Computed at most once per window every ten minutes (see
  * `@/lib/board-cache`): Plausible's API key has an hourly budget, and the
  * board must not spend it per visitor.
  */
