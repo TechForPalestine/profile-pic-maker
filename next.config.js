@@ -1,5 +1,16 @@
 const { withSentryConfig } = require('@sentry/nextjs');
 
+// On Cloudflare Pages the promoter leaderboard is off unless the project's
+// NEXT_PUBLIC_LEADERBOARD Secret says "on", so it is switched from the
+// dashboard (then Retry deployment), never by a code change. Elsewhere (local,
+// CI) it stays on unless set to "off".
+if (
+  process.env.CF_PAGES === '1' &&
+  process.env.NEXT_PUBLIC_LEADERBOARD !== 'on'
+) {
+  process.env.NEXT_PUBLIC_LEADERBOARD = 'off';
+}
+
 // Cloudflare Pages previews (env.preview in wrangler.jsonc sets
 // PAGES_PREVIEW) hand out links to themselves: CF_PAGES_URL is the address of
 // the deployment being built. Set before Next.js inlines NEXT_PUBLIC_* values.

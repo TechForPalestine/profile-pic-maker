@@ -226,8 +226,9 @@ export async function hashReferralCode(code: string): Promise<string> {
 
 /**
  * The leaderboard (pages, links to it and its APIs) is on unless
- * `NEXT_PUBLIC_LEADERBOARD` is `off`. Production ships it off until its
- * storage and keys exist; referral attribution runs either way.
+ * `NEXT_PUBLIC_LEADERBOARD` is `off`. On Cloudflare Pages, next.config.js
+ * turns it off unless the dashboard Secret says `on`. Referral attribution
+ * runs either way.
  */
 export function leaderboardEnabled(): boolean {
   return process.env.NEXT_PUBLIC_LEADERBOARD !== 'off';
