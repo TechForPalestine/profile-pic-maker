@@ -27,10 +27,9 @@ is the source of truth for the project's name, output directory,
 compatibility date and the `nodejs_compat` flag, so the dashboard shows those
 read-only.
 
-Everything except the three secrets (see
-[the leaderboard docs](leaderboard.md)) comes from `wrangler.jsonc`, so there is
-nothing else to click. Under **Settings → Variables and Secrets**, add
-`ADMIN_TOKEN`, `TURNSTILE_SECRET` and `PLAUSIBLE_API_KEY` as type Secret
+Everything except the dashboard Secrets (listed in
+[the leaderboard docs](leaderboard.md)) comes from `wrangler.jsonc`. Under
+**Settings → Variables and Secrets**, add those as type Secret
 (the dashboard only accepts Secrets while `wrangler.jsonc` exists, and
 variables typed into the project-creation form are discarded, so add them
 after the project exists). Do not add plain values there: they would

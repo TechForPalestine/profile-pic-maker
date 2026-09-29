@@ -1,15 +1,16 @@
 // Cloudflare Pages configuration: the single source of truth for this
 // project on Cloudflare. Everything except three secrets lives here.
 //
-// Secrets (Settings -> Variables and Secrets, type Secret, Production):
-//   ADMIN_TOKEN        40+ random characters, for /admin/promoters
-//   TURNSTILE_SECRET   the Turnstile widget's secret key
-//   PLAUSIBLE_API_KEY  Plausible Stats API key
-//
-// The promoter leaderboard ships switched off (NEXT_PUBLIC_LEADERBOARD).
-// The KV namespace is already bound. To launch it: create the Turnstile
-// widget, add the secrets, then set NEXT_PUBLIC_TURNSTILE_SITE_KEY and set
-// NEXT_PUBLIC_LEADERBOARD to "on".
+// Set in the dashboard (Settings -> Variables and Secrets, type Secret,
+// Production), then Deployments -> Retry deployment:
+//   NEXT_PUBLIC_LEADERBOARD         "on" shows the promoter leaderboard;
+//                                   anything else, or unset, hides it
+//   NEXT_PUBLIC_TURNSTILE_SITE_KEY  the Turnstile widget's site key
+//   TURNSTILE_SECRET                the Turnstile widget's secret key
+//   ADMIN_TOKEN                     40+ random characters, for /admin/promoters
+//   PLAUSIBLE_API_KEY               Plausible Stats API key
+// Do not add these to "vars" in this file: a file variable and a dashboard Secret
+// with the same name conflict.
 //
 // Pages has two environments: the production branch uses the top level,
 // every other branch and pull request uses env.preview. Nothing is
@@ -24,10 +25,6 @@
   "pages_build_output_dir": ".vercel/output/static",
 
   // ---- production ----------------------------------------------------------
-  "vars": {
-    "NEXT_PUBLIC_LEADERBOARD": "off",
-    // "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "<site key>",
-  },
   // Listing requests, the approved list and the shared board cache.
   "kv_namespaces": [
     { "binding": "PROMOTERS", "id": "745f5367965f418fb39e3594665d4ae4" },
