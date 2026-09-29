@@ -11,8 +11,10 @@
 // with a placeholder id fails, which is the point.
 //
 // Pages has two environments: the production branch uses the top level,
-// every other branch and pull request uses env.preview. Bindings and vars
-// are not inherited, so env.preview lists all of its own.
+// every other branch and pull request uses env.preview. Nothing is
+// inherited. Previews get no KV binding on purpose, so a preview can never
+// touch production listings: they keep listing requests in memory, which is
+// enough to click through the flow.
 // Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
 {
   "name": "palestine-pfp",
@@ -41,9 +43,6 @@
         // Links and robots.txt use the preview's own address (next.config.js).
         "PAGES_PREVIEW": "1",
       },
-      "kv_namespaces": [
-        { "binding": "PROMOTERS", "id": "REPLACE_ME_preview_kv_namespace_id" },
-      ],
     },
   },
 }

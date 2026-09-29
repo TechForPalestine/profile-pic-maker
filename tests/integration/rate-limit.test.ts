@@ -7,7 +7,7 @@ const req = (headers: Record<string, string> = {}) =>
   new NextRequest('http://localhost/api/x', { headers });
 
 describe('clientIp', () => {
-  it('prefers the platform headers over anything the client can write', () => {
+  it('trusts only the header Cloudflare sets', () => {
     expect(
       clientIp(
         req({ 'cf-connecting-ip': '1.1.1.1', 'x-forwarded-for': '9.9.9.9' }),
@@ -15,11 +15,7 @@ describe('clientIp', () => {
     ).toBe('1.1.1.1');
     expect(
       clientIp(req({ 'x-real-ip': '2.2.2.2', 'x-forwarded-for': '9.9.9.9' })),
-    ).toBe('2.2.2.2');
-    // Right-most hop is the one the nearest proxy added.
-    expect(clientIp(req({ 'x-forwarded-for': '6.6.6.6, 3.3.3.3' }))).toBe(
-      '3.3.3.3',
-    );
+    ).toBe('unknown');
     expect(clientIp(req())).toBe('unknown');
   });
 });

@@ -1,18 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
- * A small per-IP rate limiter, kept in the memory of the running instance.
- *
- * Where it holds and where it doesn't:
- * - Node (Railway, `next start`): one process, so the counts are exact.
- * - Cloudflare Pages: every edge location, and every isolate within it, keeps
- *   its own counts, so a determined client spread across locations gets more
- *   through. It still stops the common case, one client hammering from one
- *   place. The authoritative limit in production is a Cloudflare rate
- *   limiting rule on the zone (see the Cloudflare setup doc).
- *
- * Fixed one-minute windows: simple, predictable, and cheap to reason about
- * when an approver asks "why did I get a 429?".
+ * A small per-IP rate limiter, kept in the memory of the running instance,
+ * with fixed one-minute windows. In production a Cloudflare rate limiting
+ * rule sits in front of `/api/*` as well.
  */
 
 export interface RateLimit {
@@ -32,25 +23,11 @@ const buckets = new Map<string, Bucket>();
 const MAX_BUCKETS = 10_000;
 
 /**
- * The client's IP as the platform saw it. Cloudflare sets `cf-connecting-ip`;
- * Railway's edge sets `x-real-ip`. As a last resort, the right-most entry of
- * `x-forwarded-for` is the one the nearest proxy added (left-most entries can
- * be written by the client).
+ * The client's IP as Cloudflare saw it. Other forwarding headers are ignored:
+ * a client can write them.
  */
 export function clientIp(request: NextRequest): string {
-  const cf = request.headers.get('cf-connecting-ip');
-  if (cf) return cf.trim();
-  const real = request.headers.get('x-real-ip');
-  if (real) return real.trim();
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    const hops = forwarded
-      .split(',')
-      .map((hop) => hop.trim())
-      .filter(Boolean);
-    if (hops.length) return hops[hops.length - 1];
-  }
-  return 'unknown';
+  return request.headers.get('cf-connecting-ip')?.trim() || 'unknown';
 }
 
 /**
