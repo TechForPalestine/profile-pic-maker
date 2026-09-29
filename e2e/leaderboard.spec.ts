@@ -19,7 +19,7 @@ const board = (window: string) => ({
     {
       code: 'paul',
       displayName: 'Paul Biggar',
-      links: { x: 'https://x.com/paulbiggar', website: 'https://paul.example' },
+      link: 'https://x.com/paulbiggar',
       recruits: 2,
       rank: 1,
       downloads: window === 'day' ? 5 : 120,
@@ -28,7 +28,7 @@ const board = (window: string) => ({
     {
       code: 'zaher',
       displayName: 'Zaher',
-      links: { instagram: 'https://instagram.com/zaher' },
+      link: 'https://instagram.com/zaher',
       recruits: 0,
       rank: 2,
       downloads: window === 'day' ? 1 : 80,

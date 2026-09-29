@@ -12,7 +12,7 @@ const fingerprint = (code: string) =>
 const pending = {
   code: 'paul',
   displayName: 'Paul Biggar',
-  links: { x: 'https://x.com/paulbiggar' },
+  link: 'https://x.com/paulbiggar',
   status: 'pending',
   createdAt: '2026-09-14T10:00:00.000Z',
 };
@@ -57,7 +57,7 @@ test.describe('Promoter approvals page', () => {
     ).toBeVisible();
     await expect(page.getByText('Paul Biggar')).toBeVisible();
     await expect(
-      page.getByRole('link', { name: /x: https:\/\/x.com\/paulbiggar/ }),
+      page.getByRole('link', { name: 'https://x.com/paulbiggar' }),
     ).toBeVisible();
 
     await page.getByRole('button', { name: 'Approve', exact: true }).click();
@@ -81,7 +81,7 @@ test.describe('Promoter approvals page', () => {
     let current: {
       code: string;
       displayName: string;
-      links: Record<string, string>;
+      link?: string;
       status: string;
       createdAt: string;
     } = { ...pending, status: 'approved' };
@@ -92,14 +92,14 @@ test.describe('Promoter approvals page', () => {
         const body = request.postDataJSON() as {
           action: string;
           displayName?: string;
-          links?: Record<string, string>;
+          link?: string;
         };
         posts.push(body);
         if (body.action === 'edit') {
           current = {
             ...current,
             displayName: body.displayName ?? current.displayName,
-            links: body.links ?? current.links,
+            link: body.link ?? current.link,
           };
         }
         if (body.action === 'unapprove')
@@ -128,12 +128,12 @@ test.describe('Promoter approvals page', () => {
     await page.getByRole('button', { name: 'Edit' }).click();
     const form = page.getByRole('form', { name: 'Edit Paul Biggar' });
     await form.getByLabel('Display name').fill('Paul B.');
-    await form.getByLabel('website').fill('https://paul.example/');
+    await form.getByLabel('Link (optional)').fill('paul.example');
     await form.getByRole('button', { name: 'Save changes' }).click();
 
     await expect(page.getByText('Paul B.', { exact: true })).toBeVisible();
     await expect(
-      page.getByRole('link', { name: /website: https:\/\/paul.example\// }),
+      page.getByRole('link', { name: 'paul.example' }),
     ).toBeVisible();
     // Still on the board: an edit never changes status.
     await expect(
@@ -143,10 +143,7 @@ test.describe('Promoter approvals page', () => {
       action: 'edit',
       code: 'paul',
       displayName: 'Paul B.',
-      links: {
-        x: 'https://x.com/paulbiggar',
-        website: 'https://paul.example/',
-      },
+      link: 'paul.example',
     });
 
     await page.getByRole('button', { name: 'Back to review' }).click();
@@ -165,7 +162,7 @@ test.describe('Promoter approvals page', () => {
     const shady = {
       code: 'shady',
       displayName: 'Shady',
-      links: { x: 'https://x.com/shady' },
+      link: 'https://x.com/shady',
       status: 'pending',
       createdAt: '2026-09-17T10:00:00.000Z',
     };
@@ -188,7 +185,7 @@ test.describe('Promoter approvals page', () => {
             {
               code: 'paul',
               displayName: 'Paul Biggar',
-              links: pending.links,
+              link: pending.link,
               recruits: 0,
               rank: 1,
               downloads: 40,

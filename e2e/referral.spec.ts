@@ -139,9 +139,8 @@ test.describe('The join page', () => {
     const code = new URL(link).searchParams.get('ref');
 
     const submit = page.getByRole('button', { name: 'Ask to be listed' });
-    await expect(submit).toBeDisabled();
     await page
-      .getByLabel('X', { exact: true })
+      .getByLabel('Your link (optional)')
       .fill('https://x.com/paulbiggar');
     await expect(submit).toBeEnabled();
     await submit.click();
@@ -157,7 +156,7 @@ test.describe('The join page', () => {
     expect(posted).toMatchObject({
       code,
       displayName: 'Paul Biggar',
-      links: { x: 'https://x.com/paulbiggar' },
+      link: 'https://x.com/paulbiggar',
     });
   });
 
@@ -176,11 +175,29 @@ test.describe('The join page', () => {
   test('accepts a link typed without https://', async ({ page }) => {
     const posted = await captureListing(page);
     await createLink(page);
-    await page.getByLabel('Website').fill('mostafazh.me');
+    await page.getByLabel('Your link (optional)').fill('mostafazh.me');
     await page.getByRole('button', { name: 'Ask to be listed' }).click();
     await expect(page.getByRole('status')).toContainText('Listing requested');
     // The browser no longer blocks it; the server fills in the scheme.
-    expect(posted.body?.links).toEqual({ website: 'mostafazh.me' });
+    expect(posted.body?.link).toBe('mostafazh.me');
+  });
+
+  test('asks to be listed without a link', async ({ page }) => {
+    const posted = await captureListing(page);
+    await createLink(page);
+    await page.getByRole('button', { name: 'Ask to be listed' }).click();
+    await expect(page.getByRole('status')).toContainText('Listing requested');
+    expect(posted.body?.link).toBeUndefined();
+  });
+
+  test('flags a link that is not a web address', async ({ page }) => {
+    await createLink(page);
+    const field = page.getByLabel('Your link (optional)');
+    const submit = page.getByRole('button', { name: 'Ask to be listed' });
+    await field.fill('not a link');
+    await expect(submit).toBeDisabled();
+    await field.fill('');
+    await expect(submit).toBeEnabled();
   });
 
   test('does not credit you for your own link', async ({ page }) => {
@@ -191,7 +208,7 @@ test.describe('The join page', () => {
     await page.goto(`/?ref=${code}`);
     await page.goto('/leaderboard/join');
     await expect(page.getByText(/arrived through/)).toHaveCount(0);
-    await page.getByLabel('X', { exact: true }).fill('x.com/paulbiggar');
+    await page.getByLabel('Your link (optional)').fill('x.com/paulbiggar');
     await page.getByRole('button', { name: 'Ask to be listed' }).click();
     await expect(page.getByRole('status')).toContainText('Listing requested');
     expect(posted.body?.referredBy).toBeUndefined();
@@ -202,7 +219,7 @@ test.describe('The join page', () => {
     await page.goto('/?ref=ch-mighty-missions');
     await createLink(page);
     await expect(page.getByText(/arrived through/)).toHaveCount(0);
-    await page.getByLabel('X', { exact: true }).fill('x.com/paulbiggar');
+    await page.getByLabel('Your link (optional)').fill('x.com/paulbiggar');
     await page.getByRole('button', { name: 'Ask to be listed' }).click();
     await expect(page.getByRole('status')).toContainText('Listing requested');
     expect(posted.body?.referredBy).toBeUndefined();
@@ -215,7 +232,7 @@ test.describe('The join page', () => {
     await page.goto('/?ref=zaher-7k2q');
     await createLink(page);
     await expect(page.getByText(/arrived through/)).toContainText('zaher-7k2q');
-    await page.getByLabel('X', { exact: true }).fill('x.com/paulbiggar');
+    await page.getByLabel('Your link (optional)').fill('x.com/paulbiggar');
     await page.getByRole('button', { name: 'Ask to be listed' }).click();
     await expect(page.getByRole('status')).toContainText('Listing requested');
     expect(posted.body?.referredBy).toBe('zaher-7k2q');
@@ -231,7 +248,7 @@ test.describe('The join page', () => {
       }),
     );
     await createLink(page, 'Paul');
-    await page.getByLabel('X', { exact: true }).fill('https://x.com/paul');
+    await page.getByLabel('Your link (optional)').fill('https://x.com/paul');
     await page.getByRole('button', { name: 'Ask to be listed' }).click();
     await expect(
       page.getByRole('alert').filter({ hasText: 'already taken' }),

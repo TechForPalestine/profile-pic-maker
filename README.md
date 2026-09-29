@@ -101,10 +101,10 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
   the ranking counts. `share-*` refs belong to the share buttons and are never
   ranked; `ch-*` codes are channels, reported but not ranked as a person.
 - **Registry.** Listing is moderated: join requests land as `pending` in a
-  Workers KV namespace (accessed over the REST API, so no build-time binding),
-  and an approver publishes or rejects them on `/admin/promoters`, which talks
+  Workers KV namespace bound as `PROMOTERS` in `wrangler.jsonc`, and an
+  approver publishes or rejects them on `/admin/promoters`, which talks
   to a bearer-token admin API. Only approved entries are ever served publicly.
-  Without Cloudflare credentials an in-memory store is used, so the whole flow
+  Without the binding (outside Cloudflare) an in-memory store is used, so the whole flow
   works in `npm run dev`.
 - **Counts.** `/api/leaderboard` queries the Plausible Stats API (v2) for
   unique downloaders and unique landings grouped by `referrer`, and downloads
@@ -117,18 +117,28 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
   of the code, so the browser that created a code can show its owner their
   own row (marked pending) while nobody else learns the code.
 
-Environment variables (Cloudflare Pages → Settings → Environment variables):
+Configuration lives in `wrangler.jsonc`: the `PROMOTERS` KV binding and the
+plain variables, with a separate block under `env.preview` for preview
+deploys (Pages does not inherit top-level values there). Replace the
+`REPLACE_ME_*` placeholders with real IDs before deploying. Only three
+values are secret and are set in the dashboard (Settings → Variables and
+Secrets, type Secret) or with `wrangler pages secret put`:
 
-| Variable                                                                      | Purpose                                                                                                                                                |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `PLAUSIBLE_API_KEY`                                                           | Stats API key (Business plan feature). Without it the board shows the unavailable state.                                                               |
-| `PLAUSIBLE_SITE_ID`, `PLAUSIBLE_API_HOST`                                     | Optional overrides (default `ppm.techforpalestine.org`, `https://plausible.io`).                                                                       |
-| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_KV_NAMESPACE_ID`, `CLOUDFLARE_API_TOKEN` | KV namespace for the registry. Token scope: Workers KV Storage, Edit.                                                                                  |
-| `ADMIN_TOKEN`                                                                 | Shared secret for `/admin/promoters` (32+ random characters).                                                                                          |
-| `TURNSTILE_SECRET`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`                          | Cloudflare Turnstile on the listing form. Unset: no bot check, no widget.                                                                              |
-| `LEADERBOARD_JOIN_ENABLED`                                                    | Set to `false` to pause new listing requests (kill switch).                                                                                            |
-| `NEXT_PUBLIC_APP_URL`                                                         | Preview deploys only: this deploy's origin, so generated links stay on it (e.g. `https://${{RAILWAY_PUBLIC_DOMAIN}}` on Railway). Unset in production. |
-| `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC`                                            | Preview deploys only: a staging Plausible script URL, or `off` to send no analytics. Unset in production.                                              |
+| Secret              | Purpose                                                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| `ADMIN_TOKEN`       | Shared secret for `/admin/promoters` (32+ random characters).                            |
+| `TURNSTILE_SECRET`  | Cloudflare Turnstile on the listing form. Unset: no bot check.                           |
+| `PLAUSIBLE_API_KEY` | Stats API key (Business plan feature). Without it the board shows the unavailable state. |
+
+Variables in `wrangler.jsonc` (`vars`):
+
+| Variable                                  | Purpose                                                                                                                                            |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`          | Turnstile site key. Unset: no widget.                                                                                                              |
+| `PLAUSIBLE_SITE_ID`, `PLAUSIBLE_API_HOST` | Optional overrides (default `ppm.techforpalestine.org`, `https://plausible.io`).                                                                   |
+| `LEADERBOARD_JOIN_ENABLED`                | Set to `false` to pause new listing requests (kill switch).                                                                                        |
+| `NEXT_PUBLIC_APP_URL`                     | Preview deploys only: this deploy's origin, so generated links stay on it. Filled from `CF_PAGES_URL` when `PAGES_PREVIEW=1`. Unset in production. |
+| `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC`        | Preview deploys only: a staging Plausible script URL, or `off` to send no analytics. Unset in production.                                          |
 
 The two `NEXT_PUBLIC_*` values are inlined at build time, so set them before
 the build. A preview whose `NEXT_PUBLIC_APP_URL` is not production also serves
@@ -157,8 +167,8 @@ They are exact on a single Node instance and best effort on Cloudflare,
 where each location counts on its own. In production, add a Cloudflare rate
 limiting rule on `/api/*` as the real guard.
 
-Moderation: approve only names that are not impersonating anyone and links
-that go to real public profiles with nothing abusive on them. Each entry on
+Moderation: approve only names that are not impersonating anyone and a link
+(optional, one per entry) that goes to real public profiles with nothing abusive on them. Each entry on
 the approvals page shows its last-7-day downloads and visits, with a
 "suspicious" badge when downloads exceed visits: Plausible's Events API is
 open, so a script on a residential connection can inflate a code, and this
@@ -167,7 +177,7 @@ itself drops events from data-center IPs and known bot user agents, nothing
 more. The pages
 promise a review within a few hours and at most a day, so keep two approvers
 on rota. Every entry, approved ones included, can be edited in place (name
-and links) from `/admin/promoters`; "Back to review" pulls an approved entry
+and link) from `/admin/promoters`; "Back to review" pulls an approved entry
 into the queue without losing it, and "Take down" rejects it. The board
 refreshes within five minutes either way.
 
@@ -183,14 +193,14 @@ In the Cloudflare dashboard: **Workers & Pages → Create application →
 Continue to Pages → Import an existing Git repository**, pick this
 repository, then set:
 
-| Setting | Value |
-| --- | --- |
-| Project name | `palestine-pfp` (must match `name` in `wrangler.jsonc`) |
-| Production branch | `main` |
-| Framework preset | Next.js |
-| Build command | `npx @cloudflare/next-on-pages@1` |
-| Build output directory | `.vercel/output/static` |
-| Root directory | `/` |
+| Setting                | Value                                                   |
+| ---------------------- | ------------------------------------------------------- |
+| Project name           | `palestine-pfp` (must match `name` in `wrangler.jsonc`) |
+| Production branch      | `main`                                                  |
+| Framework preset       | Next.js                                                 |
+| Build command          | `npx @cloudflare/next-on-pages@1`                       |
+| Build output directory | `.vercel/output/static`                                 |
+| Root directory         | `/`                                                     |
 
 If the repository is not listed, give the Cloudflare Pages GitHub app access
 to it (GitHub → Settings → Applications → Cloudflare Pages → Configure).
@@ -200,16 +210,13 @@ is the source of truth for the project's name, output directory,
 compatibility date and the `nodejs_compat` flag, so the dashboard shows those
 read-only.
 
-Then, under **Settings → Variables and Secrets**, add the variables from the
-table in [Referral links and the promoter leaderboard](#referral-links-and-the-promoter-leaderboard).
-Add **every one of them as type Secret**, including the non-secret IDs and the
-`NEXT_PUBLIC_*` values. Because `wrangler.jsonc` exists, Cloudflare treats it
-as the source of truth for plain-text variables and the dashboard only
-accepts Secrets; Pages still passes Secrets to the build and to the running
-app, so `NEXT_PUBLIC_*` values are baked in as usual. Variables typed into the
-project-creation form are discarded for the same reason, so add them after
-the project exists. Production must leave `NEXT_PUBLIC_APP_URL`,
-`NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` and `NEXT_PUBLIC_REFERRAL_COUNTER` unset.
+Everything except the three secrets comes from `wrangler.jsonc`, so there is
+nothing else to click. Under **Settings → Variables and Secrets**, add
+`ADMIN_TOKEN`, `TURNSTILE_SECRET` and `PLAUSIBLE_API_KEY` as type Secret
+(the dashboard only accepts Secrets while `wrangler.jsonc` exists, and
+variables typed into the project-creation form are discarded, so add them
+after the project exists). Do not add plain values there: they would
+conflict with the file.
 After changing any variable, retry the latest deployment: a deployment keeps
 the values it was built with.
 
