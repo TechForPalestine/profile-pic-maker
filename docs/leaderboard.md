@@ -40,13 +40,15 @@ binding, so they never touch production listings. These are set in the
 dashboard (Settings → Variables and Secrets, type Secret, then retry the
 latest deployment) or with `wrangler pages secret put`:
 
-| Secret                           | Purpose                                                                                  |
-| -------------------------------- | ---------------------------------------------------------------------------------------- |
-| `ADMIN_TOKEN`                    | Shared secret for `/admin/promoters` (32+ random characters).                            |
-| `TURNSTILE_SECRET`               | Cloudflare Turnstile on the listing form. Unset: no bot check.                           |
-| `PLAUSIBLE_API_KEY`              | Stats API key (Business plan feature). Without it the board shows the unavailable state. |
-| `NEXT_PUBLIC_LEADERBOARD`        | `on` shows the leaderboard (see below).                                                  |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Turnstile site key, public but set here so launching needs no code change.               |
+| Secret                           | Purpose                                                                                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ADMIN_TOKEN`                    | Shared secret for `/admin/promoters` (32+ random characters).                                                                              |
+| `TURNSTILE_SECRET`               | Cloudflare Turnstile on the listing form. Unset: no bot check.                                                                             |
+| `PLAUSIBLE_API_KEY`              | Stats API key (Business plan feature). Without it the board shows the unavailable state.                                                   |
+| `MATTERMOST_WEBHOOK_URL`         | Mattermost incoming webhook (https). Each new listing request is posted to its channel with a link to `/admin/promoters`. Unset: no posts. |
+| `NEXT_PUBLIC_SHARE_VARIANT`      | `classic` (default), `link-first` or `split`. See "The link-first share test" below.                                                       |
+| `NEXT_PUBLIC_LEADERBOARD`        | `on` shows the leaderboard (see below).                                                                                                    |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Turnstile site key, public but set here so launching needs no code change.                                                                 |
 
 Variables in `wrangler.jsonc` (`vars`):
 
