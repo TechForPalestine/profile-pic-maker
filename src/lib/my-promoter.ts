@@ -1,4 +1,4 @@
-import { isPromoterCode } from '@/lib/referral';
+import { generatePromoterCode, isPromoterCode } from '@/lib/referral';
 
 /**
  * The link this browser created, kept in localStorage.
@@ -13,6 +13,11 @@ export const MY_PROMOTER_STORAGE_KEY = 'ppm-my-promoter';
 
 export interface MyPromoter {
   code: string;
+  /**
+   * Empty for a link made automatically after a download (the link-first
+   * share panel): it counts from the first click, and a name is only needed
+   * to ask for a listing.
+   */
   displayName: string;
   createdAt: string;
   /** Set once the listing request was sent. */
@@ -79,6 +84,25 @@ export function clearMyPromoter(): void {
   } catch {
     // Nothing to clear.
   }
+}
+
+/**
+ * This browser's link, making an anonymous one (`pal-x7k2qm`) if there is
+ * none yet. Returns whether it was just created, so the caller can count it.
+ */
+export function ensureMyPromoter(
+  now: Date = new Date(),
+  random: () => number = Math.random,
+): { promoter: MyPromoter; created: boolean } {
+  const existing = readMyPromoter();
+  if (existing) return { promoter: existing, created: false };
+  const promoter: MyPromoter = {
+    code: generatePromoterCode('', random),
+    displayName: '',
+    createdAt: now.toISOString(),
+  };
+  saveMyPromoter(promoter);
+  return { promoter, created: true };
 }
 
 /** Ask the server where this browser's listing request stands. */

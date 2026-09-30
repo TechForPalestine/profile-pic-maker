@@ -6,7 +6,9 @@ import {
   referrerProp,
   rememberReferrer,
 } from '@/lib/referral';
+import { readMyPromoter, type MyPromoter } from '@/lib/my-promoter';
 import { SHORT_URL_LABEL } from '@/lib/share';
+import { assignShareVariant, type ShareVariant } from '@/lib/share-variant';
 import { SocialPlatform } from '@/types';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
@@ -26,6 +28,7 @@ import Link from 'next/link';
 
 import BrandingRing from './branding-ring';
 import FaqList from './faq';
+import MyLinkCard from './my-link-card';
 import SharePanel from './share-panel';
 import SurveyPanel from './survey-panel';
 
@@ -39,6 +42,10 @@ export default function Home() {
   // Off by default: the picture is the user's, so the address only goes on it
   // if they ask for it. One click adds it.
   const [showBranding, setShowBranding] = useState(false);
+  const [variant, setVariant] = useState<ShareVariant>('classic');
+  // Link-first only: the link this browser already has, shown at the top on
+  // a return visit so the person sees what it has done since.
+  const [myLink, setMyLink] = useState<MyPromoter>();
   const [filePostfix, setFilePostfix] = useState<
     SocialPlatform | 'user-upload'
   >();
@@ -48,7 +55,16 @@ export default function Home() {
     // downloads for the next 30 days, first touch wins (see `@/lib/referral`).
     const code = readReferralCode(window.location.search);
     if (code) rememberReferrer(code);
-    trackEvent(FunnelEvent.Landed, { referrer: referrerProp() });
+    // Assigned on landing so every step of the funnel carries it.
+    const assigned = assignShareVariant({ search: window.location.search });
+    // localStorage is browser-only, so both are settled after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVariant(assigned);
+    if (assigned === 'link-first') setMyLink(readMyPromoter());
+    trackEvent(FunnelEvent.Landed, {
+      referrer: referrerProp(),
+      variant: assigned,
+    });
   }, []);
 
   // Step 4: a usable image source (data URL / social profile URL) is obtained.
@@ -164,6 +180,7 @@ export default function Home() {
         method: filePostfix ?? 'unknown',
         branding: showBranding ? 'on' : 'off',
         referrer: referrerProp(),
+        variant,
       });
       setHasDownloaded(true);
     }
@@ -208,6 +225,11 @@ export default function Home() {
           </a>{' '}
           👀
         </p>
+        {myLink && !userImageUrl && (
+          <div className="mt-6">
+            <MyLinkCard promoter={myLink} placement="return" />
+          </div>
+        )}
         <div className="my-12">
           <div className="flex justify-center">
             <div
@@ -279,6 +301,7 @@ export default function Home() {
                   method={filePostfix ?? 'unknown'}
                   generateProfileImage={generateFinalImage}
                   showBranding={showBranding}
+                  variant={variant}
                 />
               ) : (
                 <p className="p-2 my-6 text-sm border rounded-lg">

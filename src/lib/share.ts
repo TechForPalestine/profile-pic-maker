@@ -75,11 +75,18 @@ export function shareLandingUrl(
   return `${APP_URL}?ref=${ref}`;
 }
 
+/** Builds the URL a share points to; `shareLandingUrl` unless personalised. */
+export type LandingUrlBuilder = (
+  channel: ShareChannel,
+  format?: ShareFormat,
+) => string;
+
 export function shareCaption(
   channel: ShareChannel,
   format: ShareFormat = 'link',
+  landingUrl: LandingUrlBuilder = shareLandingUrl,
 ): string {
-  return `${shareMessage(channel)} ${shareLandingUrl(channel, format)}`;
+  return `${shareMessage(channel)} ${landingUrl(channel, format)}`;
 }
 
 export interface ShareLink {
@@ -94,24 +101,26 @@ export interface ShareLink {
  * image path. wa.me and t.me work on mobile and desktop (WhatsApp
  * Web/Desktop), so these double as the desktop share path.
  */
-export function buildShareLinks(): ShareLink[] {
+export function buildShareLinks(
+  landingUrl: LandingUrlBuilder = shareLandingUrl,
+): ShareLink[] {
   return [
     {
       channel: 'whatsapp',
       label: 'Share on WhatsApp',
-      href: `https://wa.me/?text=${encodeURIComponent(shareCaption('whatsapp'))}`,
+      href: `https://wa.me/?text=${encodeURIComponent(shareCaption('whatsapp', 'link', landingUrl))}`,
     },
     {
       channel: 'telegram',
       label: 'Share on Telegram',
       href: `https://t.me/share/url?url=${encodeURIComponent(
-        shareLandingUrl('telegram'),
+        landingUrl('telegram'),
       )}&text=${encodeURIComponent(SHARE_MESSAGE)}`,
     },
     {
       channel: 'x',
       label: 'Share on X',
-      href: `https://x.com/intent/post?text=${encodeURIComponent(shareCaption('x'))}`,
+      href: `https://x.com/intent/post?text=${encodeURIComponent(shareCaption('x', 'link', landingUrl))}`,
     },
     {
       channel: 'facebook',
@@ -121,7 +130,7 @@ export function buildShareLinks(): ShareLink[] {
       // page's Open Graph card. `quote` is passed for the few surfaces that
       // still honour it.
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-        shareLandingUrl('facebook'),
+        landingUrl('facebook'),
       )}&quote=${encodeURIComponent(SHARE_MESSAGE)}`,
     },
   ];
