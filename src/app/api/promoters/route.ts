@@ -11,6 +11,7 @@ import {
   validateJoinRequest,
   type Promoter,
 } from '@/lib/promoters';
+import { notifyNewListing, webhookUrl } from '@/lib/notify';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { leaderboardEnabled } from '@/lib/referral';
@@ -104,6 +105,17 @@ export async function POST(request: NextRequest) {
     ownerKeyHash: await hashOwnerKey(ownerKey),
   };
   await store.put(promoter);
+
+  // Awaited (with a short timeout) because the edge runtime may stop work
+  // left running after the response. A failure never fails the request.
+  if (webhookUrl()) {
+    const sent = await notifyNewListing(promoter, pending.length + 1);
+    if (!sent) {
+      Sentry.captureMessage('Mattermost listing notification failed', {
+        level: 'warning',
+      });
+    }
+  }
 
   return NextResponse.json(
     { status: 'pending', code, ownerKey },

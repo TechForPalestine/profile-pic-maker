@@ -115,7 +115,20 @@ export default function JoinForm() {
     trackEvent(ReferralEvent.LinkCreated);
   };
 
+  /** Save a name onto a link that was made without one, keeping its code. */
+  const nameLink = () => {
+    const name = displayName.trim();
+    if (!mine || !name) return;
+    const named = { ...mine, displayName: name };
+    saveMyPromoter(named);
+    setMine(named);
+    trackEvent(ReferralEvent.LinkNamed);
+  };
+
   const link = mine ? referralLink(mine.code) : undefined;
+  // A link made automatically after a download has no name yet, and a
+  // listing needs one.
+  const named = Boolean(mine?.displayName);
   // Who gets the recruit credit. Only another promoter's code counts: not
   // your own (people test their link in the same browser), and not a
   // channel link like ?ref=ch-newsletter, which the server would refuse.
@@ -142,7 +155,7 @@ export default function JoinForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mine) return;
+    if (!mine || !named) return;
     setSubmission({ status: 'sending' });
     try {
       const res = await fetch('/api/promoters', {
@@ -257,7 +270,7 @@ export default function JoinForm() {
         ) : (
           <div className="mt-3">
             <p className="text-sm text-gray-600">
-              {mine.displayName}, your link
+              {named ? `${mine.displayName}, your link` : 'Your link'}
             </p>
             <code
               data-testid="referral-link"
@@ -287,8 +300,33 @@ export default function JoinForm() {
               Share it anywhere: post captions, your bio link, group chats. The
               leaderboard already shows you your own count, marked as pending.
             </p>
+            {!named && (
+              <div className="mt-4">
+                <label className="block text-sm" htmlFor="displayName">
+                  Add your name to appear on the leaderboard. Your link and
+                  everyone it already brought stay the same.
+                </label>
+                <input
+                  id="displayName"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  maxLength={40}
+                  autoComplete="nickname"
+                  placeholder="e.g. Paul Biggar"
+                  className="mt-1 w-full rounded-lg border border-gray-400 bg-white px-3 py-2"
+                />
+                <button
+                  type="button"
+                  onClick={nameLink}
+                  disabled={!displayName.trim()}
+                  className="mt-2 rounded-full px-4 py-1.5 border border-gray-900 bg-gray-900 text-white text-sm disabled:opacity-50"
+                >
+                  Save my name
+                </button>
+              </div>
+            )}
             <p className="text-xs text-gray-500 mt-2">
-              Wrong name?{' '}
+              {named ? 'Wrong name?' : 'Want a different link?'}{' '}
               <button
                 type="button"
                 onClick={startOver}
@@ -349,7 +387,7 @@ export default function JoinForm() {
       ) : (
         <section
           className={`rounded-2xl border border-gray-300 bg-gray-50 px-5 py-5 ${
-            mine ? '' : 'opacity-50'
+            named ? '' : 'opacity-50'
           }`}
         >
           {lostRequest && (
@@ -380,7 +418,7 @@ export default function JoinForm() {
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            disabled={!mine}
+            disabled={!named}
             value={profileLink}
             onChange={(e) => setProfileLink(e.target.value)}
             placeholder="instagram.com/yourname or yoursite.com"
@@ -400,7 +438,7 @@ export default function JoinForm() {
               get credit for bringing you on board.
             </p>
           )}
-          {mine && TURNSTILE_SITE_KEY && (
+          {named && TURNSTILE_SITE_KEY && (
             <TurnstileWidget
               siteKey={TURNSTILE_SITE_KEY}
               onToken={setTurnstileToken}
@@ -419,7 +457,7 @@ export default function JoinForm() {
           <button
             type="submit"
             disabled={
-              !mine ||
+              !named ||
               linkInvalid ||
               submission.status === 'sending' ||
               (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)

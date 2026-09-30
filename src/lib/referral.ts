@@ -1,4 +1,5 @@
 import { APP_URL } from '@/lib/share';
+import type { ShareChannel, ShareFormat } from '@/types';
 
 /**
  * Referral links: `https://ppm.techforpalestine.org/?ref=<code>`.
@@ -135,6 +136,22 @@ export function generatePromoterCode(
 /** The link a promoter shares. */
 export function referralLink(code: string): string {
   return `${APP_URL}?ref=${encodeURIComponent(code)}`;
+}
+
+/**
+ * A promoter's link as sent through one of the share buttons: `ref` carries
+ * the code, so the person gets the credit, and `utm_medium` carries what the
+ * `share-*` ref would have (`share-whatsapp`, `share-system-story`), which
+ * Plausible reports as its own dimension, so the channel mix is not lost.
+ */
+export function personalShareUrl(
+  code: string,
+  channel: ShareChannel,
+  format: ShareFormat = 'link',
+): string {
+  const medium =
+    format === 'link' ? `share-${channel}` : `share-${channel}-${format}`;
+  return `${referralLink(code)}&utm_medium=${medium}`;
 }
 
 /**

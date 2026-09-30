@@ -197,7 +197,9 @@ function BoardTable({
               👋
             </span>
             <div className="flex-1 min-w-0">
-              <span className="font-semibold">{mine.displayName}</span>{' '}
+              <span className="font-semibold">
+                {mine.displayName || 'Your link'}
+              </span>{' '}
               <span
                 data-testid="my-listing-badge"
                 className="text-xs rounded-full bg-gray-100 px-2 py-0.5 text-gray-700"

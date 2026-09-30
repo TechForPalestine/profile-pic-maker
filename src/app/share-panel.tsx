@@ -1,13 +1,17 @@
 'use client';
 import { ReferralEvent, ShareEvent, trackEvent } from '@/lib/analytics';
+import { ensureMyPromoter } from '@/lib/my-promoter';
 import {
   SHORT_URL_LABEL,
   buildShareLinks,
   canShareImageFiles,
   dataUrlToFile,
   shareCaption,
+  shareLandingUrl,
+  type LandingUrlBuilder,
 } from '@/lib/share';
-import { leaderboardEnabled } from '@/lib/referral';
+import { leaderboardEnabled, personalShareUrl } from '@/lib/referral';
+import type { ShareVariant } from '@/lib/share-variant';
 import { ShareChannel, ShareFormat } from '@/types';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
@@ -25,6 +29,7 @@ import {
 } from 'react-icons/fa6';
 
 import BrandingRing from './branding-ring';
+import MyLinkCard from './my-link-card';
 
 // Official brand colours make the row instantly recognisable.
 const CHANNEL_STYLES = {
@@ -54,6 +59,8 @@ interface SharePanelProps {
   /** Mirrors the ring's short URL onto the story card's picture, so what gets
    *  shared matches the picture the user just downloaded. */
   showBranding: boolean;
+  /** Which share panel to show; see `@/lib/share-variant`. */
+  variant?: ShareVariant;
 }
 
 export default function SharePanel({
@@ -61,7 +68,19 @@ export default function SharePanel({
   method,
   generateProfileImage,
   showBranding,
+  variant = 'classic',
 }: SharePanelProps) {
+  // Link-first: this browser's personal link, made on the spot (anonymous)
+  // if it has none. The panel only mounts after a client-side download, so
+  // localStorage is readable here; ensureMyPromoter is idempotent.
+  const [personal] = useState(() =>
+    variant === 'link-first' ? ensureMyPromoter() : undefined,
+  );
+  const promoter = personal?.promoter;
+  const landingUrl: LandingUrlBuilder = promoter
+    ? (channel, format) => personalShareUrl(promoter.code, channel, format)
+    : shareLandingUrl;
+  const eventProps = { method, variant };
   const panelRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
   const [canNativeShare, setCanNativeShare] = useState(false);
@@ -115,7 +134,10 @@ export default function SharePanel({
     // Web Share API detection needs the browser (unavailable during SSR).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCanNativeShare(canShareImageFiles());
-    trackEvent(ShareEvent.OptionsShown, { method });
+    trackEvent(ShareEvent.OptionsShown, eventProps);
+    if (personal?.created) {
+      trackEvent(ReferralEvent.LinkCreated, { origin: 'auto', variant });
+    }
     prepareFile('profile');
     prepareFile('story');
     // The panel appears above the Download button the user just clicked —
@@ -130,7 +152,11 @@ export default function SharePanel({
   const handleNativeShare = async (
     format: Extract<ShareFormat, 'profile' | 'story'>,
   ) => {
-    trackEvent(ShareEvent.Clicked, { channel: 'system', format, method });
+    trackEvent(ShareEvent.Clicked, {
+      channel: 'system',
+      format,
+      ...eventProps,
+    });
     setBusyAction(`share-${format}`);
     try {
       const file = await prepareFile(format);
@@ -138,7 +164,7 @@ export default function SharePanel({
       await navigator.share({
         files: [file],
         title: 'Palestine Profile Pic Maker',
-        text: shareCaption('system', format),
+        text: shareCaption('system', format, landingUrl),
       });
     } catch (error) {
       // AbortError means the user dismissed the share sheet — not an error.
@@ -154,7 +180,7 @@ export default function SharePanel({
     trackEvent(ShareEvent.Clicked, {
       channel: 'download',
       format: 'story',
-      method,
+      ...eventProps,
     });
     setBusyAction('story-download');
     try {
@@ -167,9 +193,15 @@ export default function SharePanel({
   };
 
   const handleCopyCaption = async () => {
-    trackEvent(ShareEvent.Clicked, { channel: 'copy', format: 'link', method });
+    trackEvent(ShareEvent.Clicked, {
+      channel: 'copy',
+      format: 'link',
+      ...eventProps,
+    });
     try {
-      await navigator.clipboard.writeText(shareCaption('copy'));
+      await navigator.clipboard.writeText(
+        shareCaption('copy', 'link', landingUrl),
+      );
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
@@ -178,7 +210,7 @@ export default function SharePanel({
   };
 
   const handleLinkOut = (channel: ShareChannel) => {
-    trackEvent(ShareEvent.Clicked, { channel, format: 'link', method });
+    trackEvent(ShareEvent.Clicked, { channel, format: 'link', ...eventProps });
   };
 
   return (
@@ -203,8 +235,15 @@ export default function SharePanel({
         ))}
       <p className="font-semibold text-lg">Now spread the word 📣</p>
       <p className="text-sm text-gray-600 pb-3">
-        Post it to your story or send it to friends.
+        {promoter
+          ? 'Every share below carries your personal link, so everyone who makes their picture through it counts for you.'
+          : 'Post it to your story or send it to friends.'}
       </p>
+      {promoter && (
+        <div className="mb-3">
+          <MyLinkCard promoter={promoter} placement="share" method={method} />
+        </div>
+      )}
       {canNativeShare && (
         <>
           <button
@@ -239,7 +278,7 @@ export default function SharePanel({
         </>
       )}
       <div className="flex justify-center gap-3 my-4">
-        {buildShareLinks().map(({ channel, label, href }) => {
+        {buildShareLinks(landingUrl).map(({ channel, label, href }) => {
           const { Icon, background } = CHANNEL_STYLES[channel];
           return (
             <a
@@ -281,12 +320,12 @@ export default function SharePanel({
       )}
       {/* The person just made something they are about to post: the moment
           to offer credit for everyone that post brings in. */}
-      {leaderboardEnabled() && (
+      {leaderboardEnabled() && !promoter && (
         <p className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
           Bringing friends along?{' '}
           <Link
             href="/leaderboard/join"
-            onClick={() => trackEvent(ReferralEvent.CtaClicked, { method })}
+            onClick={() => trackEvent(ReferralEvent.CtaClicked, eventProps)}
             className="underline font-semibold text-gray-900"
           >
             Get your own link and join the leaderboard
