@@ -27,7 +27,7 @@ updates:
       default-days: 7
     labels:
       - dependencies
-      - github-actions
+      - github_actions
     commit-message:
       prefix: "ci(deps)"
     groups:
