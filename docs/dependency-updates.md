@@ -7,8 +7,8 @@ a bad release. This is the written contract behind
 ## Goals
 
 - **Stay current** on security and routine fixes.
-- **Few, themed PRs** — routine bumps batch together; a human reviews and merges
-  every one (no auto-merge).
+- **Few, themed PRs** — routine bumps batch together; non-majors auto-merge once
+  the required checks pass (see [Auto-merge](#auto-merge)); majors get a human.
 - **Supply-chain safety** — a soak period before adopting a new release, so a
   malicious or broken version that gets yanked within days never reaches us.
 - **Fast lane for real CVEs** — critical/high advisories are not made to wait.
@@ -19,8 +19,8 @@ a bad release. This is the written contract behind
 
 | Tier | What | Cadence | Grouping | Cooldown | Who merges |
 |---|---|---|---|---|---|
-| **Routine** | patch + minor bumps | Monthly | One `routine` PR (plus `react` / `eslint-stack` when those are involved) | 7 days (3 for patch) | Human, after a skim + green CI |
-| **Security** | Dependabot security updates for published advisories | **Immediate** | Ungrouped — one PR per fix | **None** (bypasses soak) | Human, prioritised by CVSS; criticals same-day |
+| **Routine** | patch + minor bumps | Monthly | One `routine` PR (plus `react` / `eslint-stack` when those are involved) | 7 days (3 for patch) | Auto-merge after green required checks |
+| **Security** | Dependabot security updates for published advisories | **Immediate** | Ungrouped — one PR per fix | **None** (bypasses soak) | Auto-merge after green required checks (majors: human) |
 | **Major** | major version bumps / deprecations needing code changes | As released | Coordinated toolchains grouped (`react`, `eslint-stack`); framework/standalone majors individual | 14 days | Human, as a migration PR |
 
 ### Why cooldown *and* immediate security updates coexist
@@ -85,12 +85,20 @@ Do this **after** the new `.github/dependabot.yml` lands on upstream:
 4. From then on the steady state is: one monthly `routine` PR, immediate security
    PRs, and the occasional grouped/individual major.
 
+## Auto-merge
+
+[`.github/workflows/dependabot.yml`](../.github/workflows/dependabot.yml) enables
+auto-merge (squash) on every non-major Dependabot PR. The `main` ruleset's
+required checks — CI (lint/build/tests + E2E on all three engines), CodeQL,
+Cloudflare Pages — gate the actual merge, so a red PR just sits until someone
+fixes it. To hold a PR back, disable auto-merge on it.
+
 ## Future flow (steady state)
 
-- **Monthly:** a `routine` PR appears → glance at the changelog links → CI green →
-  merge.
-- **On advisory:** a security PR appears immediately → check CVSS → criticals
-  merged same-day, others within the sprint.
+- **Monthly:** a `routine` PR appears → merges itself when the required checks
+  pass. Only look at it if it's stuck red.
+- **On advisory:** a security PR appears immediately → same auto-merge path, so
+  it lands as soon as the checks pass.
 - **On a major:** a grouped (`react` / `eslint-stack`) or individual PR appears →
   scheduled as migration work → read release notes for deprecations/breaking
   changes → apply required code changes in the same PR → merge when green.

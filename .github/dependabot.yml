@@ -8,7 +8,8 @@
 #   - Coordinated toolchains (React core, the ESLint stack) update as one PR.
 #   - Framework / standalone majors (next, tailwindcss, @types/node, ...) fall
 #     outside every group and open as individual PRs, reviewed as migration work.
-#   - Nothing auto-merges; a human reviews and merges every PR.
+#   - Non-majors auto-merge once the required checks pass
+#     (.github/workflows/dependabot.yml); majors wait for a human.
 #
 # Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 version: 2
