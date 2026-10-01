@@ -124,7 +124,9 @@ fixes it. To hold a PR back, disable auto-merge on it.
   required path.** A dependency PR can go red from an upstream outage, not the
   bump. Two retries are configured; if it's clearly a transient network failure,
   re-run the job or comment `@dependabot recreate`.
-- **Test coverage is Twitter-only.** The GitHub/GitLab/Bluesky/`gaza-status`/
-  upload paths are not exercised, so the safety net is thinner for changes that
-  touch those areas — review such bumps more carefully. Widening coverage is the
-  highest-leverage way to make future updates safer to merge.
+- **What the tests cover.** All four platforms (Twitter, GitHub, GitLab,
+  Bluesky) are tested three ways: mocked integration tests of the API route,
+  mocked e2e tests on Chromium/Firefox/WebKit, and live tests against the real
+  providers. Photo upload is covered by e2e tests. The one gap is the
+  `gaza-status` route: e2e tests mock it, and nothing tests the route itself, so
+  review bumps that could affect it more carefully.
