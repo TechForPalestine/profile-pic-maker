@@ -1,0 +1,26 @@
+# Auto-merge Dependabot PRs. Enables auto-merge (squash) on every non-major
+# Dependabot PR; the `main` ruleset's required checks (CI, CodeQL, Cloudflare
+# Pages) gate the actual merge. Majors are left for a human to merge as
+# migration work (see docs/dependency-updates.md).
+name: Dependabot auto-merge
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@v2
+
+      - name: Enable auto-merge (non-major)
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge "$PR" --auto --squash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.html_url }}
