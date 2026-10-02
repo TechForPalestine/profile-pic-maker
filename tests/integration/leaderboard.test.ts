@@ -3,11 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FunnelEvent } from '@/lib/analytics';
 import {
-  bucketSource,
-  buildChannels,
   buildLeaderboard,
   buildPendingCounts,
-  channelLabel,
   isSuspicious,
   maxByKey,
   rankPromoters,
@@ -67,16 +64,6 @@ const VISITS_BY_REFERRER = [
   { key: 'lurker', visitors: 8, events: 8 },
 ];
 
-const BY_SOURCE = [
-  { key: 'Direct / None', visitors: 700, events: 900 },
-  { key: 'share-whatsapp', visitors: 120, events: 130 },
-  { key: 'share-system-story', visitors: 60, events: 60 },
-  { key: 'paul', visitors: 35, events: 36 },
-  { key: 'stranger', visitors: 30, events: 30 },
-  { key: 'ch-mighty-missions', visitors: 25, events: 25 },
-  { key: 'twitter', visitors: 20, events: 20 },
-];
-
 describe('rankPromoters', () => {
   it('ranks approved promoters by unique downloads with shared ranks on ties', () => {
     const rows = rankPromoters(BY_REFERRER, APPROVED);
@@ -129,40 +116,6 @@ describe('isSuspicious', () => {
     expect(isSuspicious(3, 0)).toBe(false);
     expect(isSuspicious(4, 0)).toBe(false);
     expect(isSuspicious(5, 0)).toBe(true);
-  });
-});
-
-describe('channel buckets', () => {
-  const approvedCodes = new Set(['paul', 'zaher']);
-
-  it('sorts sources into promoters, shared, named channels and organic', () => {
-    expect(bucketSource('paul', approvedCodes)).toBe('promoters');
-    expect(bucketSource('share-whatsapp', approvedCodes)).toBe('shared');
-    expect(bucketSource('ch-mighty-missions', approvedCodes)).toBe(
-      'channel:ch-mighty-missions',
-    );
-    expect(bucketSource('stranger', approvedCodes)).toBe('organic');
-    expect(bucketSource('Direct / None', approvedCodes)).toBe('organic');
-    expect(bucketSource('twitter', approvedCodes)).toBe('organic');
-    expect(bucketSource('ch-', approvedCodes)).toBe('organic');
-  });
-
-  it('labels channels from their code', () => {
-    expect(channelLabel('ch-mighty-missions')).toBe('Mighty Missions');
-    expect(channelLabel('ch-t4p-tools-page')).toBe('T4p Tools Page');
-  });
-
-  it('totals unique downloads per bucket, largest first', () => {
-    expect(buildChannels(BY_SOURCE, approvedCodes)).toEqual([
-      { bucket: 'organic', label: 'Direct and organic', downloads: 750 },
-      { bucket: 'shared', label: 'Shared by users', downloads: 180 },
-      { bucket: 'promoters', label: 'Promoter links', downloads: 35 },
-      {
-        bucket: 'channel:ch-mighty-missions',
-        label: 'Mighty Missions',
-        downloads: 25,
-      },
-    ]);
   });
 });
 
@@ -219,14 +172,13 @@ describe('buildLeaderboard', () => {
     const board = await buildLeaderboard({
       window: '7d',
       byReferrer: BY_REFERRER,
-      bySource: BY_SOURCE,
       approved: APPROVED,
       now: new Date('2026-09-14T12:00:00Z'),
     });
     expect(board.window).toBe('7d');
     expect(board.generatedAt).toBe('2026-09-14T12:00:00.000Z');
     expect(board.promoters).toHaveLength(3);
-    expect(board.channels[0].bucket).toBe('organic');
+    expect(board).not.toHaveProperty('channels');
     expect(Object.keys(board.pendingCounts)).toHaveLength(2);
     expect(board.promoters[0].visits).toBe(0);
   });
@@ -394,8 +346,6 @@ describe('GET /api/leaderboard', () => {
         const results =
           body.dimensions[1] === 'visit:source'
             ? [
-                { dimensions: [D, 'share-whatsapp'], metrics: [120, 130] },
-                { dimensions: [D, 'stranger'], metrics: [30, 30] },
                 // Page views through `?ref=`: more than Landed for paul,
                 // ignored for sources that are not promoter codes.
                 { dimensions: [PAGEVIEW, 'paul'], metrics: [150, 200] },
@@ -432,10 +382,7 @@ describe('GET /api/leaderboard', () => {
         visits: 150,
       },
     ]);
-    expect(board.channels).toEqual([
-      { bucket: 'shared', label: 'Shared by users', downloads: 120 },
-      { bucket: 'organic', label: 'Direct and organic', downloads: 30 },
-    ]);
+    expect(board).not.toHaveProperty('channels');
     // The pending promoter's count is there for their own browser to find,
     // under a fingerprint rather than the code itself.
     expect(board.pendingCounts).toEqual({
@@ -461,7 +408,6 @@ describe('board cache', () => {
     window,
     generatedAt: at,
     promoters: [],
-    channels: [],
     pendingCounts: {},
   });
 

@@ -53,8 +53,8 @@ export async function GET(request: NextRequest) {
   try {
     const board = await cachedBoard(requested, async () => {
       const plausible = createPlausibleClient(env);
-      // Two requests per window: by referrer (downloads and Landed), and by
-      // source (page views that arrived through `?ref=`, and the channel mix).
+      // Two requests per window: by referrer (downloads and Landed), and
+      // page views by source (visits that arrived through `?ref=`).
       const [approved, byReferrer, bySource] = await Promise.all([
         getPromoterStore().listApproved(),
         plausible.count(
@@ -62,11 +62,7 @@ export async function GET(request: NextRequest) {
           'event:props:referrer',
           requested,
         ),
-        plausible.count(
-          [PAGEVIEW, FunnelEvent.Downloaded],
-          'visit:source',
-          requested,
-        ),
+        plausible.count([PAGEVIEW], 'visit:source', requested),
       ]);
       // Visits: whichever is higher of Landed (any visit while the referrer
       // is remembered) and page views that came in through the link itself
@@ -78,7 +74,6 @@ export async function GET(request: NextRequest) {
         window: requested,
         byReferrer: byReferrer[FunnelEvent.Downloaded],
         visitsByReferrer: maxByKey(byReferrer[FunnelEvent.Landed], linkVisits),
-        bySource: bySource[FunnelEvent.Downloaded],
         approved,
       });
     });

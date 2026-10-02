@@ -173,7 +173,6 @@ function BoardTable({
   mine?: Mine;
 }) {
   const topDownloads = board.promoters[0]?.downloads ?? 0;
-  const channelTotal = board.channels.reduce((sum, c) => sum + c.downloads, 0);
   const mineIsListed = mine
     ? board.promoters.some((row) => row.code === mine.code)
     : false;
@@ -289,51 +288,6 @@ function BoardTable({
             </li>
           ))}
         </ol>
-      )}
-
-      {board.channels.length > 0 && (
-        <section className="mt-10" aria-labelledby="channels-heading">
-          <h2 id="channels-heading" className="text-lg font-semibold">
-            Where downloads come from
-          </h2>
-          <p className="text-xs text-gray-500 mb-3">
-            By the source of the visit,{' '}
-            {WINDOW_LABELS[board.window].toLowerCase()}. Promoter counts above
-            credit the first link a person opened in the last 30 days, so the
-            two views need not add up.
-          </p>
-          <ul className="space-y-2">
-            {board.channels.map((channel) => (
-              <li key={channel.bucket} className="text-sm">
-                <div className="flex justify-between gap-3">
-                  <span>{channel.label}</span>
-                  <span className="font-semibold">
-                    {channel.downloads.toLocaleString()}
-                    <span className="text-gray-500 font-normal">
-                      {' '}
-                      (
-                      {channelTotal
-                        ? Math.round((channel.downloads / channelTotal) * 100)
-                        : 0}
-                      %)
-                    </span>
-                  </span>
-                </div>
-                <div
-                  className="mt-1 h-1.5 rounded-full bg-gray-100 overflow-hidden"
-                  aria-hidden="true"
-                >
-                  <div
-                    className="h-full bg-gray-700"
-                    style={{
-                      width: `${channelTotal ? (channel.downloads / channelTotal) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
       )}
       <p className="mt-6 text-xs text-gray-400 text-center">
         Ranked by people who downloaded. Visits are people who opened the link.

@@ -26,8 +26,7 @@ export const REFERRAL_CODE_PATTERN = /^[a-z0-9][a-z0-9-]{2,23}$/;
 
 /**
  * `share-*` is owned by the post-download share buttons (`shareLandingUrl`);
- * those are channels, not people, and are bucketed separately on the
- * leaderboard.
+ * those are channels, not people, and are never ranked on the leaderboard.
  */
 export const SHARE_PREFIX = 'share-';
 
@@ -142,7 +141,7 @@ export function referralLink(code: string): string {
  * A promoter's link as sent through one of the share buttons: `ref` carries
  * the code, so the person gets the credit, and `utm_medium` carries what the
  * `share-*` ref would have (`share-whatsapp`, `share-system-story`), which
- * Plausible reports as its own dimension, so the channel mix is not lost.
+ * Plausible reports as its own dimension, so the channel split is not lost.
  */
 export function personalShareUrl(
   code: string,

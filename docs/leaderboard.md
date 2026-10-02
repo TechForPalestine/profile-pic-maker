@@ -15,7 +15,7 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
   is also remembered per browser for 30 days (first touch wins) and sent as the
   `referrer` custom prop on the `Landed` and `Downloaded` events, which is what
   the ranking counts. `share-*` refs belong to the share buttons and are never
-  ranked; `ch-*` codes are channels, reported but not ranked as a person.
+  ranked; `ch-*` codes are channels, never ranked as a person.
 - **Registry.** Listing is moderated: join requests land as `pending` in a
   Workers KV namespace bound as `PROMOTERS` in `wrangler.jsonc`, and an
   approver publishes or rejects them on `/admin/promoters`, which talks
@@ -23,8 +23,8 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
   Without the binding (outside Cloudflare) an in-memory store is used, so the whole flow
   works in `npm run dev`.
 - **Counts.** `/api/leaderboard` queries the Plausible Stats API (v2) for
-  unique downloaders and unique landings grouped by `referrer`, and downloads
-  by visit source, joins them onto the approved registry, and computes each
+  unique downloaders and unique landings grouped by `referrer`, and page views
+  by visit source (people who arrived through a `?ref=` link), joins them onto the approved registry, and computes each
   window at most once every ten minutes and shares the result through KV
   (`src/lib/board-cache.ts`), so visitors never reach the Stats API directly. Rows rank by
   unique downloads; visits are shown for context. Without a Plausible key it
@@ -116,10 +116,8 @@ Plausible by filtering on it. The numbers that decide the test:
 - **Naming rate:** `Leaderboard: Link Named` and `4 Listing Requested` over
   `2 Link Created` with `origin: auto`.
 
-While link-first runs, downloads that arrive through anonymous links count
-as direct and organic in the board's channel mix (unapproved codes are
-never shown), so the "Shared by users" bucket shrinks. UTM mediums in
-Plausible's own dashboard keep the real channel split.
+Where downloads come from (share buttons, channels, organic) is read in
+Plausible's own dashboard: Sources and UTM mediums keep the full split.
 
 Listing status: a listing request returns a private owner key that the
 browser keeps; the server stores only its SHA-256. The join page and the
