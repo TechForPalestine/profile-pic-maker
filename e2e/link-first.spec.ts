@@ -42,7 +42,6 @@ const mockBoard = (page: Page, downloads: number) =>
         window: 'all',
         generatedAt: new Date().toISOString(),
         promoters: [],
-        channels: [],
         pendingCounts: code
           ? { [await hashReferralCode(code)]: { downloads, visits: 9 } }
           : {},

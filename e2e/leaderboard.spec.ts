@@ -35,11 +35,6 @@ const board = (window: string) => ({
       visits: window === 'day' ? 4 : 150,
     },
   ],
-  channels: [
-    { bucket: 'organic', label: 'Direct and organic', downloads: 700 },
-    { bucket: 'shared', label: 'Shared by users', downloads: 180 },
-    { bucket: 'promoters', label: 'Promoter links', downloads: 200 },
-  ],
   pendingCounts: { [fingerprint('newbie-7k2q')]: { downloads: 3, visits: 11 } },
 });
 
@@ -55,9 +50,7 @@ const rememberMine = (
   ] as const);
 
 test.describe('The leaderboard page', () => {
-  test('ranks promoters, links to their profiles, and shows the channel mix', async ({
-    page,
-  }) => {
+  test('ranks promoters and links to their profiles', async ({ page }) => {
     const windows: string[] = [];
     await page.route('**/api/leaderboard**', (route) => {
       const window = new URL(route.request().url()).searchParams.get('window');
@@ -78,11 +71,6 @@ test.describe('The leaderboard page', () => {
     await expect(
       rows.first().getByRole('link', { name: 'Paul Biggar on X' }),
     ).toHaveAttribute('rel', /nofollow/);
-
-    await expect(
-      page.getByRole('heading', { name: 'Where downloads come from' }),
-    ).toBeVisible();
-    await expect(page.getByText('Shared by users')).toBeVisible();
 
     await page.getByRole('tab', { name: 'Today' }).click();
     await expect(rows.first()).toContainText('5');

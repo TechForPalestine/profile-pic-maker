@@ -190,7 +190,6 @@ test.describe('Promoter approvals page', () => {
               visits: 90,
             },
           ],
-          channels: [],
           pendingCounts: {
             [fingerprint('shady')]: { downloads: 50, visits: 2 },
           },
@@ -245,7 +244,6 @@ test.describe('Promoter approvals page', () => {
           generatedAt: '2026-09-21T12:00:00.000Z',
           source: 'plausible',
           promoters: [],
-          channels: [],
           pendingCounts: {
             [fingerprint('old')]: { downloads: 30, visits: 40 },
             [fingerprint('mid')]: { downloads: 5, visits: 90 },
