@@ -71,17 +71,33 @@ export function hasPlausibleEnv(env: PlausibleEnv): boolean {
   return Boolean(env.PLAUSIBLE_API_KEY);
 }
 
+/**
+ * Plausible's `7d` preset ends yesterday, so a board that only shows the last
+ * seven days would miss today. Ask for the seven days ending today instead.
+ */
+export function dateRange(
+  window: LeaderboardWindow,
+  now: Date = new Date(),
+): LeaderboardWindow | [string, string] {
+  if (window !== '7d') return window;
+  const day = (d: Date) => d.toISOString().slice(0, 10);
+  const start = new Date(now);
+  start.setUTCDate(start.getUTCDate() - 6);
+  return [day(start), day(now)];
+}
+
 /** The exact request body sent to Plausible, exported so tests can pin it. */
 export function countQuery(
   siteId: string,
   event: CountedEvent,
   dimension: CountDimension,
   window: LeaderboardWindow,
+  now: Date = new Date(),
 ) {
   return {
     site_id: siteId,
     metrics: ['visitors', 'events'],
-    date_range: window,
+    date_range: dateRange(window, now),
     filters: [['is', 'event:name', [event]]],
     dimensions: [dimension],
     order_by: [['visitors', 'desc']],

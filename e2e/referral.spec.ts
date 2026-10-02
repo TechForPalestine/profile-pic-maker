@@ -24,6 +24,28 @@ const storedReferrer = (page: import('@playwright/test').Page) =>
   }).toBe;
 
 test.describe('Referral links', () => {
+  test('queues the Landed visit even before the analytics script loads', async ({
+    page,
+  }) => {
+    // Never let the script load: the event must wait in Plausible's queue
+    // with the referral code, not be dropped.
+    await page.route('**/plausible.io/**', (route) => route.abort());
+    await page.goto('/?ref=paul-biggar-5s7m');
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          Array.from(
+            (window as unknown as { plausible?: { q?: unknown[][] } }).plausible
+              ?.q ?? [],
+          ).map((args) => Array.from(args as ArrayLike<unknown>)),
+        ),
+      )
+      .toContainEqual([
+        'Funnel: 1 Landed',
+        { props: expect.objectContaining({ referrer: 'paul-biggar-5s7m' }) },
+      ]);
+  });
+
   test.beforeEach(async ({ page }) => {
     await page.route('**/api/gaza-status', (route) =>
       route.fulfill({ json: { summary: 'Test status summary' } }),

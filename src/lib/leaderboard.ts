@@ -186,6 +186,8 @@ export async function buildPendingCounts(
   const codes = [...new Set([...downloads.keys(), ...visits.keys()])].filter(
     (code) =>
       code !== REFERRER_NONE &&
+      // Plausible's bucket for events sent without the prop at all.
+      code !== '(none)' &&
       code !== '' &&
       !approvedCodes.has(code) &&
       ((downloads.get(code) ?? 0) > 0 || (visits.get(code) ?? 0) > 0),
