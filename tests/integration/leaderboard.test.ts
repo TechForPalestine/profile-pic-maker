@@ -6,7 +6,6 @@ import {
   buildLeaderboard,
   buildPendingCounts,
   isSuspicious,
-  maxByKey,
   rankPromoters,
 } from '@/lib/leaderboard';
 import { hashReferralCode } from '@/lib/referral';
@@ -15,7 +14,6 @@ import {
   dateRange,
   createPlausibleClient,
   isLeaderboardWindow,
-  PAGEVIEW,
 } from '@/lib/plausible-stats';
 import {
   getPromoterStore,
@@ -184,27 +182,6 @@ describe('buildLeaderboard', () => {
   });
 });
 
-describe('maxByKey', () => {
-  it('keeps the higher count per key', () => {
-    expect(
-      maxByKey(
-        [
-          { key: 'paul', visitors: 4, events: 5 },
-          { key: 'zahid', visitors: 1, events: 1 },
-        ],
-        [
-          { key: 'paul', visitors: 48, events: 82 },
-          { key: 'raaaahma', visitors: 1, events: 3 },
-        ],
-      ),
-    ).toEqual([
-      { key: 'paul', visitors: 48, events: 82 },
-      { key: 'zahid', visitors: 1, events: 1 },
-      { key: 'raaaahma', visitors: 1, events: 3 },
-    ]);
-  });
-});
-
 describe('Plausible Stats client', () => {
   afterEach(() => vi.unstubAllGlobals());
 
@@ -243,7 +220,13 @@ describe('Plausible Stats client', () => {
     expect(dateRange('day', now)).toBe('day');
     expect(dateRange('all', now)).toBe('all');
     expect(
-      countQuery('ppm.test', [PAGEVIEW], 'visit:source', '7d', now).date_range,
+      countQuery(
+        'ppm.test',
+        [FunnelEvent.Downloaded],
+        'visit:source',
+        '7d',
+        now,
+      ).date_range,
     ).toEqual(['2026-09-26', '2026-10-02']);
   });
 
@@ -298,7 +281,7 @@ describe('Plausible Stats client', () => {
     );
     const client = createPlausibleClient({ PLAUSIBLE_API_KEY: 'key' });
     await expect(
-      client.count([PAGEVIEW], 'visit:source', 'all'),
+      client.count([FunnelEvent.Downloaded], 'visit:source', 'all'),
     ).rejects.toThrow(/401/);
   });
 });
@@ -343,23 +326,16 @@ describe('GET /api/leaderboard', () => {
       vi.fn(async (_url: string, init?: RequestInit) => {
         const body = JSON.parse(String(init?.body));
         const D = FunnelEvent.Downloaded;
-        const results =
-          body.dimensions[1] === 'visit:source'
-            ? [
-                // Page views through `?ref=`: more than Landed for paul,
-                // ignored for sources that are not promoter codes.
-                { dimensions: [PAGEVIEW, 'paul'], metrics: [150, 200] },
-                { dimensions: [PAGEVIEW, 'Google'], metrics: [5000, 6000] },
-              ]
-            : [
-                { dimensions: [FunnelEvent.Landed, 'paul'], metrics: [90, 95] },
-                {
-                  dimensions: [FunnelEvent.Landed, 'stranger'],
-                  metrics: [10, 10],
-                },
-                { dimensions: [D, 'paul'], metrics: [40, 41] },
-                { dimensions: [D, 'stranger'], metrics: [30, 30] },
-              ];
+        expect(body.dimensions).toEqual(['event:name', 'event:props:referrer']);
+        const results = [
+          { dimensions: [FunnelEvent.Landed, 'paul'], metrics: [90, 95] },
+          {
+            dimensions: [FunnelEvent.Landed, 'stranger'],
+            metrics: [10, 10],
+          },
+          { dimensions: [D, 'paul'], metrics: [40, 41] },
+          { dimensions: [D, 'stranger'], metrics: [30, 30] },
+        ];
         return Response.json({ results });
       }),
     );
@@ -379,7 +355,7 @@ describe('GET /api/leaderboard', () => {
         recruits: 0,
         rank: 1,
         downloads: 40,
-        visits: 150,
+        visits: 90,
       },
     ]);
     expect(board).not.toHaveProperty('channels');
@@ -544,7 +520,7 @@ describe('GET /api/leaderboard under load', () => {
     vi.unstubAllGlobals();
   });
 
-  it('spends two Plausible calls per window, not two per visitor', async () => {
+  it('spends one Plausible call per window, not one per visitor', async () => {
     const fetchMock = vi.fn(async () => Response.json({ results: [] }));
     vi.stubGlobal('fetch', fetchMock);
     for (let i = 0; i < 25; i++) {
@@ -556,7 +532,7 @@ describe('GET /api/leaderboard under load', () => {
       );
       expect(res.status).toBe(200);
     }
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('rate limits one client hammering the board', async () => {

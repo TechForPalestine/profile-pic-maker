@@ -23,8 +23,8 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
   Without the binding (outside Cloudflare) an in-memory store is used, so the whole flow
   works in `npm run dev`.
 - **Counts.** `/api/leaderboard` queries the Plausible Stats API (v2) for
-  unique downloaders and unique landings grouped by `referrer`, and page views
-  by visit source (people who arrived through a `?ref=` link), joins them onto the approved registry, and computes each
+  unique downloaders and unique landings grouped by `referrer` (one request),
+  joins them onto the approved registry, and computes each
   window at most once every ten minutes and shares the result through KV
   (`src/lib/board-cache.ts`), so visitors never reach the Stats API directly. Rows rank by
   unique downloads; visits are shown for context. Without a Plausible key it
