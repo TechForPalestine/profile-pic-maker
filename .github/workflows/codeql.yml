@@ -16,6 +16,8 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  # Required by the merge queue (the "CodeQL" check must report on queue runs).
+  merge_group:
   schedule:
     - cron: '33 15 * * 2'
 
