@@ -12,6 +12,8 @@ const inter = Inter({ subsets: ['latin'] });
 // Plausible's per-site script. Previews point this at a staging site, or set
 // it to `off` so test traffic never lands in the production dashboard (every
 // `trackEvent` then no-ops, since `window.plausible` is never defined).
+// The init snippet runs before hydration so events fired on mount (Landed)
+// queue until the script loads instead of being dropped.
 const DEFAULT_PLAUSIBLE_SCRIPT_SRC =
   'https://plausible.io/js/pa-jox6Nfcg5lE6Iifkj-HHE.js';
 const PLAUSIBLE_SCRIPT_SRC =
@@ -66,7 +68,7 @@ export default function RootLayout({
         {PLAUSIBLE_ENABLED && (
           <>
             <Script src={PLAUSIBLE_SCRIPT_SRC} strategy="afterInteractive" />
-            <Script id="plausible-init" strategy="afterInteractive">
+            <Script id="plausible-init" strategy="beforeInteractive">
               {`window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()`}
             </Script>
           </>

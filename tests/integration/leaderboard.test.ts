@@ -14,6 +14,7 @@ import {
 import { hashReferralCode } from '@/lib/referral';
 import {
   countQuery,
+  dateRange,
   createPlausibleClient,
   downloadsQuery,
   isLeaderboardWindow,
@@ -165,6 +166,18 @@ describe('channel buckets', () => {
 });
 
 describe('pending counts', () => {
+  it('ignores downloads that carry no referrer at all', async () => {
+    const pending = await buildPendingCounts(
+      [
+        { key: '(none)', visitors: 5310, events: 5400 },
+        { key: 'none', visitors: 200, events: 210 },
+        { key: 'newbie-7k2q', visitors: 3, events: 3 },
+      ],
+      new Set(),
+    );
+    expect(Object.values(pending)).toEqual([{ downloads: 3, visits: 0 }]);
+  });
+
   it('publishes unapproved codes only as fingerprints, never in the clear', async () => {
     const counts = await buildPendingCounts(
       BY_REFERRER,
@@ -234,15 +247,26 @@ describe('Plausible Stats client', () => {
       countQuery('ppm.test', FunnelEvent.Landed, 'event:props:referrer', 'day')
         .filters,
     ).toEqual([['is', 'event:name', [FunnelEvent.Landed]]]);
-    expect(downloadsQuery('ppm.test', 'event:props:referrer', '7d')).toEqual({
+    expect(downloadsQuery('ppm.test', 'event:props:referrer', 'all')).toEqual({
       site_id: 'ppm.test',
       metrics: ['visitors', 'events'],
-      date_range: '7d',
+      date_range: 'all',
       filters: [['is', 'event:name', [FunnelEvent.Downloaded]]],
       dimensions: ['event:props:referrer'],
       order_by: [['visitors', 'desc']],
       pagination: { limit: 500 },
     });
+  });
+
+  it('makes the 7-day window end today, not yesterday', () => {
+    const now = new Date('2026-10-02T19:00:00Z');
+    expect(dateRange('7d', now)).toEqual(['2026-09-26', '2026-10-02']);
+    expect(dateRange('day', now)).toBe('day');
+    expect(dateRange('all', now)).toBe('all');
+    expect(
+      countQuery('ppm.test', FunnelEvent.Downloaded, 'visit:source', '7d', now)
+        .date_range,
+    ).toEqual(['2026-09-26', '2026-10-02']);
   });
 
   it('posts with the bearer key and maps rows', async () => {

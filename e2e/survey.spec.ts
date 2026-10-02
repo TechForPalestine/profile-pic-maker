@@ -72,7 +72,10 @@ test.describe('Post-download survey', () => {
       const prompt = page.getByText(question.prompt, { exact: true });
       if (await prompt.isVisible()) {
         await page
-          .getByRole('button', { name: question.options[0].label })
+          .getByRole('button', {
+            name: question.options[0].label,
+            exact: true,
+          })
           .click();
         return question;
       }
