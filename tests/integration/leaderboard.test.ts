@@ -9,6 +9,7 @@ import {
   buildPendingCounts,
   channelLabel,
   isSuspicious,
+  maxByKey,
   rankPromoters,
 } from '@/lib/leaderboard';
 import { hashReferralCode } from '@/lib/referral';
@@ -16,8 +17,8 @@ import {
   countQuery,
   dateRange,
   createPlausibleClient,
-  downloadsQuery,
   isLeaderboardWindow,
+  PAGEVIEW,
 } from '@/lib/plausible-stats';
 import {
   getPromoterStore,
@@ -231,6 +232,27 @@ describe('buildLeaderboard', () => {
   });
 });
 
+describe('maxByKey', () => {
+  it('keeps the higher count per key', () => {
+    expect(
+      maxByKey(
+        [
+          { key: 'paul', visitors: 4, events: 5 },
+          { key: 'zahid', visitors: 1, events: 1 },
+        ],
+        [
+          { key: 'paul', visitors: 48, events: 82 },
+          { key: 'raaaahma', visitors: 1, events: 3 },
+        ],
+      ),
+    ).toEqual([
+      { key: 'paul', visitors: 48, events: 82 },
+      { key: 'zahid', visitors: 1, events: 1 },
+      { key: 'raaaahma', visitors: 1, events: 3 },
+    ]);
+  });
+});
+
 describe('Plausible Stats client', () => {
   afterEach(() => vi.unstubAllGlobals());
 
@@ -244,17 +266,22 @@ describe('Plausible Stats client', () => {
 
   it('pins the query body to the Stats API v2 shape', () => {
     expect(
-      countQuery('ppm.test', FunnelEvent.Landed, 'event:props:referrer', 'day')
-        .filters,
-    ).toEqual([['is', 'event:name', [FunnelEvent.Landed]]]);
-    expect(downloadsQuery('ppm.test', 'event:props:referrer', 'all')).toEqual({
+      countQuery(
+        'ppm.test',
+        [FunnelEvent.Landed, FunnelEvent.Downloaded],
+        'event:props:referrer',
+        'all',
+      ),
+    ).toEqual({
       site_id: 'ppm.test',
       metrics: ['visitors', 'events'],
       date_range: 'all',
-      filters: [['is', 'event:name', [FunnelEvent.Downloaded]]],
-      dimensions: ['event:props:referrer'],
+      filters: [
+        ['is', 'event:name', [FunnelEvent.Landed, FunnelEvent.Downloaded]],
+      ],
+      dimensions: ['event:name', 'event:props:referrer'],
       order_by: [['visitors', 'desc']],
-      pagination: { limit: 500 },
+      pagination: { limit: 1000 },
     });
   });
 
@@ -264,17 +291,20 @@ describe('Plausible Stats client', () => {
     expect(dateRange('day', now)).toBe('day');
     expect(dateRange('all', now)).toBe('all');
     expect(
-      countQuery('ppm.test', FunnelEvent.Downloaded, 'visit:source', '7d', now)
-        .date_range,
+      countQuery('ppm.test', [PAGEVIEW], 'visit:source', '7d', now).date_range,
     ).toEqual(['2026-09-26', '2026-10-02']);
   });
 
-  it('posts with the bearer key and maps rows', async () => {
+  it('posts with the bearer key and splits rows by event', async () => {
     const fetchMock = vi.fn(async () =>
       Response.json({
         results: [
-          { dimensions: ['paul'], metrics: [40, 41] },
-          { dimensions: ['none'], metrics: [900, 1200] },
+          { dimensions: [FunnelEvent.Downloaded, 'paul'], metrics: [40, 41] },
+          { dimensions: [FunnelEvent.Landed, 'paul'], metrics: [90, 95] },
+          {
+            dimensions: [FunnelEvent.Downloaded, 'none'],
+            metrics: [900, 1200],
+          },
         ],
       }),
     );
@@ -285,12 +315,19 @@ describe('Plausible Stats client', () => {
       PLAUSIBLE_API_HOST: 'https://stats.example/',
     });
 
-    const rows = await client.downloadsBy('event:props:referrer', 'day');
+    const counts = await client.count(
+      [FunnelEvent.Landed, FunnelEvent.Downloaded],
+      'event:props:referrer',
+      'day',
+    );
 
-    expect(rows).toEqual([
-      { key: 'paul', visitors: 40, events: 41 },
-      { key: 'none', visitors: 900, events: 1200 },
-    ]);
+    expect(counts).toEqual({
+      [FunnelEvent.Landed]: [{ key: 'paul', visitors: 90, events: 95 }],
+      [FunnelEvent.Downloaded]: [
+        { key: 'paul', visitors: 40, events: 41 },
+        { key: 'none', visitors: 900, events: 1200 },
+      ],
+    });
     const [url, init] = fetchMock.mock.calls[0] as unknown as [
       string,
       RequestInit,
@@ -308,9 +345,9 @@ describe('Plausible Stats client', () => {
       vi.fn(async () => new Response('nope', { status: 401 })),
     );
     const client = createPlausibleClient({ PLAUSIBLE_API_KEY: 'key' });
-    await expect(client.downloadsBy('visit:source', 'all')).rejects.toThrow(
-      /401/,
-    );
+    await expect(
+      client.count([PAGEVIEW], 'visit:source', 'all'),
+    ).rejects.toThrow(/401/);
   });
 });
 
@@ -353,22 +390,26 @@ describe('GET /api/leaderboard', () => {
       'fetch',
       vi.fn(async (_url: string, init?: RequestInit) => {
         const body = JSON.parse(String(init?.body));
-        const event = body.filters[0][2][0];
+        const D = FunnelEvent.Downloaded;
         const results =
-          body.dimensions[0] !== 'event:props:referrer'
+          body.dimensions[1] === 'visit:source'
             ? [
-                { dimensions: ['share-whatsapp'], metrics: [120, 130] },
-                { dimensions: ['stranger'], metrics: [30, 30] },
+                { dimensions: [D, 'share-whatsapp'], metrics: [120, 130] },
+                { dimensions: [D, 'stranger'], metrics: [30, 30] },
+                // Page views through `?ref=`: more than Landed for paul,
+                // ignored for sources that are not promoter codes.
+                { dimensions: [PAGEVIEW, 'paul'], metrics: [150, 200] },
+                { dimensions: [PAGEVIEW, 'Google'], metrics: [5000, 6000] },
               ]
-            : event === FunnelEvent.Landed
-              ? [
-                  { dimensions: ['paul'], metrics: [90, 95] },
-                  { dimensions: ['stranger'], metrics: [10, 10] },
-                ]
-              : [
-                  { dimensions: ['paul'], metrics: [40, 41] },
-                  { dimensions: ['stranger'], metrics: [30, 30] },
-                ];
+            : [
+                { dimensions: [FunnelEvent.Landed, 'paul'], metrics: [90, 95] },
+                {
+                  dimensions: [FunnelEvent.Landed, 'stranger'],
+                  metrics: [10, 10],
+                },
+                { dimensions: [D, 'paul'], metrics: [40, 41] },
+                { dimensions: [D, 'stranger'], metrics: [30, 30] },
+              ];
         return Response.json({ results });
       }),
     );
@@ -388,7 +429,7 @@ describe('GET /api/leaderboard', () => {
         recruits: 0,
         rank: 1,
         downloads: 40,
-        visits: 90,
+        visits: 150,
       },
     ]);
     expect(board.channels).toEqual([
@@ -557,7 +598,7 @@ describe('GET /api/leaderboard under load', () => {
     vi.unstubAllGlobals();
   });
 
-  it('spends three Plausible calls per window, not three per visitor', async () => {
+  it('spends two Plausible calls per window, not two per visitor', async () => {
     const fetchMock = vi.fn(async () => Response.json({ results: [] }));
     vi.stubGlobal('fetch', fetchMock);
     for (let i = 0; i < 25; i++) {
@@ -569,7 +610,7 @@ describe('GET /api/leaderboard under load', () => {
       );
       expect(res.status).toBe(200);
     }
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('rate limits one client hammering the board', async () => {

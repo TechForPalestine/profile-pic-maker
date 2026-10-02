@@ -13,8 +13,8 @@ import { FunnelEvent } from '@/lib/analytics';
  * - Stats API access (a Business plan feature at the time of writing) and an
  *   API key, kept in `PLAUSIBLE_API_KEY` as a server-side secret.
  * - `referrer` listed under the site's allowed custom properties.
- * Rate limit is 600 requests per hour per key; the leaderboard route caches
- * for ten minutes, so it uses a few dozen at most.
+ * The leaderboard route makes two requests per window and caches for ten
+ * minutes, so it stays far inside the key's hourly budget.
  */
 
 export const DEFAULT_PLAUSIBLE_HOST = 'https://plausible.io';
@@ -50,21 +50,25 @@ export interface CountRow {
   events: number;
 }
 
+/** Plausible's built-in event for page views (sent by its own script). */
+export const PAGEVIEW = 'pageview';
+
 export type CountedEvent =
-  typeof FunnelEvent.Landed | typeof FunnelEvent.Downloaded;
+  typeof FunnelEvent.Landed | typeof FunnelEvent.Downloaded | typeof PAGEVIEW;
+
+/** Rows per event name: every requested event is present, possibly empty. */
+export type CountsByEvent = Record<CountedEvent, CountRow[]>;
 
 export interface PlausibleStatsClient {
-  /** Unique visitors (and raw events) that fired `event`, grouped by `dimension`. */
-  countBy(
-    event: CountedEvent,
+  /**
+   * Unique visitors (and raw events) for each of `events`, grouped by
+   * `dimension`, in one request.
+   */
+  count(
+    events: CountedEvent[],
     dimension: CountDimension,
     window: LeaderboardWindow,
-  ): Promise<CountRow[]>;
-  /** Shorthand for `countBy(FunnelEvent.Downloaded, ...)`. */
-  downloadsBy(
-    dimension: CountDimension,
-    window: LeaderboardWindow,
-  ): Promise<CountRow[]>;
+  ): Promise<CountsByEvent>;
 }
 
 export function hasPlausibleEnv(env: PlausibleEnv): boolean {
@@ -89,7 +93,7 @@ export function dateRange(
 /** The exact request body sent to Plausible, exported so tests can pin it. */
 export function countQuery(
   siteId: string,
-  event: CountedEvent,
+  events: CountedEvent[],
   dimension: CountDimension,
   window: LeaderboardWindow,
   now: Date = new Date(),
@@ -98,19 +102,12 @@ export function countQuery(
     site_id: siteId,
     metrics: ['visitors', 'events'],
     date_range: dateRange(window, now),
-    filters: [['is', 'event:name', [event]]],
-    dimensions: [dimension],
+    filters: [['is', 'event:name', events]],
+    // Grouped by event first, so one request answers for several events.
+    dimensions: ['event:name', dimension],
     order_by: [['visitors', 'desc']],
-    pagination: { limit: 500 },
+    pagination: { limit: 1000 },
   };
-}
-
-export function downloadsQuery(
-  siteId: string,
-  dimension: CountDimension,
-  window: LeaderboardWindow,
-) {
-  return countQuery(siteId, FunnelEvent.Downloaded, dimension, window);
 }
 
 interface QueryResponse {
@@ -125,28 +122,32 @@ export function createPlausibleClient(env: PlausibleEnv): PlausibleStatsClient {
   const siteId = env.PLAUSIBLE_SITE_ID || DEFAULT_SITE_ID;
 
   const client: PlausibleStatsClient = {
-    downloadsBy: (dimension, window) =>
-      client.countBy(FunnelEvent.Downloaded, dimension, window),
-    async countBy(event, dimension, window) {
+    async count(events, dimension, window) {
       const res = await fetch(`${host}/api/v2/query`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${env.PLAUSIBLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(countQuery(siteId, event, dimension, window)),
+        body: JSON.stringify(countQuery(siteId, events, dimension, window)),
       });
       if (!res.ok) {
         throw new Error(`Plausible query failed: ${res.status}`);
       }
       const body = (await res.json()) as QueryResponse;
-      return (body.results ?? [])
-        .filter((row) => typeof row.dimensions?.[0] === 'string')
-        .map((row) => ({
-          key: row.dimensions[0],
+      const counts = Object.fromEntries(
+        events.map((event) => [event, [] as CountRow[]]),
+      ) as CountsByEvent;
+      for (const row of body.results ?? []) {
+        const [event, key] = row.dimensions ?? [];
+        if (typeof key !== 'string' || !(event in counts)) continue;
+        counts[event as CountedEvent].push({
+          key,
           visitors: Number(row.metrics?.[0] ?? 0),
           events: Number(row.metrics?.[1] ?? 0),
-        }));
+        });
+      }
+      return counts;
     },
   };
   return client;
