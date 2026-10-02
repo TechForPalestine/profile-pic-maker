@@ -16,8 +16,29 @@ interface Registry {
   storage?: 'kv' | 'memory';
 }
 
-/** Last-7-days numbers per code, from the public board. */
+/** All-time numbers per code, from the public board. */
 type Stats = Record<string, { downloads: number; visits: number }>;
+
+type SortBy = 'newest' | 'downloads' | 'visits';
+
+const SORT_LABELS: Record<SortBy, string> = {
+  newest: 'Newest first',
+  downloads: 'Most downloads',
+  visits: 'Most visits',
+};
+
+/** Entries in the chosen order; ties (and missing numbers) fall back to newest. */
+function sortEntries(
+  entries: Promoter[],
+  sortBy: SortBy,
+  stats: Stats = {},
+): Promoter[] {
+  const newest = (a: Promoter, b: Promoter) =>
+    b.createdAt.localeCompare(a.createdAt);
+  if (sortBy === 'newest') return [...entries].sort(newest);
+  const count = (p: Promoter) => stats[p.code]?.[sortBy] ?? 0;
+  return [...entries].sort((a, b) => count(b) - count(a) || newest(a, b));
+}
 
 /**
  * Read the public board once and index it by code. Approved rows carry
@@ -25,7 +46,7 @@ type Stats = Record<string, { downloads: number; visits: number }>;
  * in `pendingCounts`, exactly as a promoter's own browser does.
  */
 async function loadStats(registry: Registry): Promise<Stats | undefined> {
-  const res = await fetch('/api/leaderboard?window=7d');
+  const res = await fetch('/api/leaderboard?window=all');
   if (!res.ok) return undefined;
   const board = (await res.json()) as LeaderboardResponse;
   const stats: Stats = {};
@@ -57,6 +78,7 @@ export default function AdminPanel() {
   const [stats, setStats] = useState<Stats>();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState<string>();
+  const [sortBy, setSortBy] = useState<SortBy>('newest');
 
   useEffect(() => {
     // sessionStorage is browser-only; the token can't be known during SSR.
@@ -201,6 +223,20 @@ export default function AdminPanel() {
         <button onClick={() => load(token)} className="underline">
           Refresh
         </button>
+        <label className="flex items-center gap-2">
+          <span className="text-gray-600">Sort by</span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortBy)}
+            className="rounded-lg border border-gray-400 px-2 py-1"
+          >
+            {(Object.keys(SORT_LABELS) as SortBy[]).map((key) => (
+              <option key={key} value={key}>
+                {SORT_LABELS[key]}
+              </option>
+            ))}
+          </select>
+        </label>
         <button onClick={forgetToken} className="underline text-gray-600">
           Forget token
         </button>
@@ -228,7 +264,7 @@ export default function AdminPanel() {
         <>
           <Section
             title={`Waiting for review (${registry.pending.length})`}
-            entries={registry.pending}
+            entries={sortEntries(registry.pending, sortBy, stats)}
             empty="Nothing waiting. Nice."
             stats={stats}
             busy={busy}
@@ -242,7 +278,7 @@ export default function AdminPanel() {
           />
           <Section
             title={`On the leaderboard (${registry.approved.length})`}
-            entries={registry.approved}
+            entries={sortEntries(registry.approved, sortBy, stats)}
             empty="Nobody is approved yet."
             stats={stats}
             busy={busy}
@@ -256,7 +292,7 @@ export default function AdminPanel() {
           />
           <Section
             title={`Rejected (${registry.rejected.length})`}
-            entries={registry.rejected}
+            entries={sortEntries(registry.rejected, sortBy, stats)}
             empty="No rejections."
             stats={stats}
             busy={busy}
@@ -360,7 +396,7 @@ function Entry({
       </div>
       {stats && (
         <p className="mt-1 text-xs text-gray-600" data-testid="entry-stats">
-          Last 7 days: {stats.downloads.toLocaleString()} downloads,{' '}
+          All time: {stats.downloads.toLocaleString()} downloads,{' '}
           {stats.visits.toLocaleString()} visits
           {isSuspicious(stats.downloads, stats.visits) && (
             <span

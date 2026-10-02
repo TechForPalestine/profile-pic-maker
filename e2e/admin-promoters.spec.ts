@@ -156,9 +156,7 @@ test.describe('Promoter approvals page', () => {
     expect(posts[1]).toEqual({ action: 'unapprove', code: 'paul' });
   });
 
-  test('shows last-7-day numbers per entry and flags unusual ones', async ({
-    page,
-  }) => {
+  test('shows numbers per entry and flags unusual ones', async ({ page }) => {
     const shady = {
       code: 'shady',
       displayName: 'Shady',
@@ -214,6 +212,67 @@ test.describe('Promoter approvals page', () => {
     await expect(
       stats.filter({ hasText: '40 downloads, 90 visits' }),
     ).not.toContainText('check these numbers');
+  });
+
+  test('shows all-time numbers and sorts by newest, downloads or visits', async ({
+    page,
+  }) => {
+    const entry = (code: string, displayName: string, createdAt: string) => ({
+      code,
+      displayName,
+      status: 'pending',
+      createdAt,
+    });
+    await page.route('**/api/admin/promoters', (route) =>
+      route.fulfill({
+        json: {
+          pending: [
+            entry('old', 'Oldest', '2026-09-01T10:00:00.000Z'),
+            entry('mid', 'Middle', '2026-09-10T10:00:00.000Z'),
+            entry('new', 'Newest', '2026-09-20T10:00:00.000Z'),
+          ],
+          approved: [],
+          rejected: [],
+        },
+      }),
+    );
+    const windows: string[] = [];
+    await page.route('**/api/leaderboard**', async (route) => {
+      windows.push(new URL(route.request().url()).searchParams.get('window')!);
+      route.fulfill({
+        json: {
+          window: 'all',
+          generatedAt: '2026-09-21T12:00:00.000Z',
+          source: 'plausible',
+          promoters: [],
+          channels: [],
+          pendingCounts: {
+            [fingerprint('old')]: { downloads: 30, visits: 40 },
+            [fingerprint('mid')]: { downloads: 5, visits: 90 },
+            [fingerprint('new')]: { downloads: 10, visits: 20 },
+          },
+        },
+      });
+    });
+    await page.addInitScript(() =>
+      sessionStorage.setItem(
+        'ppm-admin-token',
+        'a-very-long-admin-token-for-tests',
+      ),
+    );
+    await page.goto('/admin/promoters');
+
+    const names = page.locator('li span.font-semibold');
+    await expect(names).toHaveText(['Newest', 'Middle', 'Oldest']);
+    await expect(page.getByTestId('entry-stats').first()).toContainText(
+      'All time: 10 downloads, 20 visits',
+    );
+    expect(windows).toEqual(['all']);
+
+    await page.getByLabel('Sort by').selectOption('downloads');
+    await expect(names).toHaveText(['Oldest', 'Newest', 'Middle']);
+    await page.getByLabel('Sort by').selectOption('visits');
+    await expect(names).toHaveText(['Middle', 'Oldest', 'Newest']);
   });
 
   test('warns when requests are only kept in memory', async ({ page }) => {
