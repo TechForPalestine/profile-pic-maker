@@ -2,16 +2,17 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import { FunnelEvent } from '@/lib/analytics';
 import { cachedBoard } from '@/lib/board-cache';
-import { buildLeaderboard } from '@/lib/leaderboard';
+import { buildLeaderboard, maxByKey } from '@/lib/leaderboard';
 import {
   createPlausibleClient,
   hasPlausibleEnv,
   isLeaderboardWindow,
   type PlausibleEnv,
+  PAGEVIEW,
 } from '@/lib/plausible-stats';
 import { getPromoterStore } from '@/lib/promoters';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
-import { leaderboardEnabled } from '@/lib/referral';
+import { isPromoterCode, leaderboardEnabled } from '@/lib/referral';
 
 export const runtime = 'edge';
 
@@ -52,22 +53,32 @@ export async function GET(request: NextRequest) {
   try {
     const board = await cachedBoard(requested, async () => {
       const plausible = createPlausibleClient(env);
-      const [approved, byReferrer, visitsByReferrer, bySource] =
-        await Promise.all([
-          getPromoterStore().listApproved(),
-          plausible.downloadsBy('event:props:referrer', requested),
-          plausible.countBy(
-            FunnelEvent.Landed,
-            'event:props:referrer',
-            requested,
-          ),
-          plausible.downloadsBy('visit:source', requested),
-        ]);
+      // Two requests per window: by referrer (downloads and Landed), and by
+      // source (page views that arrived through `?ref=`, and the channel mix).
+      const [approved, byReferrer, bySource] = await Promise.all([
+        getPromoterStore().listApproved(),
+        plausible.count(
+          [FunnelEvent.Landed, FunnelEvent.Downloaded],
+          'event:props:referrer',
+          requested,
+        ),
+        plausible.count(
+          [PAGEVIEW, FunnelEvent.Downloaded],
+          'visit:source',
+          requested,
+        ),
+      ]);
+      // Visits: whichever is higher of Landed (any visit while the referrer
+      // is remembered) and page views that came in through the link itself
+      // (Plausible's own count, so it survives a missed Landed event).
+      const linkVisits = bySource[PAGEVIEW].filter((row) =>
+        isPromoterCode(row.key),
+      );
       return buildLeaderboard({
         window: requested,
-        byReferrer,
-        visitsByReferrer,
-        bySource,
+        byReferrer: byReferrer[FunnelEvent.Downloaded],
+        visitsByReferrer: maxByKey(byReferrer[FunnelEvent.Landed], linkVisits),
+        bySource: bySource[FunnelEvent.Downloaded],
         approved,
       });
     });

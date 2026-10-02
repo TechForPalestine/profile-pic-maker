@@ -237,3 +237,17 @@ export async function buildLeaderboard({
     ),
   };
 }
+
+/** Merge counts for the same keys, keeping the higher number of each. */
+export function maxByKey(...lists: CountRow[][]): CountRow[] {
+  const merged = new Map<string, CountRow>();
+  for (const row of lists.flat()) {
+    const seen = merged.get(row.key);
+    merged.set(row.key, {
+      key: row.key,
+      visitors: Math.max(seen?.visitors ?? 0, row.visitors),
+      events: Math.max(seen?.events ?? 0, row.events),
+    });
+  }
+  return [...merged.values()];
+}
