@@ -66,6 +66,9 @@ const OWN_ROW_COPY: Record<
   },
 };
 
+/** Rows shown on the board; the viewer's own row is always kept. */
+const TOP = 10;
+
 export default function Board() {
   const [window, setWindow] = useState<LeaderboardWindow>('7d');
   const [state, setState] = useState<BoardState>({ status: 'loading' });
@@ -173,6 +176,12 @@ function BoardTable({
   mine?: Mine;
 }) {
   const topDownloads = board.promoters[0]?.downloads ?? 0;
+  // Top 10 with at least one download, so a quiet window is not a wall of
+  // zeros all tied for second place.
+  const rows = board.promoters.filter(
+    (row, index) =>
+      row.code === mine?.code || (row.downloads > 0 && index < TOP),
+  );
   const mineIsListed = mine
     ? board.promoters.some((row) => row.code === mine.code)
     : false;
@@ -218,14 +227,18 @@ function BoardTable({
           </div>
         </div>
       )}
-      {board.promoters.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="rounded-2xl border border-gray-300 bg-gray-50 px-4 py-6 text-sm text-gray-600 text-center">
-          <p className="font-semibold text-gray-900">Nobody is listed yet.</p>
+          <p className="font-semibold text-gray-900">
+            {board.promoters.length === 0
+              ? 'Nobody is listed yet.'
+              : 'No downloads yet.'}
+          </p>
           <p>Get your link below and be the first name here.</p>
         </div>
       ) : (
         <ol className="space-y-2" aria-label="Promoters">
-          {board.promoters.map((row) => (
+          {rows.map((row) => (
             <li
               key={row.code}
               data-mine={mine?.code === row.code || undefined}

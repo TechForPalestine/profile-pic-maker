@@ -27,7 +27,8 @@ How it fits together (`src/lib/referral.ts`, `promoters.ts`, `leaderboard.ts`):
   by visit source (people who arrived through a `?ref=` link), joins them onto the approved registry, and computes each
   window at most once every ten minutes and shares the result through KV
   (`src/lib/board-cache.ts`), so visitors never reach the Stats API directly. Rows rank by
-  unique downloads; visits are shown for context. Without a Plausible key it
+  unique downloads; visits are shown for context. The page shows the top 10
+  with at least one download, plus the viewer's own row. Without a Plausible key it
   answers 503 and the page shows a "warming up" state. Counts for codes that
   are not approved travel as `pendingCounts`, keyed by a SHA-256 fingerprint
   of the code, so the browser that created a code can show its owner their

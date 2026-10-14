@@ -210,6 +210,46 @@ test.describe('The leaderboard page', () => {
     await expect(page.getByText('Nobody is listed yet.')).toBeVisible();
   });
 
+  test('shows the top 10 with downloads, plus your own row', async ({
+    page,
+  }) => {
+    const promoters = Array.from({ length: 14 }, (_, i) => ({
+      code: `p${i}`,
+      displayName: `Promoter ${i}`,
+      link: '',
+      recruits: 0,
+      rank: i + 1,
+      downloads: Math.max(0, 12 - i),
+      visits: 0,
+    }));
+    await page.route('**/api/leaderboard**', (route) =>
+      route.fulfill({ json: { ...board('7d'), promoters } }),
+    );
+    await rememberMine(page, {
+      code: 'p13',
+      displayName: 'Promoter 13',
+      createdAt: '2026-09-01T10:00:00.000Z',
+      submittedAt: '2026-09-01T10:05:00.000Z',
+    });
+    await page.goto('/leaderboard');
+    const rows = page.getByRole('list', { name: 'Promoters' }).locator('li');
+    await expect(rows).toHaveCount(11);
+    await expect(rows.last()).toContainText('Promoter 13');
+    await expect(rows.last()).toContainText('you');
+  });
+
+  test('says so when listed promoters have no downloads yet', async ({
+    page,
+  }) => {
+    const quiet = board('day');
+    quiet.promoters.forEach((row) => (row.downloads = 0));
+    await page.route('**/api/leaderboard**', (route) =>
+      route.fulfill({ json: quiet }),
+    );
+    await page.goto('/leaderboard');
+    await expect(page.getByText('No downloads yet.')).toBeVisible();
+  });
+
   test('is reachable from the home page and explains the rules', async ({
     page,
   }) => {
