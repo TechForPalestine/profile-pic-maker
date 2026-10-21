@@ -12,6 +12,9 @@
 //   MATTERMOST_WEBHOOK_URL          Mattermost incoming webhook; posts each
 //                                   new listing request (unset: no posts)
 //   NEXT_PUBLIC_SHARE_VARIANT       classic (default), link-first or split
+//   BRAND_LINKS                     co-branding links and their text, as JSON
+//                                   {"<code>": {"brand": "<id>", "text": {...}}};
+//                                   see src/lib/brands.ts (unset: no co-branding)
 // Do not add these to "vars" in this file: a file variable and a dashboard Secret
 // with the same name conflict.
 //

@@ -21,7 +21,8 @@ declare global {
  * PhotoFetched: a usable source is obtained (data URL / social profile URL).
  * PreviewShown: that photo actually renders on screen.
  * Downloaded: the final framed image is downloaded (carries `branding`:
- *   whether the short URL was baked into the ring, and `referrer` as above,
+ *   whether the short URL was baked into the ring; `cobrand`: the
+ *   co-brand overlay that replaced it, or `off` (see `@/lib/brands`); `referrer` as above,
  *   which is what the promoter leaderboard counts, and `variant`).
  */
 export const FunnelEvent = {
