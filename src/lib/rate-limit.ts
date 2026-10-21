@@ -83,4 +83,5 @@ export const LIMITS = {
   admin: { name: 'admin', limit: 30 },
   leaderboard: { name: 'leaderboard', limit: 60 },
   referralHit: { name: 'referral-hit', limit: 10 },
+  brand: { name: 'brand', limit: 20 },
 } as const satisfies Record<string, RateLimit>;

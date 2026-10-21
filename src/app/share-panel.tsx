@@ -17,7 +17,7 @@ import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   FaDownload,
   FaFacebookF,
@@ -28,7 +28,6 @@ import {
   FaXTwitter,
 } from 'react-icons/fa6';
 
-import BrandingRing from './branding-ring';
 import MyLinkCard from './my-link-card';
 
 // Official brand colours make the row instantly recognisable.
@@ -56,9 +55,9 @@ interface SharePanelProps {
   method: string;
   /** Rasterises the framed 1:1 profile picture (same node the download uses). */
   generateProfileImage: () => Promise<string | undefined>;
-  /** Mirrors the ring's short URL onto the story card's picture, so what gets
-   *  shared matches the picture the user just downloaded. */
-  showBranding: boolean;
+  /** The frame's overlay (short URL or co-brand), mirrored onto the story
+   *  card's picture so what gets shared matches the download. */
+  overlay: ReactNode;
   /** Which share panel to show; see `@/lib/share-variant`. */
   variant?: ShareVariant;
 }
@@ -67,7 +66,7 @@ export default function SharePanel({
   userImageUrl,
   method,
   generateProfileImage,
-  showBranding,
+  overlay,
   variant = 'classic',
 }: SharePanelProps) {
   // Link-first: this browser's personal link, made on the spot (anonymous)
@@ -375,7 +374,7 @@ export default function SharePanel({
               }}
               className="object-cover rounded-full"
             />
-            {showBranding && <BrandingRing />}
+            {overlay}
           </div>
           <p className="text-white text-3xl font-semibold mt-6">
             I stand with Palestine

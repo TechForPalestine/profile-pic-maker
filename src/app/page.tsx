@@ -27,6 +27,7 @@ import { FEATURED_FAQ_ENTRIES } from '@/lib/faq';
 import Link from 'next/link';
 
 import BrandingRing from './branding-ring';
+import { BRANDS, type Brand, type BrandText } from './brands';
 import FaqList from './faq';
 import MyLinkCard from './my-link-card';
 import SharePanel from './share-panel';
@@ -42,6 +43,17 @@ export default function Home() {
   // Off by default: the picture is the user's, so the address only goes on it
   // if they ask for it. One click adds it.
   const [showBranding, setShowBranding] = useState(false);
+  // Co-branding (`?b=<code>`, see `@/lib/brands`): the brand the link unlocked,
+  // on by default since the person came for it, and replacing the short URL,
+  // since both sit on the ring's bottom arc.
+  const [brand, setBrand] = useState<{ id: string; text: BrandText } & Brand>();
+  const [showBrand, setShowBrand] = useState(true);
+  const activeBrand = showBrand ? brand : undefined;
+  const overlay = activeBrand ? (
+    <activeBrand.Overlay text={activeBrand.text} />
+  ) : (
+    showBranding && <BrandingRing />
+  );
   const [variant, setVariant] = useState<ShareVariant>('classic');
   // Link-first only: the link this browser already has, shown at the top on
   // a return visit so the person sees what it has done since.
@@ -61,6 +73,20 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setVariant(assigned);
     if (assigned === 'link-first') setMyLink(readMyPromoter());
+    const brandCode = new URLSearchParams(window.location.search).get('b');
+    if (brandCode) {
+      fetch(`/api/brand?code=${encodeURIComponent(brandCode)}`)
+        .then((res) => (res.ok ? res.json() : undefined))
+        .then((link?: { brand: string; text: Record<string, string> }) => {
+          const found = link ? BRANDS[link.brand] : undefined;
+          if (!found) return;
+          // The secret's text overrides the brand's defaults, key by key.
+          const text = { ...found.text, ...link!.text };
+          setBrand({ ...found, id: link!.brand, text });
+        })
+        // Unknown or retired code, or offline: the plain frame.
+        .catch(() => {});
+    }
     trackEvent(FunnelEvent.Landed, {
       referrer: referrerProp(),
       variant: assigned,
@@ -178,7 +204,8 @@ export default function Home() {
       download(generatedImageUrl, `profile-pic-${filePostfix}.png`);
       trackEvent(FunnelEvent.Downloaded, {
         method: filePostfix ?? 'unknown',
-        branding: showBranding ? 'on' : 'off',
+        branding: showBranding && !activeBrand ? 'on' : 'off',
+        cobrand: activeBrand?.id ?? 'off',
         referrer: referrerProp(),
         variant,
       });
@@ -288,7 +315,7 @@ export default function Home() {
                   className="object-cover rounded-full cursor-pointer"
                 />
               )}
-              {showBranding && !loader && <BrandingRing />}
+              {!loader && overlay}
             </div>
           </div>
         </div>
@@ -300,7 +327,7 @@ export default function Home() {
                   userImageUrl={userImageUrl}
                   method={filePostfix ?? 'unknown'}
                   generateProfileImage={generateFinalImage}
-                  showBranding={showBranding}
+                  overlay={overlay}
                   variant={variant}
                 />
               ) : (
@@ -308,29 +335,47 @@ export default function Home() {
                   Download the image, then use it as your new profile picture.
                 </p>
               )}
-              <label className="flex items-start gap-3 mb-3 p-3 text-left text-sm border rounded-lg cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={showBranding}
-                  onChange={(e) => {
-                    setShowBranding(e.target.checked);
-                    trackEvent(FunnelEvent.BrandingToggled, {
-                      branding: e.target.checked ? 'on' : 'off',
-                      method: filePostfix ?? 'unknown',
-                    });
-                  }}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-gray-900"
-                />
-                <span>
-                  <span className="font-semibold">
-                    Add {SHORT_URL_LABEL} to the frame
+              {brand && (
+                <label className="flex items-start gap-3 mb-3 p-3 text-left text-sm border rounded-lg cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showBrand}
+                    onChange={(e) => setShowBrand(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-gray-900"
+                  />
+                  <span>
+                    <span className="font-semibold">{brand.text.label}</span>
+                    <span className="block text-gray-600">
+                      {brand.text.hint}
+                    </span>
                   </span>
-                  <span className="block text-gray-600">
-                    So everyone who sees your picture knows where to make
-                    theirs.
+                </label>
+              )}
+              {!activeBrand && (
+                <label className="flex items-start gap-3 mb-3 p-3 text-left text-sm border rounded-lg cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showBranding}
+                    onChange={(e) => {
+                      setShowBranding(e.target.checked);
+                      trackEvent(FunnelEvent.BrandingToggled, {
+                        branding: e.target.checked ? 'on' : 'off',
+                        method: filePostfix ?? 'unknown',
+                      });
+                    }}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-gray-900"
+                  />
+                  <span>
+                    <span className="font-semibold">
+                      Add {SHORT_URL_LABEL} to the frame
+                    </span>
+                    <span className="block text-gray-600">
+                      So everyone who sees your picture knows where to make
+                      theirs.
+                    </span>
                   </span>
-                </span>
-              </label>
+                </label>
+              )}
               <button
                 onClick={handleDownload}
                 className="rounded-full mb-2 py-3 px-2 w-full border border-gray-900 bg-gray-900 text-white text-xl"
