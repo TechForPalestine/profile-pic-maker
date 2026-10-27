@@ -26,9 +26,9 @@ export const BRANDS: Record<string, Brand> = {
     text: {
       label: 'Add the “Hello, I’m a T4P member” name tag',
       hint: 'With a join link along the bottom of the frame.',
-      // TODO: placeholder until the t4p.al/j redirect to the membership page
-      // exists. Around 25 characters fit on the arc.
-      link: 'join at t4p.al/j',
+      // t4p.al/j redirects to the membership page. Around 25 characters fit
+      // on the arc.
+      link: 'Join at https://t4p.al/j',
     },
   },
 };
