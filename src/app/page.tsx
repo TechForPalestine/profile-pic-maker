@@ -30,6 +30,7 @@ import BrandingRing from './branding-ring';
 import { BRANDS, type Brand, type BrandText } from './brands';
 import FaqList from './faq';
 import MyLinkCard from './my-link-card';
+import { MIN_PHOTO_ZOOM, photoStyle } from './photo-style';
 import SharePanel from './share-panel';
 import SurveyPanel from './survey-panel';
 
@@ -54,6 +55,9 @@ export default function Home() {
   ) : (
     showBranding && <BrandingRing />
   );
+  // 1 fills the frame; lower shrinks the photo so a tight crop can clear the
+  // brand's overlay (see `./photo-style`). Only offered on a co-brand link.
+  const [zoom, setZoom] = useState(1);
   const [variant, setVariant] = useState<ShareVariant>('classic');
   // Link-first only: the link this browser already has, shown at the top on
   // a return visit so the person sees what it has done since.
@@ -206,6 +210,7 @@ export default function Home() {
         method: filePostfix ?? 'unknown',
         branding: showBranding && !activeBrand ? 'on' : 'off',
         cobrand: activeBrand?.id ?? 'off',
+        zoomed: zoom < 1 ? 'on' : 'off',
         referrer: referrerProp(),
         variant,
       });
@@ -217,6 +222,7 @@ export default function Home() {
     trackEvent(FunnelEvent.StartOver, { method: filePostfix ?? 'unknown' });
     setUserImageUrl(undefined);
     setHasDownloaded(false);
+    setZoom(1);
   };
 
   return (
@@ -305,19 +311,27 @@ export default function Home() {
                   }}
                   width={100}
                   height={100}
-                  style={{
-                    position: 'absolute',
-                    width: '85%',
-                    height: '85%',
-                    left: '7.5%',
-                    top: '7.5%',
-                  }}
+                  style={photoStyle(zoom)}
                   className="object-cover rounded-full cursor-pointer"
                 />
               )}
               {!loader && overlay}
             </div>
           </div>
+          {userImageUrl && brand && (
+            <label className="flex items-center justify-center gap-3 mt-4 text-sm text-gray-600">
+              Photo size
+              <input
+                type="range"
+                min={MIN_PHOTO_ZOOM}
+                max={1}
+                step={0.01}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-40 accent-gray-900"
+              />
+            </label>
+          )}
         </div>
         <div>
           {userImageUrl ? (
@@ -328,6 +342,7 @@ export default function Home() {
                   method={filePostfix ?? 'unknown'}
                   generateProfileImage={generateFinalImage}
                   overlay={overlay}
+                  zoom={zoom}
                   variant={variant}
                 />
               ) : (

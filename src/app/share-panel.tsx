@@ -29,6 +29,7 @@ import {
 } from 'react-icons/fa6';
 
 import MyLinkCard from './my-link-card';
+import { photoStyle } from './photo-style';
 
 // Official brand colours make the row instantly recognisable.
 const CHANNEL_STYLES = {
@@ -58,6 +59,8 @@ interface SharePanelProps {
   /** The frame's overlay (short URL or co-brand), mirrored onto the story
    *  card's picture so what gets shared matches the download. */
   overlay: ReactNode;
+  /** The photo's zoom in the frame, mirrored the same way. */
+  zoom: number;
   /** Which share panel to show; see `@/lib/share-variant`. */
   variant?: ShareVariant;
 }
@@ -67,6 +70,7 @@ export default function SharePanel({
   method,
   generateProfileImage,
   overlay,
+  zoom,
   variant = 'classic',
 }: SharePanelProps) {
   // Link-first: this browser's personal link, made on the spot (anonymous)
@@ -365,13 +369,7 @@ export default function SharePanel({
               src={userImageUrl}
               width={100}
               height={100}
-              style={{
-                position: 'absolute',
-                width: '85%',
-                height: '85%',
-                left: '7.5%',
-                top: '7.5%',
-              }}
+              style={photoStyle(zoom)}
               className="object-cover rounded-full"
             />
             {overlay}

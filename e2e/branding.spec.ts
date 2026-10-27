@@ -36,6 +36,16 @@ function stickerPixels(bytes: Buffer): number {
   );
 }
 
+// Below the photo, at 6 o'clock just inside the ring: covered by the photo at
+// full size, and the flag's green stripe once the photo is shrunk.
+function flagPixelsBelowPhoto(bytes: Buffer): number {
+  return countPixels(
+    bytes,
+    (dx, dy) => dy >= 90 && dy <= 115 && Math.abs(dx) <= 20,
+    (r, g, b) => g > 100 && r < 60 && b < 90,
+  );
+}
+
 function countPixels(
   bytes: Buffer,
   inRegion: (dx: number, dy: number, radius: number) => boolean,
@@ -136,6 +146,20 @@ test.describe('Co-brand link', () => {
     expect(stickerPixels(await downloadPicture(page))).toBe(0);
   });
 
+  test('offers a photo size slider that shrinks the photo upwards', async ({
+    page,
+  }) => {
+    await page.goto('/?b=members');
+    await page.setInputFiles('#fileInput', PHOTO);
+    // Tag off, so the sampled spot shows only the photo or the flag.
+    await page.getByRole('checkbox', { name: /name tag/ }).uncheck();
+    expect(flagPixelsBelowPhoto(await downloadPicture(page))).toBe(0);
+    await page.getByRole('slider', { name: 'Photo size' }).fill('0.6');
+    expect(flagPixelsBelowPhoto(await downloadPicture(page))).toBeGreaterThan(
+      200,
+    );
+  });
+
   test('is not offered without a valid link', async ({ page }) => {
     for (const url of ['/', '/?b=nope']) {
       await page.goto(url);
@@ -145,6 +169,9 @@ test.describe('Co-brand link', () => {
       ).toBeVisible();
       await expect(
         page.getByRole('checkbox', { name: /name tag/ }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole('slider', { name: 'Photo size' }),
       ).toHaveCount(0);
     }
   });
