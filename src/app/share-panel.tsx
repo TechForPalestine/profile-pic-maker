@@ -29,7 +29,7 @@ import {
 } from 'react-icons/fa6';
 
 import MyLinkCard from './my-link-card';
-import { photoStyle } from './photo-style';
+import FramedPhoto, { type PhotoFit } from './framed-photo';
 
 // Official brand colours make the row instantly recognisable.
 const CHANNEL_STYLES = {
@@ -59,8 +59,8 @@ interface SharePanelProps {
   /** The frame's overlay (short URL or co-brand), mirrored onto the story
    *  card's picture so what gets shared matches the download. */
   overlay: ReactNode;
-  /** The photo's zoom in the frame, mirrored the same way. */
-  zoom: number;
+  /** Where the photo sits in the frame, mirrored the same way. */
+  fit: PhotoFit;
   /** Which share panel to show; see `@/lib/share-variant`. */
   variant?: ShareVariant;
 }
@@ -70,7 +70,7 @@ export default function SharePanel({
   method,
   generateProfileImage,
   overlay,
-  zoom,
+  fit,
   variant = 'classic',
 }: SharePanelProps) {
   // Link-first: this browser's personal link, made on the spot (anonymous)
@@ -364,14 +364,7 @@ export default function SharePanel({
               className="rounded-full"
               unoptimized
             />
-            <Image
-              alt=""
-              src={userImageUrl}
-              width={100}
-              height={100}
-              style={photoStyle(zoom)}
-              className="object-cover rounded-full"
-            />
+            <FramedPhoto src={userImageUrl} fit={fit} />
             {overlay}
           </div>
           <p className="text-white text-3xl font-semibold mt-6">
