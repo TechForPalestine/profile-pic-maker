@@ -30,6 +30,12 @@ import BrandingRing from './branding-ring';
 import { BRANDS, type Brand, type BrandText } from './brands';
 import FaqList from './faq';
 import MyLinkCard from './my-link-card';
+import FramedPhoto, {
+  DEFAULT_FIT,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  type PhotoFit,
+} from './framed-photo';
 import SharePanel from './share-panel';
 import SurveyPanel from './survey-panel';
 
@@ -54,6 +60,9 @@ export default function Home() {
   ) : (
     showBranding && <BrandingRing />
   );
+  // Where the photo sits in the circle (see `./framed-photo`), so a tight crop
+  // can clear the brand's overlay. Only adjustable on a co-brand link.
+  const [fit, setFit] = useState<PhotoFit>(DEFAULT_FIT);
   const [variant, setVariant] = useState<ShareVariant>('classic');
   // Link-first only: the link this browser already has, shown at the top on
   // a return visit so the person sees what it has done since.
@@ -206,6 +215,7 @@ export default function Home() {
         method: filePostfix ?? 'unknown',
         branding: showBranding && !activeBrand ? 'on' : 'off',
         cobrand: activeBrand?.id ?? 'off',
+        adjusted: fit === DEFAULT_FIT ? 'off' : 'on',
         referrer: referrerProp(),
         variant,
       });
@@ -217,6 +227,7 @@ export default function Home() {
     trackEvent(FunnelEvent.StartOver, { method: filePostfix ?? 'unknown' });
     setUserImageUrl(undefined);
     setHasDownloaded(false);
+    setFit(DEFAULT_FIT);
   };
 
   return (
@@ -291,10 +302,11 @@ export default function Home() {
                   className="object-cover rounded-full cursor-wait"
                 />
               ) : (
-                <Image
+                <FramedPhoto
                   id="userImage"
-                  alt="profile-image"
                   src={userImageUrl ?? '/user.jpg'}
+                  fit={fit}
+                  onFitChange={userImageUrl && brand ? setFit : undefined}
                   onLoad={() => {
                     // Only the user's selected photo counts, not the placeholder.
                     if (userImageUrl) {
@@ -303,21 +315,30 @@ export default function Home() {
                       });
                     }
                   }}
-                  width={100}
-                  height={100}
-                  style={{
-                    position: 'absolute',
-                    width: '85%',
-                    height: '85%',
-                    left: '7.5%',
-                    top: '7.5%',
-                  }}
-                  className="object-cover rounded-full cursor-pointer"
                 />
               )}
               {!loader && overlay}
             </div>
           </div>
+          {userImageUrl && brand && (
+            <div className="mt-4 text-sm text-gray-600">
+              <label className="flex items-center justify-center gap-3">
+                Zoom
+                <input
+                  type="range"
+                  min={MIN_ZOOM}
+                  max={MAX_ZOOM}
+                  step={0.01}
+                  value={fit.zoom}
+                  onChange={(e) =>
+                    setFit({ ...fit, zoom: Number(e.target.value) })
+                  }
+                  className="w-40 accent-gray-900"
+                />
+              </label>
+              <p className="mt-1">Drag the photo to move it.</p>
+            </div>
+          )}
         </div>
         <div>
           {userImageUrl ? (
@@ -328,6 +349,7 @@ export default function Home() {
                   method={filePostfix ?? 'unknown'}
                   generateProfileImage={generateFinalImage}
                   overlay={overlay}
+                  fit={fit}
                   variant={variant}
                 />
               ) : (
