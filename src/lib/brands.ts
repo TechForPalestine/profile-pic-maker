@@ -6,7 +6,7 @@
  * still switch it off. Which code unlocks which brand, and the brand's text,
  * live only in the `BRAND_LINKS` secret, never in the repo, as JSON:
  *
- *   { "<code>": { "brand": "t4p-member", "text": { "link": "join at t4p.al/j" } } }
+ *   { "<code>": { "brand": "t4p-member", "text": { "link": "Join at https://t4p.al/j" } } }
  *
  * `brand` is a key of BRANDS (brands.tsx). `text` is optional and overrides
  * that brand's default text, key by key (label, hint, and whatever the
