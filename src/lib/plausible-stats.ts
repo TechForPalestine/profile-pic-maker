@@ -13,7 +13,7 @@ import { FunnelEvent } from '@/lib/analytics';
  * - Stats API access (a Business plan feature at the time of writing) and an
  *   API key, kept in `PLAUSIBLE_API_KEY` as a server-side secret.
  * - `referrer` listed under the site's allowed custom properties.
- * The leaderboard route makes two requests per window and caches for ten
+ * The leaderboard route makes one request per window and caches for ten
  * minutes, so it stays far inside the key's hourly budget.
  */
 
@@ -50,11 +50,8 @@ export interface CountRow {
   events: number;
 }
 
-/** Plausible's built-in event for page views (sent by its own script). */
-export const PAGEVIEW = 'pageview';
-
 export type CountedEvent =
-  typeof FunnelEvent.Landed | typeof FunnelEvent.Downloaded | typeof PAGEVIEW;
+  typeof FunnelEvent.Landed | typeof FunnelEvent.Downloaded;
 
 /** Rows per event name: every requested event is present, possibly empty. */
 export type CountsByEvent = Record<CountedEvent, CountRow[]>;
