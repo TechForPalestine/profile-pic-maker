@@ -93,6 +93,8 @@ export default function FramedPhoto({
         left: '7.5%',
         top: '7.5%',
         overflow: 'hidden',
+        // See the border image in page.tsx: WebKit needs clip-path here too.
+        clipPath: 'circle(50%)',
         touchAction: onFitChange ? 'none' : undefined,
       }}
       className={`rounded-full ${onFitChange ? 'cursor-move' : ''}`}
