@@ -1,4 +1,4 @@
-const { withSentryConfig } = require('@sentry/nextjs');
+const { withSentryConfig } = require('@sentry/nextjs/config');
 
 // On Cloudflare Pages the promoter leaderboard is off unless the project's
 // NEXT_PUBLIC_LEADERBOARD Secret says "on", so it is switched from the
@@ -25,9 +25,7 @@ if (
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Required on Next.js 14 so `src/instrumentation.ts` is loaded (stable in Next 15).
   experimental: {
-    instrumentationHook: true,
     // TypeScript 7 ships no programmatic compiler API, so Next.js must shell out
     // to the tsc CLI for build-time type checking instead.
     useTypeScriptCli: true,
