@@ -6,6 +6,9 @@ on:
   # Run on every pull request, regardless of base branch, so stacked PRs are
   # covered too.
   pull_request:
+  # Required checks must also report on the merge queue's temporary branch, or
+  # queued PRs wait forever.
+  merge_group:
 
 # Cancel superseded runs on the same ref so rapid pushes don't queue up.
 concurrency:
