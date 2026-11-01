@@ -19,7 +19,7 @@
     "test:e2e:live": "playwright test --grep @live"
   },
   "dependencies": {
-    "@sentry/nextjs": "^10.75.3",
+    "@sentry/nextjs": "^11.8.0",
     "dayjs": "^1.11.23",
     "downloadjs": "^1.4.7",
     "html-to-image": "^1.11.13",
