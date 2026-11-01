@@ -281,7 +281,14 @@ export default function Home() {
                 alt="border"
                 id="borderImage"
                 src={'/bg.webp'}
-                style={{ position: 'absolute', width: '100%', height: '100%' }}
+                // clip-path as well as rounded-full: newer WebKit ignores
+                // border-radius clipping when html-to-image rasterises.
+                style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  clipPath: 'circle(50%)',
+                }}
                 className="rounded-full"
                 unoptimized
               />
