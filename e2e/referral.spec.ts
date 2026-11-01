@@ -276,6 +276,7 @@ test.describe('The join page', () => {
   test('does not send a channel link as the recruiter', async ({ page }) => {
     const posted = await captureListing(page);
     await page.goto('/?ref=ch-mighty-missions');
+    await storedReferrer(page)('ch-mighty-missions');
     await createLink(page);
     await expect(page.getByText(/arrived through/)).toHaveCount(0);
     await page.getByLabel('Your link (optional)').fill('x.com/paulbiggar');
@@ -289,6 +290,7 @@ test.describe('The join page', () => {
   }) => {
     const posted = await captureListing(page);
     await page.goto('/?ref=zaher-7k2q');
+    await storedReferrer(page)('zaher-7k2q');
     await createLink(page);
     await expect(page.getByText(/arrived through/)).toContainText('zaher-7k2q');
     await page.getByLabel('Your link (optional)').fill('x.com/paulbiggar');
